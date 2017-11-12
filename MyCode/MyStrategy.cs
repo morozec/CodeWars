@@ -13,12 +13,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
     {
         private const int RotationTime = 50;
         private const int MoveCenterTime = 100;
-        private const double OkTornadoRadius = 55;
+        private const double IsCompressedEnoughTimeDelta = 5;
+        private const double RotationRadius = 50;
         private const double DistEps = 5;
 
         private const double GroupMaxRadius = 50;
 
         private const double MaxAngle = Math.PI/180*2;
+        private const double AcceptableRadiusChange = 2d;
+        private const int AcceptableVehiclesLoss = 10;
         private readonly IDictionary<VehicleType, int> _groupIndexes = new Dictionary<VehicleType, int>();
 
         private readonly IDictionary<VehicleType, IList<VehicleType>> _preferredVehicleTypes =
@@ -92,6 +95,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private AStar _aStar;
 
+        private int _tornadoVehiclesCount = 500;
+        private double _tornadoRadius = 100;
+
         /// <summary>
         ///     Основной метод стратегии, осуществляющий управление армией. Вызывается каждый тик.
         /// </summary>
@@ -115,7 +121,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private void MoveCenter(IList<Vehicle> myVehicles)
         {
-            _startTornadoActionTick = _world.TickIndex;
+            
             _currentTornadoAction = TornadoAction.MoveCenter;
 
             var centerX = myVehicles.Select(v => v.X).Average();
@@ -138,18 +144,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.Right = _isVerticalCenterMove ? _world.Width : centerX;
             });
 
-            //_delayedMoves.Enqueue(move =>
-            //{
-            //    move.Action = ActionType.Assign;
-            //    move.Group = 1;
-            //});
-
             _delayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Move;
                 move.X = centerX - centerX1;
                 move.Y = centerY - centerY1;
             });
+
 
             _delayedMoves.Enqueue(move =>
             {
@@ -159,18 +160,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.Left = _isVerticalCenterMove ? 0 : centerX + 1;
                 move.Bottom = _world.Height;
             });
-
-            //_delayedMoves.Enqueue(move =>
-            //{
-            //    move.Action = ActionType.Assign;
-            //    move.Group = 2;
-            //});
-
+         
             _delayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Move;
                 move.X = centerX - centerX2;
                 move.Y = centerY - centerY2;
+                _startTornadoActionTick = _world.TickIndex;
             });
 
             if (!_isGroudGroupsSet)
@@ -187,7 +183,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private void Rotate(double centerX, double centerY)
         {
-            _startTornadoActionTick = _world.TickIndex;
+            
             _currentTornadoAction = TornadoAction.Rotate;
 
             _delayedMoves.Enqueue(move =>
@@ -205,6 +201,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.X = centerX;
                 move.Y = centerY;
                 move.Angle = _random.NextDouble() > 0.5 ? Math.PI : -Math.PI;
+                _startTornadoActionTick = _world.TickIndex;
             });
         }
 
@@ -236,6 +233,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     move.Y = container.SameVehiclesPoint.Y;
                     move.Angle = angle;
                     move.MaxAngularSpeed = 0.005;
+                    _startTornadoActionTick = _world.TickIndex;
                 });
             }
 
@@ -262,13 +260,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     move.Y = container.SameVehiclesPoint.Y;
                     move.Angle = angle;
                     move.MaxAngularSpeed = 0.025;
+                    _startTornadoActionTick = _world.TickIndex;
                 });
             }
         }
 
         private void MoveToEnemy(double centerX, double centerY)
         {
-            _startTornadoActionTick = _world.TickIndex;
             _currentTornadoAction = TornadoAction.MoveToEnemy;
 
             var enemyGroups = GetEnemyVehicleGroups();
@@ -281,6 +279,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.X = nearestGroup.Center.X - centerX;
                 move.Y = nearestGroup.Center.Y - centerY;
                 move.MaxSpeed = _game.TankSpeed * _game.SwampTerrainSpeedFactor;
+                _startTornadoActionTick = _world.TickIndex;
             });
         }
 
@@ -310,10 +309,20 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         myVehicles.All(v => _world.TickIndex - _updateTickByVehicleId[v.Id] >= 1))
                     {
                         _isVerticalCenterMove = !_isVerticalCenterMove;
-                        if (radius <= OkTornadoRadius)
+                        var isCompressedEnough = _world.TickIndex - _startTornadoActionTick <= IsCompressedEnoughTimeDelta;
+                            //myVehicles.Count(v => _updateTickByVehicleId[v.Id] >= _startTornadoActionTick) <= 10;
+                        if (isCompressedEnough)
                         {
-                            if (centerX < OkTornadoRadius || centerY < OkTornadoRadius)
+                            _tornadoRadius = radius;
+                            _tornadoVehiclesCount = myVehicles.Count;
+                            if (centerX < RotationRadius || centerY < RotationRadius)
                             {
+                                _delayedMoves.Enqueue(move =>
+                                {
+                                    move.Action = ActionType.ClearAndSelect;
+                                    move.Right = _world.Width;
+                                    move.Bottom = _world.Height;
+                                });
                                 MoveToEnemy(centerX, centerY);
                             }
                             else
@@ -350,7 +359,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         });
                         MoveToEnemy(centerX, centerY);
                     }
-                    else if (_world.TickIndex - _startTornadoActionTick >= 6)
+                    else
                     {
                         RotateToEnemy(centerX, centerY);
                     }
@@ -360,12 +369,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                 case TornadoAction.MoveToEnemy:
                 {
-                    if (radius > OkTornadoRadius)
+                    if (radius - _tornadoRadius >= AcceptableRadiusChange ||
+                        _tornadoVehiclesCount - myVehicles.Count >= AcceptableVehiclesLoss)
                     {
                         MoveCenter(myVehicles);
                         return;
                     }
-                    
+
                     var arrvs = GetVehicles(Ownership.ALLY, VehicleType.Arrv);
                     var isOkArrvs = !arrvs.Any() || GetRotateToEnemyPointDist(centerX, centerY, arrvs, true) <= DistEps;
                     
@@ -374,13 +384,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                           GetRotateToEnemyPointDist(centerX, centerY, helicopters, false) <= DistEps;
                        
 
-                    var isFarFromBorders = centerX >= OkTornadoRadius && centerY >= OkTornadoRadius;
+                    var isFarFromBorders = centerX >= RotationRadius && centerY >= RotationRadius;
 
                     if (isFarFromBorders && (!isOkHelicopters || !isOkArrvs))
                     {
                         RotateToEnemy(centerX, centerY);
                     }
-                    else if (_world.TickIndex - _startTornadoActionTick >= 6)
+                    else 
                     {
                         MoveToEnemy(centerX, centerY);
                     }
