@@ -174,35 +174,45 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     var enemyGroups = GetEnemyVehicleGroups();
                     var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerX, centerY);
 
+                    var isOkArrvs = true;
+
                     var arrvs = GetVehicles(Ownership.ALLY, VehicleType.Arrv);
-                    var arrvsÑenterX = arrvs.Select(v => v.X).Average();
-                    var arrvsÑenterY = arrvs.Select(v => v.Y).Average();
-                    var arrvsPoint = new Point(arrvsÑenterX, arrvsÑenterY);
-                    var groundVehicles = GetGroudVehicles(Ownership.ALLY);
-                    var groundVehiclesX = groundVehicles.Select(v => v.X).Average();
-                    var groundVehiclesY = groundVehicles.Select(v => v.Y).Average();
+                    if (arrvs.Any())
+                    {
+                        var arrvsÑenterX = arrvs.Select(v => v.X).Average();
+                        var arrvsÑenterY = arrvs.Select(v => v.Y).Average();
+                        var arrvsPoint = new Point(arrvsÑenterX, arrvsÑenterY);
+                        var groundVehicles = GetGroudVehicles(Ownership.ALLY);
+                        var groundVehiclesX = groundVehicles.Select(v => v.X).Average();
+                        var groundVehiclesY = groundVehicles.Select(v => v.Y).Average();
 
-                    var groundRotateToEnemyPoint = GetLineCircleBehindCrossPoint(new Point(groundVehiclesX, groundVehiclesY),
-                    nearestGroup.Center,
-                    arrvsPoint);
+                        var groundRotateToEnemyPoint =
+                            GetLineCircleBehindCrossPoint(new Point(groundVehiclesX, groundVehiclesY),
+                                nearestGroup.Center,
+                                arrvsPoint);
+                        isOkArrvs = arrvsPoint.GetDistance(groundRotateToEnemyPoint) <= DistEps;
+                    }
 
-                  
 
+                    var isOkHelicopters = true;
                     var helicopters = GetVehicles(Ownership.ALLY, VehicleType.Helicopter);
-                    var helicoptersÑenterX = helicopters.Select(v => v.X).Average();
-                    var helicoptersÑenterY = helicopters.Select(v => v.Y).Average();
-                    var helicoptersPoint = new Point(helicoptersÑenterX, helicoptersÑenterY);
-                    var airVehicles = GetAirVehicles(Ownership.ALLY);
-                    var airVehiclesX = airVehicles.Select(v => v.X).Average();
-                    var airVehiclesY = airVehicles.Select(v => v.Y).Average();
+                    if (helicopters.Any())
+                    {
+                        var helicoptersÑenterX = helicopters.Select(v => v.X).Average();
+                        var helicoptersÑenterY = helicopters.Select(v => v.Y).Average();
+                        var helicoptersPoint = new Point(helicoptersÑenterX, helicoptersÑenterY);
+                        var airVehicles = GetAirVehicles(Ownership.ALLY);
+                        var airVehiclesX = airVehicles.Select(v => v.X).Average();
+                        var airVehiclesY = airVehicles.Select(v => v.Y).Average();
 
-                    var airRotateToEnemyPoint = GetLineCircleBehindCrossPoint(new Point(airVehiclesX, airVehiclesY),
-                    nearestGroup.Center,
-                    helicoptersPoint);
-                  
+                        var airRotateToEnemyPoint = GetLineCircleBehindCrossPoint(new Point(airVehiclesX, airVehiclesY),
+                            nearestGroup.Center,
+                            helicoptersPoint);
+                        isOkHelicopters = helicoptersPoint.GetDistance(airRotateToEnemyPoint) <= DistEps;
+                    }
 
-                    if (helicoptersPoint.GetDistance(airRotateToEnemyPoint) <= DistEps && 
-                            arrvsPoint.GetDistance(groundRotateToEnemyPoint) <= DistEps)
+
+                    if (isOkArrvs && isOkHelicopters)
                     {
                             //if (vehicles.All(v => _world.TickIndex - _updateTickByVehicleId[v.Id] >= 6))
                             //{
@@ -256,37 +266,47 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     var enemyGroups = GetEnemyVehicleGroups();
                     var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerX, centerY);
 
-                    var arrvs = GetVehicles(Ownership.ALLY, VehicleType.Arrv);
-                    var arrvsÑenterX = arrvs.Select(v => v.X).Average();
-                    var arrvsÑenterY = arrvs.Select(v => v.Y).Average();
+                        var isOkArrvs = true;
+
+                        var arrvs = GetVehicles(Ownership.ALLY, VehicleType.Arrv);
+                    if (arrvs.Any())
+                    {
+                        var arrvsÑenterX = arrvs.Select(v => v.X).Average();
+                        var arrvsÑenterY = arrvs.Select(v => v.Y).Average();
                         var arrvsPoint = new Point(arrvsÑenterX, arrvsÑenterY);
-                    var groundVehicles = GetGroudVehicles(Ownership.ALLY);
-                    var groundVehiclesX = groundVehicles.Select(v => v.X).Average();
-                    var groundVehiclesY = groundVehicles.Select(v => v.Y).Average();
+                        var groundVehicles = GetGroudVehicles(Ownership.ALLY);
+                        var groundVehiclesX = groundVehicles.Select(v => v.X).Average();
+                        var groundVehiclesY = groundVehicles.Select(v => v.Y).Average();
 
-                    var groundRotateToEnemyPoint =
-                        GetLineCircleBehindCrossPoint(new Point(groundVehiclesX, groundVehiclesY),
-                            nearestGroup.Center,
-                            arrvsPoint);
+                        var groundRotateToEnemyPoint =
+                            GetLineCircleBehindCrossPoint(new Point(groundVehiclesX, groundVehiclesY),
+                                nearestGroup.Center,
+                                arrvsPoint);
+                            isOkArrvs = arrvsPoint.GetDistance(groundRotateToEnemyPoint) <= DistEps;
+                        }
 
 
+                    var isOkHelicopters = true;
                     var helicopters = GetVehicles(Ownership.ALLY, VehicleType.Helicopter);
-                    var helicoptersÑenterX = helicopters.Select(v => v.X).Average();
-                    var helicoptersÑenterY = helicopters.Select(v => v.Y).Average();
-                    var helicoptersPoint = new Point(helicoptersÑenterX, helicoptersÑenterY);
-                    var airVehicles = GetAirVehicles(Ownership.ALLY);
-                    var airVehiclesX = airVehicles.Select(v => v.X).Average();
-                    var airVehiclesY = airVehicles.Select(v => v.Y).Average();
+                    if (helicopters.Any())
+                    {
+                        var helicoptersÑenterX = helicopters.Select(v => v.X).Average();
+                        var helicoptersÑenterY = helicopters.Select(v => v.Y).Average();
+                        var helicoptersPoint = new Point(helicoptersÑenterX, helicoptersÑenterY);
+                        var airVehicles = GetAirVehicles(Ownership.ALLY);
+                        var airVehiclesX = airVehicles.Select(v => v.X).Average();
+                        var airVehiclesY = airVehicles.Select(v => v.Y).Average();
 
                         var airRotateToEnemyPoint = GetLineCircleBehindCrossPoint(new Point(airVehiclesX, airVehiclesY),
-                    nearestGroup.Center,
-                    helicoptersPoint);
+                            nearestGroup.Center,
+                            helicoptersPoint);
+                        isOkHelicopters = helicoptersPoint.GetDistance(airRotateToEnemyPoint) <= DistEps;
+                    }
 
-              
+
                     var isFarFromBorders = centerX >= OkTornadoRadius && centerY >= OkTornadoRadius;
 
-                    if (isFarFromBorders && 
-                            (arrvsPoint.GetDistance(groundRotateToEnemyPoint) > DistEps || helicoptersPoint.GetDistance(airRotateToEnemyPoint) > DistEps))
+                    if (isFarFromBorders && (!isOkHelicopters || !isOkArrvs))
                     {
                             _startTornadoActionTick = _world.TickIndex;
                             _currentTornadoAction = TornadoAction.RotateToEnemy;
@@ -663,66 +683,78 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 {
                     var enemyGroups = GetEnemyVehicleGroups();
                     var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerX, centerY);
-                    //_enemyPoint = nearestGroup.Center;
+                        //_enemyPoint = nearestGroup.Center;
+
 
                     var arrvs = GetVehicles(Ownership.ALLY, VehicleType.Arrv);
-                    var arrvsÑenterX = arrvs.Select(v => v.X).Average();
-                    var arrvsÑenterY = arrvs.Select(v => v.Y).Average();
-                    var groundVehicles = GetGroudVehicles(Ownership.ALLY);
-                    var groundVehiclesX = groundVehicles.Select(v => v.X).Average();
-                    var groundVehiclesY = groundVehicles.Select(v => v.Y).Average();
+                    if (arrvs.Any())
+                    {
+                        var arrvsÑenterX = arrvs.Select(v => v.X).Average();
+                        var arrvsÑenterY = arrvs.Select(v => v.Y).Average();
+                        var groundVehicles = GetGroudVehicles(Ownership.ALLY);
+                        var groundVehiclesX = groundVehicles.Select(v => v.X).Average();
+                        var groundVehiclesY = groundVehicles.Select(v => v.Y).Average();
 
-                    var groundRotateToEnemyPoint = GetLineCircleBehindCrossPoint(new Point(groundVehiclesX, groundVehiclesY),
-                        nearestGroup.Center,
-                        new Point(arrvsÑenterX, arrvsÑenterY));
+                        var groundRotateToEnemyPoint =
+                            GetLineCircleBehindCrossPoint(new Point(groundVehiclesX, groundVehiclesY),
+                                nearestGroup.Center,
+                                new Point(arrvsÑenterX, arrvsÑenterY));
+
+                        _delayedMoves.Enqueue(move =>
+                        {
+                            move.Action = ActionType.ClearAndSelect;
+                            move.Group = 1;
+                        });
+
+                        _delayedMoves.Enqueue(move =>
+                        {
+                            move.Action = ActionType.Rotate;
+                            move.X = groundVehiclesX;
+                            move.Y = groundVehiclesY;
+                            move.Angle =
+                                GetAnlge(
+                                    new Vector(new Point(groundVehiclesX, groundVehiclesY),
+                                        new Point(arrvsÑenterX, arrvsÑenterY)),
+                                    new Vector(new Point(groundVehiclesX, groundVehiclesY), groundRotateToEnemyPoint));
+                            move.MaxAngularSpeed = 0.005;
+                        });
+                    }
 
 
                     var helicopters = GetVehicles(Ownership.ALLY, VehicleType.Helicopter);
-                    var helicoptersÑenterX = helicopters.Select(v => v.X).Average();
-                    var helicoptersÑenterY = helicopters.Select(v => v.Y).Average();
-                    var airVehicles = GetAirVehicles(Ownership.ALLY);
-                    var airVehiclesX = airVehicles.Select(v => v.X).Average();
-                    var airVehiclesY = airVehicles.Select(v => v.Y).Average();
+                    if (helicopters.Any())
+                    {
+                        var helicoptersÑenterX = helicopters.Select(v => v.X).Average();
+                        var helicoptersÑenterY = helicopters.Select(v => v.Y).Average();
+                        var airVehicles = GetAirVehicles(Ownership.ALLY);
+                        var airVehiclesX = airVehicles.Select(v => v.X).Average();
+                        var airVehiclesY = airVehicles.Select(v => v.Y).Average();
 
                         var airRotateToEnemyPoint = GetLineCircleBehindCrossPoint(new Point(airVehiclesX, airVehiclesY),
-                        nearestGroup.Center,
-                        new Point(helicoptersÑenterX, helicoptersÑenterY));
+                            nearestGroup.Center,
+                            new Point(helicoptersÑenterX, helicoptersÑenterY));
 
-                    _delayedMoves.Enqueue(move =>
-                    {
-                        move.Action = ActionType.ClearAndSelect;
-                        move.Group = 1;
-                    });
 
-                    _delayedMoves.Enqueue(move =>
-                    {
-                        move.Action = ActionType.Rotate;
-                        move.X = groundVehiclesX;
-                        move.Y = groundVehiclesY;
-                        move.Angle =
-                            GetAnlge(new Vector(new Point(groundVehiclesX, groundVehiclesY), new Point(arrvsÑenterX, arrvsÑenterY)),
-                                new Vector(new Point(groundVehiclesX, groundVehiclesY), groundRotateToEnemyPoint));
-                        move.MaxAngularSpeed = 0.005;
-                    });
 
-                    _delayedMoves.Enqueue(move =>
-                    {
-                        move.Action = ActionType.ClearAndSelect;
-                        move.Group = 2;
-                    });
+                        _delayedMoves.Enqueue(move =>
+                        {
+                            move.Action = ActionType.ClearAndSelect;
+                            move.Group = 2;
+                        });
 
-                    _delayedMoves.Enqueue(move =>
-                    {
-                        move.Action = ActionType.Rotate;
-                        move.X = airVehiclesX;
-                        move.Y = airVehiclesY;
-                        move.Angle =
-                            GetAnlge(
-                                new Vector(new Point(airVehiclesX, airVehiclesY),
-                                    new Point(helicoptersÑenterX, helicoptersÑenterY)),
-                                new Vector(new Point(airVehiclesX, airVehiclesY), airRotateToEnemyPoint));
-                        move.MaxAngularSpeed = 0.025;
-                    });
+                        _delayedMoves.Enqueue(move =>
+                        {
+                            move.Action = ActionType.Rotate;
+                            move.X = airVehiclesX;
+                            move.Y = airVehiclesY;
+                            move.Angle =
+                                GetAnlge(
+                                    new Vector(new Point(airVehiclesX, airVehiclesY),
+                                        new Point(helicoptersÑenterX, helicoptersÑenterY)),
+                                    new Vector(new Point(airVehiclesX, airVehiclesY), airRotateToEnemyPoint));
+                            move.MaxAngularSpeed = 0.025;
+                        });
+                    }
 
                     break;
                 }
