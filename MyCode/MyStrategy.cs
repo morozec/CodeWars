@@ -740,13 +740,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                     new Vector(centerPoint,
                                         new Point(centerPoint.X + 100, centerPoint.Y)),
                                     new Vector(centerPoint, nearestGroup.Center));
-                    if (_vehiclesCount - vehicles.Count >= AcceptableVehiclesLoss)
-                    {
-                        _vehiclesCount = vehicles.Count;
-                        _sandvichAction = SandvichAction.Compressing2;
-                        Compress2();
-                    }
-                    else if (Math.Abs(_currentAngle - angle) > MaxAngle)
+                    //if (_vehiclesCount - vehicles.Count >= AcceptableVehiclesLoss)
+                    //{
+                    //    _vehiclesCount = vehicles.Count;
+                    //    _sandvichAction = SandvichAction.Compressing2;
+                    //    Compress2();
+                    //}
+                    if (Math.Abs(_currentAngle - angle) > MaxAngle)
                     {
                         _sandvichAction = SandvichAction.Rotating;
                         RotateToEnemy();
