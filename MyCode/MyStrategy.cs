@@ -20,6 +20,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const double IsCompressedEnoughTimeDelta = 5;
         private const double RotationRadius = 50;
         private const double DistEps = 5;
+        private const double ShootingDistance = 0d;
 
         private const double GroupMaxRadius = 50;
 
@@ -127,6 +128,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private double _airEndMovementTime;
         private double _currentAngle;
         private bool _isCompressed = false;
+        private int _vehiclesCount = 500;
 
         /// <summary>
         ///     Основной метод стратегии, осуществляющий управление армией. Вызывается каждый тик.
@@ -409,7 +411,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 new Vector(centerPoint, nearestGroup.Center));
             var turnAngle = newAngle - _currentAngle;
 
-            var turnTime = 500;
+            var radius = myVehilces.Max(v => v.GetDistanceTo(centerPoint.X, centerPoint.Y));
+            var speed = _game.TankSpeed * _game.SwampTerrainSpeedFactor;
+            var angularSpeed = speed / radius;
+
+            var turnTime = turnAngle / angularSpeed;
 
             _delayedMoves.Enqueue(move =>
             {
@@ -439,12 +445,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.Right = _world.Width;
             });
 
+            var dx = ShootingDistance * Math.Cos(_currentAngle);
+            var dy = ShootingDistance * Math.Sin(_currentAngle);
+
             var dist = centerPoint.GetDistance(nearestGroup.Center.X, nearestGroup.Center.Y);
             _delayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Move;
-                move.X = nearestGroup.Center.X - centerPoint.X;
-                move.Y = nearestGroup.Center.Y - centerPoint.Y;
+                move.X = nearestGroup.Center.X - centerPoint.X - dx;
+                move.Y = nearestGroup.Center.Y - centerPoint.Y - dy;
                 move.MaxSpeed = _game.TankSpeed * _game.SwampTerrainSpeedFactor;
                 _endMovementTime = Math.Max(_endMovementTime,
                     _world.TickIndex + dist / (_game.TankSpeed * _game.SwampTerrainSpeedFactor));
@@ -731,10 +740,20 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                     new Vector(centerPoint,
                                         new Point(centerPoint.X + 100, centerPoint.Y)),
                                     new Vector(centerPoint, nearestGroup.Center));
-                    if (Math.Abs(_currentAngle - angle) > MaxAngle)
+                    if (_vehiclesCount - vehicles.Count >= AcceptableVehiclesLoss)
+                    {
+                        _vehiclesCount = vehicles.Count;
+                        _sandvichAction = SandvichAction.Compressing2;
+                        Compress2();
+                    }
+                    else if (Math.Abs(_currentAngle - angle) > MaxAngle)
                     {
                         _sandvichAction = SandvichAction.Rotating;
                         RotateToEnemy();
+                    }
+                    else
+                    {
+                        MoveToEnemy();
                     }
                     
                     break;
