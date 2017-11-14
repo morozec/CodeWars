@@ -36,6 +36,9 @@ namespace Com.CodeGame.CodeRacing2015.DevKit.CSharpCgdk.AStar
         public string Name { get; set; }
 
         public IEnumerable<ASquare> Neighbors { get; set; } 
+
+        public double CenterX { get { return X + Side/2; } }
+        public double CenterY { get { return Y + Side/2; } }
        
 
         public ASquare(double side, double x, double y, double weight, string name)
