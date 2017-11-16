@@ -13,7 +13,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 {
     public sealed class MyStrategy : IStrategy
     {
+        //static MyStrategy()
+        //{
+        //    Debug.connect("localhost", 13579);
+        //}
+
         private const double Tolerance = 1E-3;
+        private const int TicksForAction = 6;
 
         private const int RotationTime = 50;
         private const int MoveCenterTime = 100;
@@ -30,6 +36,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const double MaxAngle = Math.PI/180*2;
         private const double AcceptableRadiusChange = 2d;
         private const int AcceptableVehiclesLoss = 10;
+
+        private const double NuclearCompressionFactor = 0.1d;
+
         private readonly IDictionary<VehicleType, int> _groupIndexes = new Dictionary<VehicleType, int>();
 
         private readonly IDictionary<VehicleType, IList<VehicleType>> _preferredVehicleTypes =
@@ -127,7 +136,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         };
 
         private const double SquardDelta = 6;
-        private const double CompressinCoeff = 0.75;
+        private const double PrepareCompressinFactor = 0.75;
         private double _endMovementTime;
         private double _airEndMovementTime;
         private double _currentAngle;
@@ -146,6 +155,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         /// <param name="move"></param>
         public void Move(Player me, World world, Game game, Move move)
         {
+            //Debug.beginPost();
+            //Debug.circle(200, 200, 10, 150);
+
             InitializeStrategy(world, game);
             InitializeTick(me, world, game, move);
 
@@ -157,6 +169,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             SandvichMove();
 
             ExecuteDelayedMove();
+
+            //Debug.endPost();
         }
 
         private void MakeMoveToKeyPoint(VehicleType vehicleType, IList<Vehicle> vehicles)
@@ -373,22 +387,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         }
 
-        private void Compress2(double x, double y)
+        private void Compress2(double x, double y, double compressionCoeff, double time)
         {
             _delayedMoves.Enqueue(move =>
             {
-                move.Action = ActionType.ClearAndSelect;
-                move.Bottom = _world.Height;
-                move.Right = _world.Width;
-            });
-
-            _delayedMoves.Enqueue(move =>
-            {
                 move.Action = ActionType.Scale;
-                move.Factor = CompressinCoeff;
+                move.Factor = compressionCoeff;
                 move.X = x;
                 move.Y = y;
-                _endMovementTime = Math.Max(_endMovementTime, _world.TickIndex + _game.TacticalNuclearStrikeDelay);
+                _endMovementTime = Math.Max(_endMovementTime, _world.TickIndex + time);
             });
 
             _isCompressed = true;
@@ -401,15 +408,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             var enemyGroups = GetEnemyVehicleGroups();
             var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
-
-            //TODO: возможно, не стоит лишний раз выделять
-            _delayedMoves.Enqueue(move =>
-            {
-                move.Action = ActionType.ClearAndSelect;
-                move.Bottom = _world.Height;
-                move.Right = _world.Width;
-            });
-
+            
             var newAngle = MathHelper.GetAnlge(
                 new Vector(centerPoint,
                     new Point(centerPoint.X + 100, centerPoint.Y)),
@@ -443,14 +442,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var enemyGroups = GetEnemyVehicleGroups();
             var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
 
-            //TODO: возможно, не стоит лишний раз выделять
-            _delayedMoves.Enqueue(move =>
-            {
-                move.Action = ActionType.ClearAndSelect;
-                move.Bottom = _world.Height;
-                move.Right = _world.Width;
-            });
-
             var isFarFromBorder = centerPoint.X >= FarBorderDistance && centerPoint.Y >= FarBorderDistance &&
                                   centerPoint.X <= _world.Width - FarBorderDistance &&
                                   centerPoint.Y <= _world.Height - FarBorderDistance;
@@ -464,8 +455,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.X = nearestGroup.Center.X - centerPoint.X - dx;
                 move.Y = nearestGroup.Center.Y - centerPoint.Y - dy;
                 move.MaxSpeed = _game.TankSpeed * _game.SwampTerrainSpeedFactor;
-                _endMovementTime = Math.Max(_endMovementTime,
-                    _world.TickIndex + dist / (_game.TankSpeed * _game.SwampTerrainSpeedFactor));
+                _endMovementTime = _world.TickIndex + TicksForAction;
+                //Math.Max(_endMovementTime,_world.TickIndex + dist / (_game.TankSpeed * _game.SwampTerrainSpeedFactor));
             });
         }
 
@@ -499,13 +490,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private void Uncompress()
         {
-            //TODO: возможно, не стоит лишний раз выделять
-            _delayedMoves.Enqueue(move =>
-            {
-                move.Action = ActionType.ClearAndSelect;
-                move.Bottom = _world.Height;
-                move.Right = _world.Width;
-            });
 
             _enemyNuclearStrikeX = _enemy.NextNuclearStrikeX;
             _enemyNuclearStrikeY = _enemy.NextNuclearStrikeY;
@@ -513,9 +497,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             _delayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Scale;
-                move.Factor = 10;
+                move.Factor = 1/NuclearCompressionFactor;
                 move.X = _enemy.NextNuclearStrikeX;
-                move.Right = _enemy.NextNuclearStrikeY;
+                move.Y = _enemy.NextNuclearStrikeY;
                 _endMovementTime = _enemy.NextNuclearStrikeTickIndex;
             });
 
@@ -524,7 +508,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private void SandvichMove()
         {
             if (_sandvichAction != SandvichAction.Uncompress && _enemy.NextNuclearStrikeTickIndex > -1)
-            {
+             {
                 _sandvichAction = SandvichAction.Uncompress;
                 Uncompress();
                 return;
@@ -601,11 +585,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         _sandvichAction = SandvichAction.Scaling;
                         Scale();
                     }
-                    else
+                    else 
                     {
                         _sandvichAction = SandvichAction.AStarMove;
-                        MakeMoveToKeyPoint(currentType, currentVehicles);
-                        AirMakeMoveToKeyPoint(airCurrentType, airCurrentVehicles);
+                        if (_groundPointIndex < 3) MakeMoveToKeyPoint(currentType, currentVehicles);
+                        if (_airPointIndex < 2) AirMakeMoveToKeyPoint(airCurrentType, airCurrentVehicles);
                     }
 
                     break;
@@ -615,129 +599,137 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 {
                     //TODO: данный тип уже может отсутствовать
 
-                    
-
-                    var canScaleGround = false;
-
-                    if (_world.TickIndex >= _endMovementTime)
+                    var canScaleGround = _groundPointIndex == 3;
+                    if (!canScaleGround)
                     {
-                        if (_groundPathIndex < _groundAStarPath.Count - 1)
+                        var vehicleType = _groundPointsVehicleTypes[_groundPointIndex];
+                        var currVehicles = GetVehicles(Ownership.ALLY, vehicleType);
+
+                        if (_world.TickIndex >= _endMovementTime ||
+                            currVehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                         {
-                            var vehicleType = _groundPointsVehicleTypes[_groundPointIndex];
-                            var currVehicles = GetVehicles(Ownership.ALLY, vehicleType);
-
-                            _groundPathIndex++;
-
-                            _delayedMoves.Enqueue(move =>
+                            if (_groundPathIndex < _groundAStarPath.Count - 1)
                             {
-                                move.Action = ActionType.ClearAndSelect;
-                                move.Bottom = _world.Height;
-                                move.Right = _world.Width;
-                                move.VehicleType = vehicleType;
-                            });
 
-                            var destX = (_groundAStarPath[_groundPathIndex] as ASquare).CenterX;
-                            var destY = (_groundAStarPath[_groundPathIndex] as ASquare).CenterY;
-                            var dist = GetVehiclesCenter(currVehicles).GetDistance(destX, destY);
+                                _groundPathIndex++;
 
-                            _delayedMoves.Enqueue(move =>
-                            {
-                                move.Action = ActionType.Move;
-                                move.X = destX - GetVehiclesCenter(currVehicles).X;
-                                move.Y = destY - GetVehiclesCenter(currVehicles).Y;
+                                _delayedMoves.Enqueue(move =>
+                                {
+                                    move.Action = ActionType.ClearAndSelect;
+                                    move.Bottom = _world.Height;
+                                    move.Right = _world.Width;
+                                    move.VehicleType = vehicleType;
+                                });
 
-                                _endMovementTime = Math.Max(_endMovementTime,
-                                    _world.TickIndex + dist / (_game.TankSpeed * _game.SwampTerrainSpeedFactor));
-                            });
-                        }
-                        else if (_groundPointIndex < 2)
-                        {
-                            _groundPointIndex++;
+                                var destX = (_groundAStarPath[_groundPathIndex] as ASquare).CenterX;
+                                var destY = (_groundAStarPath[_groundPathIndex] as ASquare).CenterY;
+                                var dist = GetVehiclesCenter(currVehicles).GetDistance(destX, destY);
 
-                            var currentType = _groundPointsVehicleTypes[_groundPointIndex];
-                            var currentVehicles = GetVehicles(Ownership.ALLY, currentType);
-                            while (Math.Abs(GetVehiclesCenter(currentVehicles)
-                                       .GetDistance(_keyPoints[_groundPointIndex])) <= Tolerance && ++_groundPointIndex < 3)
-                            {
-                                currentType = _groundPointsVehicleTypes[_groundPointIndex];
-                                currentVehicles = GetVehicles(Ownership.ALLY, currentType);
+                                _delayedMoves.Enqueue(move =>
+                                {
+                                    move.Action = ActionType.Move;
+                                    move.X = destX - GetVehiclesCenter(currVehicles).X;
+                                    move.Y = destY - GetVehiclesCenter(currVehicles).Y;
+
+                                    _endMovementTime = Math.Max(_endMovementTime,
+                                        _world.TickIndex + dist / (_game.TankSpeed * _game.SwampTerrainSpeedFactor));
+                                });
                             }
+                            else if (_groundPointIndex < 2)
+                            {
+                                _groundPointIndex++;
 
-                            if (_groundPointIndex == 3)
+                                var currentType = _groundPointsVehicleTypes[_groundPointIndex];
+                                var currentVehicles = GetVehicles(Ownership.ALLY, currentType);
+                                while (Math.Abs(GetVehiclesCenter(currentVehicles)
+                                           .GetDistance(_keyPoints[_groundPointIndex])) <= Tolerance &&
+                                       ++_groundPointIndex < 3)
+                                {
+                                    currentType = _groundPointsVehicleTypes[_groundPointIndex];
+                                    currentVehicles = GetVehicles(Ownership.ALLY, currentType);
+                                }
+
+                                if (_groundPointIndex == 3)
+                                {
+                                    canScaleGround = true;
+                                }
+                                else
+                                {
+                                    MakeMoveToKeyPoint(currentType, currentVehicles);
+                                }
+                            }
+                            else
                             {
                                 canScaleGround = true;
                             }
-                            else
-                            {
-                                MakeMoveToKeyPoint(currentType, currentVehicles);
-                            }
-                        }
-                        else
-                        {
-                            canScaleGround = true;
                         }
                     }
 
-                    
-                    var canScaleAir = false;
 
-                    if (_world.TickIndex >= _airEndMovementTime)
+                    var canScaleAir = _airPointIndex == 2;
+                    if (!canScaleAir)
                     {
-                        if (_airPathIndex < _airAStarPath.Count - 1)
+                        var airVehicleType = _airPointsVehicleTypes[_airPointIndex];
+                        var airCurrVehicles = GetVehicles(Ownership.ALLY, airVehicleType);
+
+                        if (_world.TickIndex >= _airEndMovementTime ||
+                            airCurrVehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                         {
-                            var airVehicleType = _airPointsVehicleTypes[_airPointIndex];
-                            var airCurrVehicles = GetVehicles(Ownership.ALLY, airVehicleType);
-
-                             _airPathIndex++;
-
-                            _delayedMoves.Enqueue(move =>
+                            if (_airPathIndex < _airAStarPath.Count - 1)
                             {
-                                move.Action = ActionType.ClearAndSelect;
-                                move.Bottom = _world.Height;
-                                move.Right = _world.Width;
-                                move.VehicleType = airVehicleType;
-                            });
+                                _airPathIndex++;
 
-                            var destX = (_airAStarPath[_airPathIndex] as ASquare).CenterX;
-                            var destY = (_airAStarPath[_airPathIndex] as ASquare).CenterY;
-                            var dist = GetVehiclesCenter(airCurrVehicles).GetDistance(destX, destY);
+                                _delayedMoves.Enqueue(move =>
+                                {
+                                    move.Action = ActionType.ClearAndSelect;
+                                    move.Bottom = _world.Height;
+                                    move.Right = _world.Width;
+                                    move.VehicleType = airVehicleType;
+                                });
 
-                            _delayedMoves.Enqueue(move =>
-                            {
-                                move.Action = ActionType.Move;
-                                move.X = destX - GetVehiclesCenter(airCurrVehicles).X;
-                                move.Y = destY - GetVehiclesCenter(airCurrVehicles).Y;
+                                var destX = (_airAStarPath[_airPathIndex] as ASquare).CenterX;
+                                var destY = (_airAStarPath[_airPathIndex] as ASquare).CenterY;
+                                var dist = GetVehiclesCenter(airCurrVehicles).GetDistance(destX, destY);
 
-                                _airEndMovementTime = Math.Max(_airEndMovementTime,
-                                    _world.TickIndex + dist / (_game.HelicopterSpeed * _game.RainWeatherSpeedFactor));
-                            });
-                                
-                        }
-                        else if (_airPointIndex < 1)
-                        {
-                            _airPointIndex++;
+                                _delayedMoves.Enqueue(move =>
+                                {
+                                    move.Action = ActionType.Move;
+                                    move.X = destX - GetVehiclesCenter(airCurrVehicles).X;
+                                    move.Y = destY - GetVehiclesCenter(airCurrVehicles).Y;
 
-                            var currentType = _airPointsVehicleTypes[_airPointIndex];
-                            var currentVehicles = GetVehicles(Ownership.ALLY, currentType);
-                            while (Math.Abs(GetVehiclesCenter(currentVehicles)
-                                        .GetDistance(_keyPoints[_airPointIndex])) <= Tolerance && ++_airPointIndex < 2)
-                            {
-                                currentType = _airPointsVehicleTypes[_airPointIndex];
-                                currentVehicles = GetVehicles(Ownership.ALLY, currentType);
+                                    _airEndMovementTime = Math.Max(_airEndMovementTime,
+                                        _world.TickIndex +
+                                        dist / (_game.HelicopterSpeed * _game.RainWeatherSpeedFactor));
+                                });
+
                             }
-
-                            if (_airPointIndex == 2)
+                            else if (_airPointIndex < 1)
                             {
-                                canScaleAir = true;
+                                _airPointIndex++;
+
+                                var currentType = _airPointsVehicleTypes[_airPointIndex];
+                                var currentVehicles = GetVehicles(Ownership.ALLY, currentType);
+                                while (Math.Abs(GetVehiclesCenter(currentVehicles)
+                                           .GetDistance(_keyPoints[_airPointIndex])) <= Tolerance &&
+                                       ++_airPointIndex < 2)
+                                {
+                                    currentType = _airPointsVehicleTypes[_airPointIndex];
+                                    currentVehicles = GetVehicles(Ownership.ALLY, currentType);
+                                }
+
+                                if (_airPointIndex == 2)
+                                {
+                                    canScaleAir = true;
+                                }
+                                else
+                                {
+                                    AirMakeMoveToKeyPoint(currentType, currentVehicles);
+                                }
                             }
                             else
                             {
-                                AirMakeMoveToKeyPoint(currentType, currentVehicles);
+                                canScaleAir = true;
                             }
-                        }
-                        else
-                        {
-                            canScaleAir = true;
                         }
                     }
 
@@ -751,7 +743,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 }
 
                 case SandvichAction.Scaling:
-                    if (_world.TickIndex >= _endMovementTime)
+                    if (_world.TickIndex >= _endMovementTime || GetVehicles(Ownership.ALLY).All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
                         _sandvichAction = SandvichAction.Shifting;
                         Shift();
@@ -759,7 +751,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     break;
 
                 case SandvichAction.Shifting:
-                    if (_world.TickIndex >= _endMovementTime)
+                    if (_world.TickIndex >= _endMovementTime || GetVehicles(Ownership.ALLY).All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
                         _sandvichAction = SandvichAction.Compressing;
                         Compress();
@@ -767,22 +759,29 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     break;
 
                 case SandvichAction.Compressing:
-                    if (_world.TickIndex >= _endMovementTime)
+                    if (_world.TickIndex >= _endMovementTime || GetVehicles(Ownership.ALLY).All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
+                        _delayedMoves.Enqueue(move =>
+                        {
+                            move.Action = ActionType.ClearAndSelect;
+                            move.Right = _world.Width;
+                            move.Bottom = _world.Height;
+                        });
+                         
                         _sandvichAction = SandvichAction.Rotating;
                         RotateToEnemy();
                     }
                     break;
 
                 case SandvichAction.Compressing2:
-                    if (_world.TickIndex >= _endMovementTime)
+                    if (_world.TickIndex >= _endMovementTime || GetVehicles(Ownership.ALLY).All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
                         _sandvichAction = SandvichAction.MovingToEnemy;
                         MoveToEnemy();
                     }
                     break;
                 case SandvichAction.Rotating:
-                    if (_world.TickIndex >= _endMovementTime)
+                    if (_world.TickIndex >= _endMovementTime || GetVehicles(Ownership.ALLY).All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
                         if (_isCompressed)
                         {
@@ -793,7 +792,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         {
                             _sandvichAction = SandvichAction.Compressing2;
                             var centerPoint = GetVehiclesCenter(GetVehicles(Ownership.ALLY));
-                            Compress2(centerPoint.X, centerPoint.Y);
+                            Compress2(centerPoint.X, centerPoint.Y, PrepareCompressinFactor, 100d); //TODO
                         }
                     }
                     break;
@@ -825,12 +824,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     {
                         _sandvichAction = SandvichAction.NuclearStrike;
                     }
-                    else if (Math.Abs(_currentAngle - angle) > MaxAngle)
+                    else if (Math.Abs(_currentAngle - angle) > MaxAngle && _world.TickIndex >= _endMovementTime)
                     {
                         _sandvichAction = SandvichAction.Rotating;
                         RotateToEnemy();
                     }
-                    else
+                    else if (_world.TickIndex >= _endMovementTime)
                     {
                         MoveToEnemy();
                     }
@@ -848,7 +847,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (_world.TickIndex >= _endMovementTime)
                     {
                         _sandvichAction = SandvichAction.Compressing2;
-                        Compress2(_enemyNuclearStrikeX, _enemyNuclearStrikeY);
+                        Compress2(_enemyNuclearStrikeX, _enemyNuclearStrikeY, NuclearCompressionFactor, _game.TacticalNuclearStrikeDelay); 
                     }
                     break;
 
