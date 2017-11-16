@@ -19,8 +19,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const int MoveCenterTime = 100;
         private const double IsCompressedEnoughTimeDelta = 5;
         private const double RotationRadius = 50;
+        private const double FarBorderDistance = 100;
         private const double DistEps = 5;
-        private const double ShootingDistance = 0d;
+        private const double ShootingDistance = 64d;
 
         private const double GroupMaxRadius = 50;
 
@@ -425,8 +426,35 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.Angle = turnAngle;
                 _currentAngle = newAngle;
                 _endMovementTime = _world.TickIndex + turnTime;
+                move.MaxAngularSpeed = angularSpeed;
             });
             
+        }
+
+        private void ScaleToEnemy()
+        {
+            var myVehilces = GetVehicles(Ownership.ALLY);
+            var centerPoint = GetVehiclesCenter(myVehilces);
+
+            var enemyGroups = GetEnemyVehicleGroups();
+            var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
+
+            //TODO: возможно, не стоит лишний раз выделять
+            _delayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.ClearAndSelect;
+                move.Bottom = _world.Height;
+                move.Right = _world.Width;
+            });
+
+            _delayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.Scale;
+                move.X = nearestGroup.Center.X;
+                move.Y = nearestGroup.Center.Y;
+                move.Factor = CompressinCoeff;
+                _endMovementTime = _world.TickIndex + 500;
+            });
         }
 
         private void MoveToEnemy()
@@ -445,8 +473,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.Right = _world.Width;
             });
 
-            var dx = ShootingDistance * Math.Cos(_currentAngle);
-            var dy = ShootingDistance * Math.Sin(_currentAngle);
+            var isFarFromBorder = centerPoint.X >= FarBorderDistance && centerPoint.Y >= FarBorderDistance &&
+                                  centerPoint.X <= _world.Width - FarBorderDistance &&
+                                  centerPoint.Y <= _world.Height - FarBorderDistance;
+            var dx = isFarFromBorder ? ShootingDistance * Math.Cos(_currentAngle) : 0d;
+            var dy = isFarFromBorder ? ShootingDistance * Math.Sin(_currentAngle) : 0d;
 
             var dist = centerPoint.GetDistance(nearestGroup.Center.X, nearestGroup.Center.Y);
             _delayedMoves.Enqueue(move =>
@@ -740,6 +771,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                     new Vector(centerPoint,
                                         new Point(centerPoint.X + 100, centerPoint.Y)),
                                     new Vector(centerPoint, nearestGroup.Center));
+
+                    //if (centerPoint.GetDistance(nearestGroup.Center) < 50)
+                    //{
+                    //    _sandvichAction = SandvichAction.ScaleToEnemy;
+                    //    ScaleToEnemy();
+                    //}
                     //if (_vehiclesCount - vehicles.Count >= AcceptableVehiclesLoss)
                     //{
                     //    _vehiclesCount = vehicles.Count;
@@ -758,6 +795,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     
                     break;
                 }
+                //case SandvichAction.ScaleToEnemy:
+                //    if (_world.TickIndex >= _endMovementTime)
+                //    {
+                //        _sandvichAction = SandvichAction.MovingToEnemy;
+                //        MoveToEnemy();
+                //    }
+                //    break;
 
             }
 
@@ -1643,6 +1687,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             Compressing2,
             Rotating,
             MovingToEnemy,
+            ScaleToEnemy,
         }
     }
 }
