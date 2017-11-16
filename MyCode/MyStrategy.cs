@@ -23,6 +23,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const double DistEps = 5;
         private const double ShootingDistance = 64d;
 
+        private const double NuclearStrikeDistDelta = 30;
+
         private const double GroupMaxRadius = 50;
 
         private const double MaxAngle = Math.PI/180*2;
@@ -389,7 +391,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             _isCompressed = true;
         }
 
-
         private void RotateToEnemy()
         {
             var myVehilces = GetVehicles(Ownership.ALLY);
@@ -431,32 +432,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             
         }
 
-        private void ScaleToEnemy()
-        {
-            var myVehilces = GetVehicles(Ownership.ALLY);
-            var centerPoint = GetVehiclesCenter(myVehilces);
-
-            var enemyGroups = GetEnemyVehicleGroups();
-            var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
-
-            //TODO: возможно, не стоит лишний раз выделять
-            _delayedMoves.Enqueue(move =>
-            {
-                move.Action = ActionType.ClearAndSelect;
-                move.Bottom = _world.Height;
-                move.Right = _world.Width;
-            });
-
-            _delayedMoves.Enqueue(move =>
-            {
-                move.Action = ActionType.Scale;
-                move.X = nearestGroup.Center.X;
-                move.Y = nearestGroup.Center.Y;
-                move.Factor = CompressinCoeff;
-                _endMovementTime = _world.TickIndex + 500;
-            });
-        }
-
         private void MoveToEnemy()
         {
             var myVehilces = GetVehicles(Ownership.ALLY);
@@ -491,6 +466,33 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             });
         }
 
+        private bool MakeNuclearStrike()
+        {
+            var myVehilces = GetVehicles(Ownership.ALLY);
+            var centerPoint = GetVehiclesCenter(myVehilces);
+
+            var enemyGroups = GetEnemyVehicleGroups();
+            var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
+
+            var canStrikeMyVehilces = myVehilces.Where(v =>
+                v.VisionRange >= v.GetDistanceTo(nearestGroup.Center.X, nearestGroup.Center.Y) + NuclearStrikeDistDelta);
+
+            if (!canStrikeMyVehilces.Any()) return false;
+
+            var faarestMyVehicles = canStrikeMyVehilces
+                .OrderBy(v => v.GetDistanceTo(nearestGroup.Center.X, nearestGroup.Center.Y)).Last();
+
+            _delayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.TacticalNuclearStrike;
+                move.X = nearestGroup.Center.X;
+                move.Y = nearestGroup.Center.Y;
+                move.VehicleId = faarestMyVehicles.Id;
+                _endMovementTime = _world.TickIndex + _game.TacticalNuclearStrikeDelay;
+            });
+
+            return true;
+        }
 
         private void SandvichMove()
         {
@@ -783,7 +785,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     //    _sandvichAction = SandvichAction.Compressing2;
                     //    Compress2();
                     //}
-                    if (Math.Abs(_currentAngle - angle) > MaxAngle)
+
+                    if (_me.RemainingNuclearStrikeCooldownTicks == 0 && MakeNuclearStrike())
+                    {
+                        _sandvichAction = SandvichAction.NuclearStrike;
+                    }
+                    else if (Math.Abs(_currentAngle - angle) > MaxAngle)
                     {
                         _sandvichAction = SandvichAction.Rotating;
                         RotateToEnemy();
@@ -795,13 +802,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     
                     break;
                 }
-                //case SandvichAction.ScaleToEnemy:
-                //    if (_world.TickIndex >= _endMovementTime)
-                //    {
-                //        _sandvichAction = SandvichAction.MovingToEnemy;
-                //        MoveToEnemy();
-                //    }
-                //    break;
+                case SandvichAction.NuclearStrike:
+                    if (_world.TickIndex >= _endMovementTime)
+                    {
+                        _sandvichAction = SandvichAction.MovingToEnemy;
+                        MoveToEnemy();
+                    }
+                    break;
 
             }
 
@@ -1687,7 +1694,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             Compressing2,
             Rotating,
             MovingToEnemy,
-            ScaleToEnemy,
+            NuclearStrike,
         }
     }
 }
