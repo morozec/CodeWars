@@ -85,6 +85,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         
 
         private Player _me;
+        private Player _enemy;
         private Move _move;
        
 
@@ -132,6 +133,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private double _currentAngle;
         private bool _isCompressed = false;
         private int _vehiclesCount = 500;
+
+        private double _enemyNuclearStrikeX;
+        private double _enemyNuclearStrikeY;
 
         /// <summary>
         ///     Основной метод стратегии, осуществляющий управление армией. Вызывается каждый тик.
@@ -369,9 +373,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         }
 
-        private void Compress2()
+        private void Compress2(double x, double y)
         {
-            var centerPoint = GetVehiclesCenter(GetVehicles(Ownership.ALLY));
             _delayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.ClearAndSelect;
@@ -383,9 +386,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 move.Action = ActionType.Scale;
                 move.Factor = CompressinCoeff;
-                move.X = centerPoint.X;
-                move.Y = centerPoint.Y;
-                _endMovementTime = Math.Max(_endMovementTime, _world.TickIndex + 100);
+                move.X = x;
+                move.Y = y;
+                _endMovementTime = Math.Max(_endMovementTime, _world.TickIndex + _game.TacticalNuclearStrikeDelay);
             });
 
             _isCompressed = true;
@@ -494,8 +497,39 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             return true;
         }
 
+        private void Uncompress()
+        {
+            //TODO: возможно, не стоит лишний раз выделять
+            _delayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.ClearAndSelect;
+                move.Bottom = _world.Height;
+                move.Right = _world.Width;
+            });
+
+            _enemyNuclearStrikeX = _enemy.NextNuclearStrikeX;
+            _enemyNuclearStrikeY = _enemy.NextNuclearStrikeY;
+
+            _delayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.Scale;
+                move.Factor = 10;
+                move.X = _enemy.NextNuclearStrikeX;
+                move.Right = _enemy.NextNuclearStrikeY;
+                _endMovementTime = _enemy.NextNuclearStrikeTickIndex;
+            });
+
+        }
+
         private void SandvichMove()
         {
+            if (_sandvichAction != SandvichAction.Uncompress && _enemy.NextNuclearStrikeTickIndex > -1)
+            {
+                _sandvichAction = SandvichAction.Uncompress;
+                Uncompress();
+                return;
+            }
+
             switch (_sandvichAction)
             {
                 case SandvichAction.Init:
@@ -758,7 +792,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         else
                         {
                             _sandvichAction = SandvichAction.Compressing2;
-                            Compress2();
+                            var centerPoint = GetVehiclesCenter(GetVehicles(Ownership.ALLY));
+                            Compress2(centerPoint.X, centerPoint.Y);
                         }
                     }
                     break;
@@ -807,6 +842,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     {
                         _sandvichAction = SandvichAction.MovingToEnemy;
                         MoveToEnemy();
+                    }
+                    break;
+                case SandvichAction.Uncompress:
+                    if (_world.TickIndex >= _endMovementTime)
+                    {
+                        _sandvichAction = SandvichAction.Compressing2;
+                        Compress2(_enemyNuclearStrikeX, _enemyNuclearStrikeY);
                     }
                     break;
 
@@ -1287,6 +1329,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             _game = game;
             _move = move;
 
+            _enemy = world.Players.Single(p => !p.IsMe);
+
             foreach (var vehicle in world.NewVehicles)
             {
                 _vehicleById.Add(vehicle.Id, vehicle);
@@ -1695,6 +1739,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             Rotating,
             MovingToEnemy,
             NuclearStrike,
+            Uncompress
         }
     }
 }
