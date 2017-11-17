@@ -29,9 +29,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const double DistEps = 5;
         private const double ShootingDistance = 64d;
 
+        private const int VehiclesCountAdvantage = 100;
+        private const double VehiclesCoeffAdvantage = 2;
+
         private const double NuclearStrikeDistDelta = 30;
 
-        private const double GroupMaxRadius = 50;
+        private const double GroupMaxRadius = 15;
 
         private const double MaxAngle = Math.PI/180*2;
         private const double AcceptableRadiusChange = 2d;
@@ -415,11 +418,14 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 new Vector(centerPoint, nearestGroup.Center));
             var turnAngle = newAngle - _currentAngle;
 
+            if (turnAngle > Math.PI) turnAngle -= 2 * Math.PI;
+            else if (turnAngle < -Math.PI) turnAngle += 2 * Math.PI;
+
             var radius = myVehilces.Max(v => v.GetDistanceTo(centerPoint.X, centerPoint.Y));
             var speed = _game.TankSpeed * _game.SwampTerrainSpeedFactor;
             var angularSpeed = speed / radius;
 
-            var turnTime = turnAngle / angularSpeed;
+            var turnTime = Math.Abs(turnAngle) / angularSpeed;
 
             _delayedMoves.Enqueue(move =>
             {
@@ -445,8 +451,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var isFarFromBorder = centerPoint.X >= FarBorderDistance && centerPoint.Y >= FarBorderDistance &&
                                   centerPoint.X <= _world.Width - FarBorderDistance &&
                                   centerPoint.Y <= _world.Height - FarBorderDistance;
-            var dx = isFarFromBorder ? ShootingDistance * Math.Cos(_currentAngle) : 0d;
-            var dy = isFarFromBorder ? ShootingDistance * Math.Sin(_currentAngle) : 0d;
+            var isAdvantege = myVehilces.Count - nearestGroup.Vehicles.Count >= VehiclesCountAdvantage ||
+                              myVehilces.Count * 1d / nearestGroup.Vehicles.Count >= VehiclesCoeffAdvantage;
+
+            var dx = isFarFromBorder && !isAdvantege ? ShootingDistance * Math.Cos(_currentAngle) : 0d;
+            var dy = isFarFromBorder && !isAdvantege ? ShootingDistance * Math.Sin(_currentAngle) : 0d;
 
             var dist = centerPoint.GetDistance(nearestGroup.Center.X, nearestGroup.Center.Y);
             _delayedMoves.Enqueue(move =>
@@ -1222,12 +1231,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         {
             IList<GroupContainer> groupContainers = new List<GroupContainer>();
             var enemyVehicles = GetVehicles(Ownership.ENEMY);
+
+            var counter = 0;
             foreach (var v in enemyVehicles)
             {
+                counter++;
                 var okGroupContainers = new List<GroupContainer>();
                 foreach (var gc in groupContainers)
                 {
-                    if (v.GetDistanceTo(gc.Center.X, gc.Center.Y) <= GroupMaxRadius)
+                    if (gc.Vehicles.Any(gcV => gcV.GetDistanceTo(v) <= GroupMaxRadius))
                     {
                         okGroupContainers.Add(gc);
                     }
@@ -1246,6 +1258,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 {
                     for (var i = 1; i < okGroupContainers.Count; ++i)
                     {
+                        okGroupContainers[0].AddVehicle(v);
                         okGroupContainers[0].AddGroupContainer(okGroupContainers[i]);
                         groupContainers.Remove(okGroupContainers[i]);
                     }
