@@ -113,6 +113,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private double _tornadoRadius = 100;
 
         private SandvichAction _sandvichAction = SandvichAction.Init;
+        private SandvichAction _beforeNuclearAction;
 
         private IList<APoint> _groundAStarPath = null;
         private int _groundPathIndex = 0;
@@ -392,7 +393,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.Y = y;
                 _endMovementTime = Math.Max(_endMovementTime, _world.TickIndex + time);
             });
-
             _isCompressed = true;
         }
 
@@ -508,8 +508,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private void SandvichMove()
         {
-            if (_sandvichAction != SandvichAction.Uncompress && _enemy.NextNuclearStrikeTickIndex > -1)
-             {
+            if (_sandvichAction != SandvichAction.Uncompress && _enemy.NextNuclearStrikeTickIndex > -1 && _isCompressed)
+            {
+                _beforeNuclearAction = _sandvichAction;
                 _sandvichAction = SandvichAction.Uncompress;
                 Uncompress();
                 return;
@@ -768,33 +769,36 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                             move.Right = _world.Width;
                             move.Bottom = _world.Height;
                         });
-                         
-                        _sandvichAction = SandvichAction.Rotating;
-                        RotateToEnemy();
+
+                        _sandvichAction = SandvichAction.Compressing2;
+                        var centerPoint = GetVehiclesCenter(GetVehicles(Ownership.ALLY));
+                        Compress2(centerPoint.X, centerPoint.Y, PrepareCompressinFactor, 100d); //TODO
+
                     }
                     break;
 
                 case SandvichAction.Compressing2:
                     if (_world.TickIndex >= _endMovementTime || GetVehicles(Ownership.ALLY).All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
-                        _sandvichAction = SandvichAction.MovingToEnemy;
-                        MoveToEnemy();
+                        _sandvichAction = SandvichAction.Rotating;
+                        RotateToEnemy();
                     }
                     break;
                 case SandvichAction.Rotating:
                     if (_world.TickIndex >= _endMovementTime || GetVehicles(Ownership.ALLY).All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
-                        if (_isCompressed)
-                        {
+                        //if (_isCompressed)
+                        //{
                             _sandvichAction = SandvichAction.MovingToEnemy;
                             MoveToEnemy();
-                        }
-                        else
-                        {
-                            _sandvichAction = SandvichAction.Compressing2;
-                            var centerPoint = GetVehiclesCenter(GetVehicles(Ownership.ALLY));
-                            Compress2(centerPoint.X, centerPoint.Y, PrepareCompressinFactor, 100d); //TODO
-                        }
+                        //}
+                        //else
+                        //{
+                        //    _sandvichAction = SandvichAction.Compressing2;
+                        //    var centerPoint = GetVehiclesCenter(GetVehicles(Ownership.ALLY));
+                        //    Compress2(centerPoint.X, centerPoint.Y, PrepareCompressinFactor, 100d); //TODO
+                        //    _isCompressed = true;
+                        //}
                     }
                     break;
                 case SandvichAction.MovingToEnemy:
