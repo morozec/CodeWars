@@ -43,6 +43,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const double PrepareCompressinFactor = 0.75;
         private const double MoveEnemyPointTolerance = 10d;
 
+        private const double MinNuclearStrikeCount = 10;
+
         private readonly IList<Point> _airKeyPoints = new List<Point>
         {
             new Point(119, 193),
@@ -743,6 +745,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             var enemyGroups = GetEnemyVehicleGroups();
             var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
+
+            if (nearestGroup.Vehicles.Count < MinNuclearStrikeCount) return false;
 
             var canStrikeMyVehilces = vehicles.Where(v =>
                 v.VisionRange >= v.GetDistanceTo(nearestGroup.Center.X, nearestGroup.Center.Y) + NuclearStrikeDistDelta);
