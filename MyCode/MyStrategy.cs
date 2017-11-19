@@ -154,11 +154,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {2, 0d},
         };
 
-        private readonly IDictionary<int, double> _currentGroupAngle = new Dictionary<int, double>()
-        {
-            {1, 0d},
-            {2, 0d},
-        };
+        //private readonly IDictionary<int, double> _currentGroupAngle = new Dictionary<int, double>()
+        //{
+        //    {1, 0d},
+        //    {2, 0d},
+        //};
 
         private readonly IDictionary<int, Point> _currentMoveEnemyPoint = new Dictionary<int, Point>()
         {
@@ -223,26 +223,117 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         {VehicleType.Tank, GetVehicles(Ownership.ALLY, VehicleType.Tank)}
                     };
 
-            var pointVtContainers = new List<PointVehilceTypeContainer>();
-            for (var i = 0; i < 3; ++ i)
+            var variants = new List<VariantContainer>()
             {
-                foreach (var key in vehicles.Keys)
+                new VariantContainer()
                 {
-                    pointVtContainers.Add(new PointVehilceTypeContainer(i, key,
-                        GetVehiclesCenter(vehicles[key]).GetDistance(_groundKeyPoints[i])));
-                }
-            }
-            pointVtContainers = pointVtContainers.OrderBy(c => c.Distance).ToList();
-            var gotPoints = new List<int>();
-            var gotKeys = new List<VehicleType>();
+                    PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
+                    {
+                        new PointVehilceTypeContainer(0, VehicleType.Arrv,
+                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetDistance(_groundKeyPoints[0])),
+                        new PointVehilceTypeContainer(1, VehicleType.Ifv,
+                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetDistance(_groundKeyPoints[1])),
+                        new PointVehilceTypeContainer(2, VehicleType.Tank,
+                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetDistance(_groundKeyPoints[2])),
+                    },
+                },
+                new VariantContainer()
+                {
+                    PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
+                    {
+                        new PointVehilceTypeContainer(0, VehicleType.Arrv,
+                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetDistance(_groundKeyPoints[0])),
+                        new PointVehilceTypeContainer(1, VehicleType.Tank,
+                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetDistance(_groundKeyPoints[1])),
+                        new PointVehilceTypeContainer(2, VehicleType.Ifv,
+                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetDistance(_groundKeyPoints[2])),
+                    },
+                },
+                new VariantContainer()
+                {
+                    PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
+                    {
+                        new PointVehilceTypeContainer(0, VehicleType.Ifv,
+                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetDistance(_groundKeyPoints[0])),
+                        new PointVehilceTypeContainer(1, VehicleType.Arrv,
+                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetDistance(_groundKeyPoints[1])),
+                        new PointVehilceTypeContainer(2, VehicleType.Tank,
+                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetDistance(_groundKeyPoints[2])),
+                    },
+                },
+                new VariantContainer()
+                {
+                    PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
+                    {
+                        new PointVehilceTypeContainer(0, VehicleType.Ifv,
+                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetDistance(_groundKeyPoints[0])),
+                        new PointVehilceTypeContainer(1, VehicleType.Tank,
+                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetDistance(_groundKeyPoints[1])),
+                        new PointVehilceTypeContainer(2, VehicleType.Arrv,
+                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetDistance(_groundKeyPoints[2])),
+                    },
+                },
+                new VariantContainer()
+                {
+                    PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
+                    {
+                        new PointVehilceTypeContainer(0, VehicleType.Tank,
+                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetDistance(_groundKeyPoints[0])),
+                        new PointVehilceTypeContainer(1, VehicleType.Ifv,
+                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetDistance(_groundKeyPoints[1])),
+                        new PointVehilceTypeContainer(2, VehicleType.Arrv,
+                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetDistance(_groundKeyPoints[2])),
+                    },
+                },
+                new VariantContainer()
+                {
+                    PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
+                    {
+                        new PointVehilceTypeContainer(0, VehicleType.Tank,
+                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetDistance(_groundKeyPoints[0])),
+                        new PointVehilceTypeContainer(1, VehicleType.Arrv,
+                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetDistance(_groundKeyPoints[1])),
+                        new PointVehilceTypeContainer(2, VehicleType.Ifv,
+                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetDistance(_groundKeyPoints[2])),
+                    },
+                },
+            };
+
+            variants.Sort();
+            var bestVariant = variants.First();
             _groundPointsVehicleTypes = new Dictionary<int, VehicleType>();
-            foreach (var item in pointVtContainers)
-            {
-                if (gotPoints.Contains(item.PointIndex) || gotKeys.Contains(item.VehicleType)) continue;
-                _groundPointsVehicleTypes.Add(item.PointIndex, item.VehicleType);
-                gotPoints.Add(item.PointIndex);
-                gotKeys.Add(item.VehicleType);
-            }
+            _groundPointsVehicleTypes.Add(0, bestVariant.PointVehilceTypeContainers.Single(p => p.PointIndex == 0).VehicleType);
+            _groundPointsVehicleTypes.Add(1, bestVariant.PointVehilceTypeContainers.Single(p => p.PointIndex == 1).VehicleType);
+            _groundPointsVehicleTypes.Add(2, bestVariant.PointVehilceTypeContainers.Single(p => p.PointIndex == 2).VehicleType);
+
+
+            //for (var i = 0; i < 3; ++ i)
+            //{
+            //    foreach (var key0 in vehicles.Keys)
+            //    {
+            //        //pointVtContainers.Add(new PointVehilceTypeContainer(i, key,
+            //        //    GetVehiclesCenter(vehicles[key]).GetDistance(_groundKeyPoints[i])));
+            //        var gotKeysTmp = new List<VehicleType>() { key0 };
+            //        for (var j = 1; j < 3; ++j)
+            //        {
+            //            foreach (var key1 in vehicles.Keys.Where(k => !gotKeysTmp.Contains(k)))
+            //            {
+
+            //            }
+            //        }
+            //    }
+            //}
+            //pointVtContainers = pointVtContainers.OrderBy(c => c.Distance).ToList();
+            //var gotPoints = new List<int>();
+            //var gotKeys = new List<VehicleType>();
+            //_groundPointsVehicleTypes = new Dictionary<int, VehicleType>();
+            //foreach (var item in pointVtContainers)
+            //{
+            //    if (gotPoints.Contains(item.PointIndex) || gotKeys.Contains(item.VehicleType)) continue;
+            //    _groundPointsVehicleTypes.Add(item.PointIndex, item.VehicleType);
+            //    gotPoints.Add(item.PointIndex);
+            //    gotKeys.Add(item.VehicleType);
+            //}
 
             var needMove = false;
             foreach (var pointIndex in _groundPointsVehicleTypes.Keys)
@@ -269,26 +360,35 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         {VehicleType.Helicopter, GetVehicles(Ownership.ALLY, VehicleType.Helicopter)},
                     };
 
-            var pointVtContainers = new List<PointVehilceTypeContainer>();
-            for (var i = 0; i < 2; ++i)
+            var variants = new List<VariantContainer>()
             {
-                foreach (var key in vehicles.Keys)
+                new VariantContainer()
                 {
-                    pointVtContainers.Add(new PointVehilceTypeContainer(i, key,
-                        GetVehiclesCenter(vehicles[key]).GetDistance(_airKeyPoints[i])));
-                }
-            }
-            pointVtContainers = pointVtContainers.OrderBy(c => c.Distance).ToList();
-            var gotPoints = new List<int>();
-            var gotKeys = new List<VehicleType>();
+                    PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
+                    {
+                        new PointVehilceTypeContainer(0, VehicleType.Fighter,
+                            GetVehiclesCenter(vehicles[VehicleType.Fighter]).GetDistance(_airKeyPoints[0])),
+                        new PointVehilceTypeContainer(1, VehicleType.Helicopter,
+                            GetVehiclesCenter(vehicles[VehicleType.Helicopter]).GetDistance(_airKeyPoints[1])),
+                    },
+                },
+                new VariantContainer()
+                {
+                    PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
+                    {
+                        new PointVehilceTypeContainer(0, VehicleType.Helicopter,
+                            GetVehiclesCenter(vehicles[VehicleType.Helicopter]).GetDistance(_airKeyPoints[0])),
+                        new PointVehilceTypeContainer(1, VehicleType.Fighter,
+                            GetVehiclesCenter(vehicles[VehicleType.Fighter]).GetDistance(_airKeyPoints[1])),
+                    },
+                },
+            };
+
+            variants.Sort();
+            var bestVariant = variants.First();
             _airPointsVehicleTypes = new Dictionary<int, VehicleType>();
-            foreach (var item in pointVtContainers)
-            {
-                if (gotPoints.Contains(item.PointIndex) || gotKeys.Contains(item.VehicleType)) continue;
-                _airPointsVehicleTypes.Add(item.PointIndex, item.VehicleType);
-                gotPoints.Add(item.PointIndex);
-                gotKeys.Add(item.VehicleType);
-            }
+            _airPointsVehicleTypes.Add(0, bestVariant.PointVehilceTypeContainers.Single(p => p.PointIndex == 0).VehicleType);
+            _airPointsVehicleTypes.Add(1, bestVariant.PointVehilceTypeContainers.Single(p => p.PointIndex == 1).VehicleType);
 
             var needMove = false;
             foreach (var pointIndex in _airPointsVehicleTypes.Keys)
@@ -621,11 +721,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var enemyGroups = GetEnemyVehicleGroups();
             var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
 
+            var rectangle = GetGroupRectangel(vehicles);
             var newAngle = MathHelper.GetAnlge(
                 new Vector(centerPoint,
                     new Point(centerPoint.X + 100, centerPoint.Y)),
                 new Vector(centerPoint, nearestGroup.Center));
-            var turnAngle = newAngle - _currentGroupAngle[groupId];
+            var turnAngle = newAngle - rectangle.TurnAngle;
 
             if (turnAngle > Math.PI) turnAngle -= 2*Math.PI;
             else if (turnAngle < -Math.PI) turnAngle += 2*Math.PI;
@@ -655,7 +756,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.X = centerPoint.X;
                 move.Y = centerPoint.Y;
                 move.Angle = turnAngle;
-                _currentGroupAngle[groupId] = newAngle;
                 _groupEndMovementTime[groupId] = _world.TickIndex + turnTime;
                 move.MaxAngularSpeed = angularSpeed;
             });
@@ -686,8 +786,10 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                   centerPoint.Y <= _world.Height - FarBorderDistance;
             var hasAdvantege = HasAdvantage(groupId, nearestGroup);
 
-            var dx = isFarFromBorder && !hasAdvantege ? ShootingDistance*Math.Cos(_currentGroupAngle[groupId]) : 0d;
-            var dy = isFarFromBorder && !hasAdvantege ? ShootingDistance*Math.Sin(_currentGroupAngle[groupId]) : 0d;
+            var rectangle = GetGroupRectangel(vehicles);
+
+            var dx = isFarFromBorder && !hasAdvantege ? ShootingDistance*Math.Cos(rectangle.TurnAngle) : 0d;
+            var dy = isFarFromBorder && !hasAdvantege ? ShootingDistance*Math.Sin(rectangle.TurnAngle) : 0d;
 
 
             var dist = centerPoint.GetDistance(nearestGroup.Center.X, nearestGroup.Center.Y);
@@ -924,6 +1026,46 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         _game.TacticalNuclearStrikeRadius);
         }
 
+        private Rectangle GetGroupRectangel(IList<Vehicle> vehicles)
+        {
+            var minX = vehicles.Min(v => v.X);
+            var minY = vehicles.Min(v => v.Y);
+
+            var maxX = vehicles.Max(v => v.X);
+            var maxY = vehicles.Max(v => v.Y);
+
+            var minXVehicles = vehicles.Where(v => Math.Abs(v.X - minX) < Tolerance);
+            var minYVehicles = vehicles.Where(v => Math.Abs(v.Y - minY) < Tolerance);
+            var maxXVehicles = vehicles.Where(v => Math.Abs(v.X - maxX) < Tolerance);
+            var maxYVehicles = vehicles.Where(v => Math.Abs(v.Y - maxY) < Tolerance);
+
+            if (minXVehicles.Count() > 1 || minYVehicles.Count() > 1 || maxXVehicles.Count() > 1 ||
+                maxYVehicles.Count() > 1)
+                return new Rectangle()
+                {
+                    Points =
+                        new List<Point>()
+                        {
+                            new Point(minX, minY),
+                            new Point(minX, maxY),
+                            new Point(maxX, maxY),
+                            new Point(maxX, minY)
+                        }
+                };
+
+            return new Rectangle()
+            {
+                Points =
+                    new List<Point>()
+                    {
+                        new Point(minXVehicles.Single().X, minXVehicles.Single().Y),
+                        new Point(minYVehicles.Single().X, minYVehicles.Single().Y),
+                        new Point(maxXVehicles.Single().X, maxXVehicles.Single().Y),
+                        new Point(maxYVehicles.Single().X, maxYVehicles.Single().Y),
+                    }
+            };
+        }
+
         private void SandvichMove(int groupId, IsAStarMoveFinished isAStarMoveFinished, Shift shift, Compress compress)
         {
             var sandvichAction = _sandvichActions[groupId];
@@ -1000,11 +1142,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                             new Point(centerPoint.X + 100, centerPoint.Y)),
                         new Vector(centerPoint, nearestGroup.Center));
 
+                    var rectangle = GetGroupRectangel(vehicles);
+
                     if (_me.RemainingNuclearStrikeCooldownTicks == 0 && MakeNuclearStrike(vehicles, groupId))
                     {
                             //Удар нанесен
                     }
-                    else if (Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle &&
+                    else if (Math.Abs(rectangle.TurnAngle - angle) > MaxAngle &&
                              _world.TickIndex >= _groupEndMovementTime[groupId])
                     {
                         RotateToEnemy(vehicles, groupId);

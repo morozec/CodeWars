@@ -101,6 +101,7 @@
     <Compile Include="MyCode\PointVehilceTypeContainer.cs" />
     <Compile Include="MyCode\Rectangle.cs" />
     <Compile Include="MyCode\RotateToEnemyPointContainer.cs" />
+    <Compile Include="MyCode\VariantContainer.cs" />
     <Compile Include="MyCode\Vector.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RemoteProcessClient.cs" />
