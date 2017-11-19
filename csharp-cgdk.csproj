@@ -98,6 +98,7 @@
     <Compile Include="MyCode\MathHelper.cs" />
     <Compile Include="MyCode\MyStrategy.cs" />
     <Compile Include="MyCode\Point.cs" />
+    <Compile Include="MyCode\PointVehilceTypeContainer.cs" />
     <Compile Include="MyCode\Rectangle.cs" />
     <Compile Include="MyCode\RotateToEnemyPointContainer.cs" />
     <Compile Include="MyCode\Vector.cs" />
