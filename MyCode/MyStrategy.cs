@@ -196,7 +196,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 //SetGroudGroups();
                 //SetAirGroups();
-                AirMakeMoveToKeyPoint();
+                AirVehiclesInit();
                 GroundVehiclesInit();
             }
             else
@@ -204,7 +204,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 if (me.RemainingActionCooldownTicks > 0) return;
                 if (ExecuteDelayedMove()) return;
                 SandvichMove(1, IsGroundAStarMoveFinished, GroundShift, GroundCompress);
-                SandvichMove(2, IsOtherAStarMoveFinished, AirShift, AirCompress);
+                SandvichMove(2, IsAirAStarMoveFinished, AirShift, AirCompress);
             }
 
             ExecuteDelayedMove();
@@ -261,6 +261,50 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
         }
 
+        private void AirVehiclesInit()
+        {
+            SetAirGroups();
+
+            var vehicles = new Dictionary<VehicleType, IList<Vehicle>>
+                    {
+                        {VehicleType.Fighter, GetVehicles(Ownership.ALLY, VehicleType.Fighter)},
+                        {VehicleType.Helicopter, GetVehicles(Ownership.ALLY, VehicleType.Helicopter)},
+                    };
+
+            var point0Type =
+                vehicles.Keys.OrderBy(key => GetVehiclesCenter(vehicles[key]).GetDistance(_airKeyPoints[0]))
+                    .First();
+            var point1Type =
+                vehicles.Keys.Single(key => key != point0Type);
+
+            _airPointsVehicleTypes = new Dictionary<int, VehicleType>
+                    {
+                        {0, point0Type},
+                        {1, point1Type},
+                    };
+
+            _airPointIndex = 0;
+            var currentType = _airPointsVehicleTypes[_airPointIndex];
+            var currentVehicles = GetVehicles(Ownership.ALLY, currentType);
+            while (
+                Math.Abs(GetVehiclesCenter(currentVehicles).GetDistance(_airKeyPoints[_airPointIndex])) <=
+                Tolerance && ++_airPointIndex < 2)
+            {
+                currentType = _airPointsVehicleTypes[_airPointIndex];
+                currentVehicles = GetVehicles(Ownership.ALLY, currentType);
+            }
+
+            if (_airPointIndex == 2)
+            {
+                Scale(GetAirVehicles(Ownership.ALLY), 2);
+            }
+            else
+            {
+                AirMakeMoveToKeyPoint(currentType, currentVehicles);
+            }
+        }
+
+
         private void GroundMakeMoveToKeyPoint(VehicleType vehicleType, IList<Vehicle> vehicles)
         {
             var startI =
@@ -303,9 +347,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var startJ =
                 (int)
                     ((GetVehiclesCenter(vehicles).Y - 8 + AStar.SquareSize / 2) / AStar.SquareSize) - 1;
-            var path = _aStar.GetPath(startI, startJ, _groundPointIndex, 1);
-            _groundAStarPath = _aStar.GetStraightPath(path);
-            _groundPathIndex = 1;
+            var path = _aStar.GetPath(startI, startJ, _airPointIndex + 1, 2);
+            _airAStarPath = _aStar.GetStraightPath(path);
+            _airPathIndex = 1;
 
             _delayedMoves.Enqueue(move =>
             {
@@ -315,8 +359,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.VehicleType = vehicleType;
             });
 
-            var destX = (_groundAStarPath[_groundPathIndex] as ASquare).CenterX;
-            var destY = (_groundAStarPath[_groundPathIndex] as ASquare).CenterY;
+            var destX = (_airAStarPath[_airPathIndex] as ASquare).CenterX;
+            var destY = (_airAStarPath[_airPathIndex] as ASquare).CenterY;
             var dist = GetVehiclesCenter(vehicles).GetDistance(destX, destY);
 
             _delayedMoves.Enqueue(move =>
@@ -324,19 +368,33 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.Action = ActionType.Move;
                 move.X = destX - GetVehiclesCenter(vehicles).X;
                 move.Y = destY - GetVehiclesCenter(vehicles).Y;
-                _groupEndMovementTime[1] = Math.Max(_groupEndMovementTime[1],
-                    _world.TickIndex + dist / GetMaxSpeed(1));
+                _groupEndMovementTime[2] = Math.Max(_groupEndMovementTime[2],
+                    _world.TickIndex + dist / GetMaxSpeed(2));
             });
         }
 
         private void Scale(IList<Vehicle> vehicles, int groupId)
         {
+            //костыль, чтобы потом удобно было выделять
+            _delayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.ClearAndSelect;
+                move.Group = groupId;
+            });
+            _delayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.Move;
+                move.X = 0;
+                move.Y = GetMaxSpeed(groupId);
+            });
+            
+
             _sandvichActions[groupId] = SandvichAction.Scaling;
 
             var minY = vehicles.Min(v => v.Y);
             for (var i = 0; i < 5; ++i)
             {
-                var y = minY + SquardDelta*i;
+                var y = minY + GetMaxSpeed(groupId) + SquardDelta*i;
 
                 _delayedMoves.Enqueue(move =>
                 {
@@ -364,7 +422,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var maxY = vehicles.Max(v => v.Y);
             for (var i = 0; i < 4; ++i)
             {
-                var y = maxY - SquardDelta*i;
+                var y = maxY + GetMaxSpeed(groupId) - SquardDelta*i;
 
                 _delayedMoves.Enqueue(move =>
                 {
@@ -389,21 +447,18 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
         }
 
-        private delegate void Shift(IList<Vehicle> vehicles, int groupId);
+        private delegate void Shift(int groupId);
 
-        private void GroundShift(IList<Vehicle> vehicles, int groupId)
+        private void GroundShift(int groupId)
         {
             _sandvichActions[groupId] = SandvichAction.Shifting;
-
-            var minY = vehicles.Min(v => v.Y);
-            var maxY = vehicles.Max(v => v.Y);
 
             _delayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.ClearAndSelect;
-                move.Top = minY;
-                move.Bottom = maxY;
-                move.Right = 8 + AStar.SquareSize;
+                move.Right = _world.Width;
+                move.Bottom = _world.Height;
+                move.VehicleType = _groundPointsVehicleTypes[0];
             });
 
             _delayedMoves.Enqueue(move =>
@@ -419,10 +474,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             _delayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.ClearAndSelect;
-                move.Top = minY;
-                move.Bottom = maxY;
-                move.Left = 8 + AStar.SquareSize*2;
                 move.Right = _world.Width;
+                move.Bottom = _world.Height;
+                move.VehicleType = _groundPointsVehicleTypes[2];
             });
 
             _delayedMoves.Enqueue(move =>
@@ -436,7 +490,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             });
         }
 
-        private void AirShift(IList<Vehicle> vehicles, int groupId)
+        private void AirShift(int groupId)
         {
             _sandvichActions[groupId] = SandvichAction.Shifting; 
 
@@ -459,9 +513,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             });
         }
 
-        private delegate void Compress(IList<Vehicle> vehicles, int groupId);
+        private delegate void Compress(int groupId);
 
-        private void GroundCompress(IList<Vehicle> vehicles, int groupId)
+        private void GroundCompress(int groupId)
         {
             _sandvichActions[groupId] = SandvichAction.Compressing;
 
@@ -502,7 +556,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             });
         }
 
-        private void AirCompress(IList<Vehicle> vehicles, int groupId)
+        private void AirCompress(int groupId)
         {
             _sandvichActions[groupId] = SandvichAction.Compressing;
 
@@ -573,6 +627,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             if (turnAngle > Math.PI) turnAngle -= 2*Math.PI;
             else if (turnAngle < -Math.PI) turnAngle += 2*Math.PI;
 
+            if (turnAngle > Math.PI/2) turnAngle -= Math.PI;
+            else if (turnAngle < -Math.PI/2) turnAngle += Math.PI;
+
             var radius = vehicles.Max(v => v.GetDistanceTo(centerPoint.X, centerPoint.Y));
             var speed = GetMaxSpeed(groupId);
             var angularSpeed = speed/radius;
@@ -603,6 +660,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private void MoveToEnemy(IList<Vehicle> vehicles, int groupId)
         {
+
             _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
 
             if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
@@ -623,11 +681,10 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var isFarFromBorder = centerPoint.X >= FarBorderDistance && centerPoint.Y >= FarBorderDistance &&
                                   centerPoint.X <= _world.Width - FarBorderDistance &&
                                   centerPoint.Y <= _world.Height - FarBorderDistance;
-            var isAdvantege = vehicles.Count - nearestGroup.Vehicles.Count >= VehiclesCountAdvantage ||
-                              vehicles.Count*1d/nearestGroup.Vehicles.Count >= VehiclesCoeffAdvantage;
+            var hasAdvantege = HasAdvantage(groupId, nearestGroup);
 
-            var dx = isFarFromBorder && !isAdvantege ? ShootingDistance*Math.Cos(_currentGroupAngle[groupId]) : 0d;
-            var dy = isFarFromBorder && !isAdvantege ? ShootingDistance*Math.Sin(_currentGroupAngle[groupId]) : 0d;
+            var dx = isFarFromBorder && !hasAdvantege ? ShootingDistance*Math.Cos(_currentGroupAngle[groupId]) : 0d;
+            var dy = isFarFromBorder && !hasAdvantege ? ShootingDistance*Math.Sin(_currentGroupAngle[groupId]) : 0d;
 
 
             var dist = centerPoint.GetDistance(nearestGroup.Center.X, nearestGroup.Center.Y);
@@ -641,6 +698,43 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 _currentMoveEnemyPoint[groupId] = new Point(nearestGroup.Center.X, nearestGroup.Center.Y);
                 //Math.Max(_endMovementTime,_world.TickIndex + dist / (_game.TankSpeed * _game.SwampTerrainSpeedFactor));
             });
+        }
+
+        private bool HasAdvantage(int groupId, GroupContainer enemyGroup)
+        {
+            var vehicles = GetVehicles(groupId, Ownership.ALLY);
+            switch (groupId)
+            {
+                case 1:
+                    return vehicles.Count - enemyGroup.Vehicles.Count >= VehiclesCountAdvantage ||
+                              vehicles.Count * 1d / enemyGroup.Vehicles.Count >= VehiclesCoeffAdvantage;
+                case 2:
+                    var myWeight = vehicles.Count;
+                    var enemyWeight = 0d;
+                    foreach (var v in enemyGroup.Vehicles)
+                    {
+                        switch (v.Type)
+                        {
+                            case VehicleType.Fighter:
+                                enemyWeight += 1;
+                                break;
+                            case VehicleType.Helicopter:
+                                enemyWeight += 1;
+                                break;
+                            case VehicleType.Tank:
+                                enemyWeight += 1;
+                                break;
+                            case VehicleType.Ifv:
+                                enemyWeight += 3;
+                                break;
+                        }
+                    }
+
+                    return myWeight >= enemyWeight;
+
+                default:
+                    throw new Exception("Unknown group id");
+            }
         }
 
         private bool MakeNuclearStrike(IList<Vehicle> vehicles, int groupId)
@@ -764,10 +858,67 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             return false;
         }
 
-        private bool IsOtherAStarMoveFinished(int groupId)
+        private bool IsAirAStarMoveFinished(int groupId)
         {
-            var vehicles = GetVehicles(groupId, Ownership.ALLY);
-            return vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex);
+            //TODO: данный тип уже может отсутствовать
+
+            if (_airPointIndex == 2) return true;
+            var vehicleType = _airPointsVehicleTypes[_airPointIndex];
+            var currVehicles = GetVehicles(Ownership.ALLY, vehicleType);
+
+            if (_world.TickIndex < _groupEndMovementTime[groupId] &&
+                !currVehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
+                return false;
+
+            if (_airPathIndex < _airAStarPath.Count - 1)
+            {
+                _airPathIndex++;
+
+                _delayedMoves.Enqueue(move =>
+                {
+                    move.Action = ActionType.ClearAndSelect;
+                    move.Bottom = _world.Height;
+                    move.Right = _world.Width;
+                    move.VehicleType = vehicleType;
+                });
+
+                var destX = (_airAStarPath[_airPathIndex] as ASquare).CenterX;
+                var destY = (_airAStarPath[_airPathIndex] as ASquare).CenterY;
+                var dist = GetVehiclesCenter(currVehicles).GetDistance(destX, destY);
+
+                _delayedMoves.Enqueue(move =>
+                {
+                    move.Action = ActionType.Move;
+                    move.X = destX - GetVehiclesCenter(currVehicles).X;
+                    move.Y = destY - GetVehiclesCenter(currVehicles).Y;
+
+                    _groupEndMovementTime[groupId] = Math.Max(_groupEndMovementTime[groupId],
+                        _world.TickIndex + dist / GetMaxSpeed(groupId));
+                });
+            }
+            else if (_airPointIndex < 1)
+            {
+                _airPointIndex++;
+
+                var currentType = _airPointsVehicleTypes[_airPointIndex];
+                var currentVehicles = GetVehicles(Ownership.ALLY, currentType);
+                while (Math.Abs(GetVehiclesCenter(currentVehicles)
+                    .GetDistance(_airKeyPoints[_airPointIndex])) <= Tolerance &&
+                       ++_airPointIndex < 3)
+                {
+                    currentType = _airPointsVehicleTypes[_airPointIndex];
+                    currentVehicles = GetVehicles(Ownership.ALLY, currentType);
+                }
+
+                if (_airPointIndex == 3) return true;
+                AirMakeMoveToKeyPoint(currentType, currentVehicles);
+            }
+            else
+            {
+                return true;
+            }
+
+            return false;
         }
 
         private double GetMaxSpeed(int groupId)
@@ -813,7 +964,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (_world.TickIndex >= _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
-                        shift(vehicles, groupId);
+                        shift(groupId);
                     }
                     break;
 
@@ -821,7 +972,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (_world.TickIndex >= _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
-                        compress(vehicles, groupId);
+                        compress(groupId);
                     }
                     break;
 
