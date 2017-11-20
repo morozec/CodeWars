@@ -130,6 +130,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private bool _isNuclearVehicleReturnedToGroup = true;
 
         private int _nuclearVehicleGroup = -1;
+        private long _nuclearVehicleId = -1;
 
         private Player _me;
         private Move _move;
@@ -717,13 +718,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             });
         }
 
-        private void Compress2(double x, double y, double compressionCoeff, double time, int groupId)
+        private void Compress2(double x, double y, double compressionCoeff, double time, int groupId, Queue<Action<Move>> actions )
         {
             _sandvichActions[groupId] = SandvichAction.Compressing2;
 
             if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
             {
-                _delayedMoves.Enqueue(move =>
+                actions.Enqueue(move =>
                 {
                     move.Action = ActionType.ClearAndSelect;
                     move.Group = groupId;
@@ -731,7 +732,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 _selectedGroupId = groupId;
             }
 
-            _delayedMoves.Enqueue(move =>
+            actions.Enqueue(move =>
             {
                 move.Action = ActionType.Scale;
                 move.Factor = compressionCoeff;
@@ -920,6 +921,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             
             var faarestMyVehicles = canStrikeMyVehilces
                 .OrderBy(v => v.GetDistanceTo(targetGroup.Center.X, targetGroup.Center.Y)).Last();
+            _nuclearVehicleId = faarestMyVehicles.Id;
 
             _importantDelayedMoves.Enqueue(move =>
             {
@@ -931,11 +933,14 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             _importantDelayedMoves.Enqueue(move =>
             {
+                if (!_vehicleById.ContainsKey(_nuclearVehicleId)) return;
+                var v = _vehicleById[_nuclearVehicleId];
+
                 move.Action = ActionType.ClearAndSelect;
-                move.Left = faarestMyVehicles.X - Tolerance;
-                move.Right = faarestMyVehicles.X + Tolerance;
-                move.Top = faarestMyVehicles.Y - Tolerance;
-                move.Bottom = faarestMyVehicles.Y + Tolerance;
+                move.Left = v.X - Tolerance;
+                move.Right = v.X + Tolerance;
+                move.Top = v.Y - Tolerance;
+                move.Bottom = v.Y + Tolerance;
             });
 
             _selectedGroupId = 42;
@@ -1199,7 +1204,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
                         var centerPoint = GetVehiclesCenter(vehicles);
-                        Compress2(centerPoint.X, centerPoint.Y, PrepareCompressinFactor, 100d, groupId); //TODO
+                        Compress2(centerPoint.X, centerPoint.Y, PrepareCompressinFactor, 100d, groupId, _delayedMoves); //TODO
                     }
                     break;
 
@@ -1253,7 +1258,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (_world.TickIndex >= _groupEndMovementTime[groupId])
                     {
                         Compress2(_enemyNuclearStrikeX, _enemyNuclearStrikeY, NuclearCompressionFactor,
-                            _game.TacticalNuclearStrikeDelay, groupId);
+                            _game.TacticalNuclearStrikeDelay, groupId, _importantDelayedMoves);
                     }
                     break;
             }
