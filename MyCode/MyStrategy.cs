@@ -45,6 +45,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private const int MinNuclearStrikeCount = 5;
 
+        private const int SmallGroupVehiclesCount = 15;
+
         private readonly IList<Point> _airKeyPoints = new List<Point>
         {
             new Point(119, 119),
@@ -1235,7 +1237,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                     var rectangle = GetGroupRectangel(vehicles);
 
-                    if (Math.Abs(rectangle.TurnAngle - angle) > MaxAngle &&
+                    var isSmallEnemyGroup = IsSmallEnemyGroup(vehicles, nearestGroup.Vehicles);
+                    if (!isSmallEnemyGroup && Math.Abs(rectangle.TurnAngle - angle) > MaxAngle &&
                              _world.TickIndex >= _groupEndMovementTime[groupId])
                     {
                         RotateToEnemy(vehicles, groupId);
@@ -1262,6 +1265,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     }
                     break;
             }
+        }
+
+        private bool IsSmallEnemyGroup(IList<Vehicle> myVehicles, IList<Vehicle> enemyVehicles)
+        {
+            return enemyVehicles.Count <= SmallGroupVehiclesCount &&
+                   (myVehicles.Count - enemyVehicles.Count >= VehiclesCountAdvantage ||
+                    myVehicles.Count*1d/enemyVehicles.Count >= VehiclesCoeffAdvantage);
         }
 
         private IList<GroupContainer> GetEnemyVehicleGroups()
