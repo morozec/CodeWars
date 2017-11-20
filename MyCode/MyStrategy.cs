@@ -26,7 +26,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const int MoveToEnemyTicks = 6;
 
         private const double FarBorderDistance = 100;
-        private const double ShootingDistance = 64d;
+        private const double ShootingDistance = 30d;
 
         private const int VehiclesCountAdvantage = 100;
         private const double VehiclesCoeffAdvantage = 2;
@@ -819,10 +819,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                   centerPoint.Y <= _world.Height - FarBorderDistance;
             var hasAdvantege = HasAdvantage(groupId, nearestGroup);
 
-            var rectangle = GetGroupRectangel(vehicles);
+            var myRectangle = GetGroupRectangel(vehicles);
+            var enemyRectangle = GetGroupRectangel(nearestGroup.Vehicles);
+            var minCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
+            var distToEnemyCenter = nearestGroup.Center.GetDistance(minCp) + ShootingDistance;
 
-            var dx = isFarFromBorder && !hasAdvantege ? ShootingDistance*Math.Cos(rectangle.TurnAngle) : 0d;
-            var dy = isFarFromBorder && !hasAdvantege ? ShootingDistance*Math.Sin(rectangle.TurnAngle) : 0d;
+            var dx = isFarFromBorder && !hasAdvantege ? distToEnemyCenter * Math.Cos(myRectangle.TurnAngle) : 0d;
+            var dy = isFarFromBorder && !hasAdvantege ? distToEnemyCenter * Math.Sin(myRectangle.TurnAngle) : 0d;
 
 
             var dist = centerPoint.GetDistance(nearestGroup.Center.X, nearestGroup.Center.Y);

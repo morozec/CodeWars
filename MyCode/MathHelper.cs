@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.Model;
@@ -162,6 +163,48 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
             var p2 = new Point(x2, y2);
 
             return b.GetDistance(p1) > b.GetDistance(p2) ? p1 : p2;
+        }
+
+        public static Point GetNearestRectangleCrossPoint(Point p, Rectangle rectangle, Point rectangeCenter)
+        {
+            Point minCp = null;
+            var minDist = double.MaxValue;
+            for (var i = 0; i < rectangle.Points.Count; ++i)
+            {
+                var a0 = rectangle.Points[i];
+                var a1 = rectangle.Points[i < rectangle.Points.Count - 1 ? i + 1 : 0];
+                var cp = GetCrossPoint(p, rectangeCenter, a0, a1);
+
+                if (cp.X < a0.X && cp.X < a1.X || cp.X > a0.X && cp.X > a1.X) continue; // точка снаружи отрезка границы прямоугольника
+
+                var dist = p.GetDistance(cp);
+                if (dist < minDist)
+                {
+                    minDist = dist;
+                    minCp = cp;
+                }
+            }
+
+            if (minCp == null) throw new Exception("No cross point");
+
+            return minCp;
+        }
+
+        //public static double GetPointAnchorDistance(Point p, Point a0, Point a1)
+        //{
+        //    return 
+        //        Math.Abs(((a0.Y - a1.Y)*p.X + (a1.X - a0.X)*p.Y + (a0.X*a1.Y - a1.X*a0.Y))/
+        //                 Math.Sqrt((a1.X - a0.X)*(a1.X - a0.X) + (a1.Y - a0.Y)*(a1.Y - a0.Y)));
+
+
+        //}
+
+        public static Point GetCrossPoint(Point p1, Point p2, Point p3, Point p4)
+        {
+            return new Point(
+                ((p1.X * p2.Y - p1.Y*p2.X)*(p3.X - p4.X) - (p1.X - p2.X)*(p3.X*p4.Y-p3.Y*p4.X))/((p1.X-p2.X)*(p3.Y - p4.Y)-(p1.Y-p2.Y)*(p3.X-p4.X)),
+                ((p1.X * p2.Y - p1.Y*p2.X)*(p3.Y - p4.Y) - (p1.Y - p2.Y)*(p3.X*p4.Y-p3.Y*p4.X))/((p1.X-p2.X)*(p3.Y - p4.Y)-(p1.Y-p2.Y)*(p3.X-p4.X))
+                );
         }
 
     }
