@@ -127,7 +127,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private IDictionary<int, VehicleType> _groundPointsVehicleTypes;
 
         private bool _isNuclearStrikeConsidered = false;
-        private bool _isNuclearVehicleReturnedToGroup = false;
+        private bool _isNuclearVehicleReturnedToGroup = true;
 
         private int _nuclearVehicleGroup = -1;
 
@@ -432,7 +432,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 }
             }
 
-            if (!needMove) Scale(GetGroudVehicles(Ownership.ALLY), 2);
+            if (!needMove) Scale(GetAirVehicles(Ownership.ALLY), 2);
         }
 
 
