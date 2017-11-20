@@ -43,15 +43,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const double PrepareCompressinFactor = 0.75;
         private const double MoveEnemyPointTolerance = 10d;
 
-        private const int MinNuclearStrikeCount = 10;
+        private const int MinNuclearStrikeCount = 5;
 
         private readonly IList<Point> _airKeyPoints = new List<Point>
         {
-            new Point(119, 193),
-            new Point(193, 193)
+            new Point(119, 119),
+            new Point(193, 119)
         };
 
         private readonly Queue<Action<Move>> _delayedMoves = new Queue<Action<Move>>();
+        private readonly Queue<Action<Move>> _importantDelayedMoves = new Queue<Action<Move>>();
 
         private readonly IList<Point> _groundKeyPoints = new List<Point>
         {
@@ -126,6 +127,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private IDictionary<int, VehicleType> _groundPointsVehicleTypes;
 
         private bool _isNuclearStrikeConsidered = false;
+        private bool _isNuclearVehicleReturnedToGroup = false;
+
+        private int _nuclearVehicleGroup = -1;
 
         private Player _me;
         private Move _move;
@@ -200,20 +204,28 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 if (me.RemainingActionCooldownTicks > 0) return;
 
-                if (_me.RemainingNuclearStrikeCooldownTicks == 0 &&
-                    (_isGroupCompressed[1] && CanMakeNuclearStrike(1) ||
-                     _isGroupCompressed[2] && CanMakeNuclearStrike(2)))
+                var isCompressed = _isGroupCompressed.Values.All(x => x);
+
+                if (_me.RemainingNuclearStrikeCooldownTicks == 0 && isCompressed && MakeNuclearStrike())
                 {
                     _delayedMoves.Clear();
                 }
-                else if (!_isNuclearStrikeConsidered && _enemy.NextNuclearStrikeTickIndex > -1)
+                else if (!_isNuclearStrikeConsidered && isCompressed && _enemy.NextNuclearStrikeTickIndex > -1)
                 {
+                    //Сама реакция будет в методах SandvichMove
                     _delayedMoves.Clear();
                     _isNuclearStrikeConsidered = true;
                 }
-                else if (ExecuteDelayedMove()) return;
+                else if (!_isNuclearVehicleReturnedToGroup && _me.NextNuclearStrikeTickIndex == -1 && isCompressed &&
+                         ReturnNuclearVehicleToItsGroup())
+                {
+                    _delayedMoves.Clear();
+                }
 
-                if (_selectedGroupId == 1 || _selectedGroupId == -1)
+
+                if (ExecuteDelayedMove()) return;
+
+                if (_selectedGroupId == 1 || _selectedGroupId == -1 || _selectedGroupId == 42)
                 {
                     SandvichMove(1, IsGroundAStarMoveFinished, GroundShift, GroundCompress);
                     SandvichMove(2, IsAirAStarMoveFinished, AirShift, AirCompress);
@@ -466,7 +478,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var startJ =
                 (int)
                     ((GetVehiclesCenter(vehicles).Y - 8 + AStar.SquareSize / 2) / AStar.SquareSize) - 1;
-            var path = _aStar.GetPath(startI, startJ, pointIndex + 1, 2);
+            var path = _aStar.GetPath(startI, startJ, pointIndex + 1, 1);
             _airAStarPathes.Add(vehicleType, _aStar.GetStraightPath(path));
             _airPathIndexes.Add(vehicleType, 1);
 
@@ -737,7 +749,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var centerPoint = GetVehiclesCenter(vehicles);
 
             var enemyGroups = GetEnemyVehicleGroups();
-            var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y, 0);
+            var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
 
             var rectangle = GetGroupRectangel(vehicles);
             var newAngle = MathHelper.GetAnlge(
@@ -797,7 +809,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var centerPoint = GetVehiclesCenter(vehicles);
 
             var enemyGroups = GetEnemyVehicleGroups();
-            var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y, 0);
+            var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
 
             var isFarFromBorder = centerPoint.X >= FarBorderDistance && centerPoint.Y >= FarBorderDistance &&
                                   centerPoint.X <= _world.Width - FarBorderDistance &&
@@ -860,51 +872,89 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
         }
 
-        private bool CanMakeNuclearStrike(int groupId)
+        private bool ReturnNuclearVehicleToItsGroup()
         {
-            var vehicles = GetVehicles(groupId, Ownership.ALLY);
+            _isNuclearVehicleReturnedToGroup = true;
+            var vehilces = GetVehicles(42, Ownership.ALLY);
+            if (!vehilces.Any())
+            {
+                //Машина сдохла
+                return false;
+            }
 
-            var centerPoint = GetVehiclesCenter(vehicles);
+            if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != 42)
+            {
+                _importantDelayedMoves.Enqueue(move =>
+                {
+                    move.Action = ActionType.ClearAndSelect;
+                    move.Group = 42;
+                });
+                _selectedGroupId = 42;
+            }
 
-            var enemyGroups = GetEnemyVehicleGroups();
-            var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y, MinNuclearStrikeCount);
+            _importantDelayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.Dismiss;
+                move.Group = 42;
+            });
 
-            if (nearestGroup == null) return false;
+            _importantDelayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.Assign;
+                move.Group = _nuclearVehicleGroup;
+            });
 
-            var canStrikeMyVehilces = vehicles.Where(v =>
-                v.VisionRange >= v.GetDistanceTo(nearestGroup.Center.X, nearestGroup.Center.Y) +
-                NuclearStrikeDistDelta);
-
-            return canStrikeMyVehilces.Any();
+            return true;
         }
 
-        private bool MakeNuclearStrike(IList<Vehicle> vehicles, int groupId)
+        private bool MakeNuclearStrike()
         {
-            var centerPoint = GetVehiclesCenter(vehicles);
-
             var enemyGroups = GetEnemyVehicleGroups();
-            var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y, MinNuclearStrikeCount);
+            var targetGroup = GetNuclearStrikeEnemyGroup(enemyGroups);
 
-            if (nearestGroup == null) return false;
+            if (targetGroup == null) return false;
 
-            var canStrikeMyVehilces = vehicles.Where(v =>
-                v.VisionRange >= v.GetDistanceTo(nearestGroup.Center.X, nearestGroup.Center.Y) + NuclearStrikeDistDelta);
-
-            if (!canStrikeMyVehilces.Any()) return false;
-
-            _sandvichActions[groupId] = SandvichAction.NuclearStrike;
-
+            var myVehicles = GetVehicles(Ownership.ALLY);
+            var canStrikeMyVehilces = myVehicles.Where(v =>
+                v.VisionRange >= v.GetDistanceTo(targetGroup.Center.X, targetGroup.Center.Y) + NuclearStrikeDistDelta);
+            
             var faarestMyVehicles = canStrikeMyVehilces
-                .OrderBy(v => v.GetDistanceTo(nearestGroup.Center.X, nearestGroup.Center.Y)).Last();
+                .OrderBy(v => v.GetDistanceTo(targetGroup.Center.X, targetGroup.Center.Y)).Last();
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.TacticalNuclearStrike;
-                move.X = nearestGroup.Center.X;
-                move.Y = nearestGroup.Center.Y;
+                move.X = targetGroup.Center.X;
+                move.Y = targetGroup.Center.Y;
                 move.VehicleId = faarestMyVehicles.Id;
-                _groupEndMovementTime[groupId] = _world.TickIndex + _game.TacticalNuclearStrikeDelay;
             });
+
+            _importantDelayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.ClearAndSelect;
+                move.Left = faarestMyVehicles.X - Tolerance;
+                move.Right = faarestMyVehicles.X + Tolerance;
+                move.Top = faarestMyVehicles.Y - Tolerance;
+                move.Bottom = faarestMyVehicles.Y + Tolerance;
+            });
+
+            _selectedGroupId = 42;
+
+            var group = faarestMyVehicles.Groups.Single();
+            _nuclearVehicleGroup = group;
+            _importantDelayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.Dismiss;
+                move.Group = group;
+            });
+
+            _importantDelayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.Assign;
+                move.Group = 42;
+            });
+
+            _isNuclearVehicleReturnedToGroup = false;
 
             return true;
         }
@@ -915,7 +965,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
             {
-                _delayedMoves.Enqueue(move =>
+                _importantDelayedMoves.Enqueue(move =>
                 {
                     move.Action = ActionType.ClearAndSelect;
                     move.Group = groupId;
@@ -926,7 +976,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             _enemyNuclearStrikeX = _enemy.NextNuclearStrikeX;
             _enemyNuclearStrikeY = _enemy.NextNuclearStrikeY;
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Scale;
                 move.Factor = 1/NuclearCompressionFactor;
@@ -1108,13 +1158,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var isCompressed = _isGroupCompressed[groupId];
             var vehicles = GetVehicles(groupId, Ownership.ALLY);
             if (!vehicles.Any()) return;
-
-            if (_me.RemainingNuclearStrikeCooldownTicks == 0 && MakeNuclearStrike(vehicles, groupId))
-            {
-                //Удар нанесен
-                return;
-            }
-
+            
             if (sandvichAction != SandvichAction.Uncompress && _enemy.NextNuclearStrikeTickIndex > -1 &&
                 isCompressed && NeedNuclearUncompress(vehicles))
             {
@@ -1177,7 +1221,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 {
                     var centerPoint = GetVehiclesCenter(vehicles);
                     var enemyGroups = GetEnemyVehicleGroups();
-                    var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y, 0);
+                    var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
 
                     var angle = MathHelper.GetAnlge(
                         new Vector(centerPoint,
@@ -1256,14 +1300,14 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             return groupContainers;
         }
 
-        private GroupContainer GetNearestEnemyGroup(IList<GroupContainer> enemyGroups, double centerX, double centerY, int minVehiclesCount)
+        private GroupContainer GetNearestEnemyGroup(IList<GroupContainer> enemyGroups, double centerX, double centerY)
         {
             GroupContainer nearestGroup = null;
             var minDist = double.MaxValue;
             foreach (var eg in enemyGroups)
             {
                 var dist = eg.Center.GetDistance(centerX, centerY);
-                if (dist < minDist && eg.Vehicles.Count >= minVehiclesCount)
+                if (dist < minDist)
                 {
                     minDist = dist;
                     nearestGroup = eg;
@@ -1271,6 +1315,56 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
 
             return nearestGroup;
+        }
+
+        private double GetGroupNuclearDamage(IList<Vehicle> vehicles, double nuclearX, double nuclearY)
+        {
+            var sumDamage = 0d;
+
+            foreach (var v in vehicles)
+            {
+                var dist = v.GetDistanceTo(nuclearX, nuclearY);
+                if (dist < _game.TacticalNuclearStrikeRadius)
+                {
+                    var closeCoeff = (_game.TacticalNuclearStrikeRadius - dist) / _game.TacticalNuclearStrikeRadius;
+                    var damage = _game.MaxTacticalNuclearStrikeDamage * closeCoeff;
+
+                    if (damage > v.Durability)
+                    {
+                        damage = v.Durability;
+                    }
+                    sumDamage += damage;
+                }
+            }
+            return sumDamage;
+        }
+
+        private GroupContainer GetNuclearStrikeEnemyGroup(IList<GroupContainer> enemyGroups)
+        {
+            var myVehicles = GetVehicles(Ownership.ALLY);
+
+            GroupContainer targetGroup = null;
+            var maxDiffDamage = 0d;
+            foreach (var eg in enemyGroups.Where(x => x.Vehicles.Count >= MinNuclearStrikeCount))
+            {
+                var canStrikeMyVehilces = myVehicles.Where(v =>
+                    v.VisionRange >= v.GetDistanceTo(eg.Center.X, eg.Center.Y) +
+                    NuclearStrikeDistDelta);
+
+                if (!canStrikeMyVehilces.Any()) continue;
+
+                var damage = GetGroupNuclearDamage(eg.Vehicles, eg.Center.X, eg.Center.Y);
+                var myVehiclesDamage = GetGroupNuclearDamage(myVehicles, eg.Center.X, eg.Center.Y);
+                var diffDamage = damage - myVehiclesDamage;
+
+                if (diffDamage > maxDiffDamage)
+                {
+                    maxDiffDamage = diffDamage;
+                    targetGroup = eg;
+                }
+            }
+
+            return targetGroup;
         }
 
 
@@ -1361,12 +1455,22 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         /// <returns>Возвращает true, если и только если отложенное действие было найдено и выполнено.</returns>
         private bool ExecuteDelayedMove()
         {
-            if (!_delayedMoves.Any()) return false;
+            if (!_importantDelayedMoves.Any())
+            {
+                if (!_delayedMoves.Any()) return false;
 
-            var delayedMove = _delayedMoves.Dequeue();
-            delayedMove.Invoke(_move);
+                var delayedMove = _delayedMoves.Dequeue();
+                delayedMove.Invoke(_move);
 
-            return true;
+                return true;
+            }
+            else
+            {
+                var delayedMove = _importantDelayedMoves.Dequeue();
+                delayedMove.Invoke(_move);
+
+                return true;
+            }
         }
        
         public static bool IsSameTypes(VehicleType vt1, VehicleType vt2)
