@@ -47,6 +47,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private const int SmallGroupVehiclesCount = 15;
 
+
         private readonly IList<Point> _airKeyPoints = new List<Point>
         {
             new Point(119, 119),
@@ -157,11 +158,17 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {2, 0d},
         };
 
-        //private readonly IDictionary<int, double> _currentGroupAngle = new Dictionary<int, double>()
-        //{
-        //    {1, 0d},
-        //    {2, 0d},
-        //};
+        private readonly IDictionary<int, double> _currentGroupAngle = new Dictionary<int, double>()
+        {
+            {1, 0d},
+            {2, 0d},
+        };
+
+        private readonly IDictionary<int, double> _currentAngularSpeed = new Dictionary<int, double>()
+        {
+            {1, 0d},
+            {2, 0d},
+        };
 
         private readonly IDictionary<int, Point> _currentMoveEnemyPoint = new Dictionary<int, Point>()
         {
@@ -754,12 +761,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var enemyGroups = GetEnemyVehicleGroups();
             var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
 
-            var rectangle = GetGroupRectangel(vehicles);
+            //var rectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
             var newAngle = MathHelper.GetAnlge(
                 new Vector(centerPoint,
                     new Point(centerPoint.X + 100, centerPoint.Y)),
                 new Vector(centerPoint, nearestGroup.Center));
-            var turnAngle = newAngle - rectangle.TurnAngle;
+
+            var turnAngle = newAngle - _currentGroupAngle[groupId];
 
             if (turnAngle > Math.PI) turnAngle -= 2*Math.PI;
             else if (turnAngle < -Math.PI) turnAngle += 2*Math.PI;
@@ -791,6 +799,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.Angle = turnAngle;
                 _groupEndMovementTime[groupId] = _world.TickIndex + turnTime;
                 move.MaxAngularSpeed = angularSpeed;
+                _currentAngularSpeed[groupId] = turnAngle > 0 ? angularSpeed : -angularSpeed;
             });
         }
 
@@ -819,13 +828,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                   centerPoint.Y <= _world.Height - FarBorderDistance;
             var hasAdvantege = HasAdvantage(groupId, nearestGroup);
 
-            var myRectangle = GetGroupRectangel(vehicles);
-            var enemyRectangle = GetGroupRectangel(nearestGroup.Vehicles);
+            //var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles)); ;
+            var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles)); 
             var minCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
             var distToEnemyCenter = nearestGroup.Center.GetDistance(minCp) + ShootingDistance;
 
-            var dx = isFarFromBorder && !hasAdvantege ? distToEnemyCenter * Math.Cos(myRectangle.TurnAngle) : 0d;
-            var dy = isFarFromBorder && !hasAdvantege ? distToEnemyCenter * Math.Sin(myRectangle.TurnAngle) : 0d;
+
+
+            var dx = isFarFromBorder && !hasAdvantege ? distToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]) : 0d;
+            var dy = isFarFromBorder && !hasAdvantege ? distToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]) : 0d;
 
 
             var dist = centerPoint.GetDistance(nearestGroup.Center.X, nearestGroup.Center.Y);
@@ -1122,45 +1133,45 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         _game.TacticalNuclearStrikeRadius);
         }
 
-        private Rectangle GetGroupRectangel(IList<Vehicle> vehicles)
-        {
-            var minX = vehicles.Min(v => v.X);
-            var minY = vehicles.Min(v => v.Y);
+        //private Rectangle GetGroupRectangel(IList<Vehicle> vehicles)
+        //{
+        //    var minX = vehicles.Min(v => v.X);
+        //    var minY = vehicles.Min(v => v.Y);
 
-            var maxX = vehicles.Max(v => v.X);
-            var maxY = vehicles.Max(v => v.Y);
+        //    var maxX = vehicles.Max(v => v.X);
+        //    var maxY = vehicles.Max(v => v.Y);
 
-            var minXVehicles = vehicles.Where(v => Math.Abs(v.X - minX) < Tolerance);
-            var minYVehicles = vehicles.Where(v => Math.Abs(v.Y - minY) < Tolerance);
-            var maxXVehicles = vehicles.Where(v => Math.Abs(v.X - maxX) < Tolerance);
-            var maxYVehicles = vehicles.Where(v => Math.Abs(v.Y - maxY) < Tolerance);
+        //    var minXVehicles = vehicles.Where(v => Math.Abs(v.X - minX) < Tolerance);
+        //    var minYVehicles = vehicles.Where(v => Math.Abs(v.Y - minY) < Tolerance);
+        //    var maxXVehicles = vehicles.Where(v => Math.Abs(v.X - maxX) < Tolerance);
+        //    var maxYVehicles = vehicles.Where(v => Math.Abs(v.Y - maxY) < Tolerance);
 
-            if (minXVehicles.Count() > 1 || minYVehicles.Count() > 1 || maxXVehicles.Count() > 1 ||
-                maxYVehicles.Count() > 1)
-                return new Rectangle()
-                {
-                    Points =
-                        new List<Point>()
-                        {
-                            new Point(minX, minY),
-                            new Point(minX, maxY),
-                            new Point(maxX, maxY),
-                            new Point(maxX, minY)
-                        }
-                };
+        //    if (minXVehicles.Count() > 1 || minYVehicles.Count() > 1 || maxXVehicles.Count() > 1 ||
+        //        maxYVehicles.Count() > 1)
+        //        return new Rectangle()
+        //        {
+        //            Points =
+        //                new List<Point>()
+        //                {
+        //                    new Point(minX, minY),
+        //                    new Point(minX, maxY),
+        //                    new Point(maxX, maxY),
+        //                    new Point(maxX, minY)
+        //                }
+        //        };
 
-            return new Rectangle()
-            {
-                Points =
-                    new List<Point>()
-                    {
-                        new Point(minXVehicles.Single().X, minXVehicles.Single().Y),
-                        new Point(minYVehicles.Single().X, minYVehicles.Single().Y),
-                        new Point(maxXVehicles.Single().X, maxXVehicles.Single().Y),
-                        new Point(maxYVehicles.Single().X, maxYVehicles.Single().Y),
-                    }
-            };
-        }
+        //    return new Rectangle()
+        //    {
+        //        Points =
+        //            new List<Point>()
+        //            {
+        //                new Point(minXVehicles.Single().X, minXVehicles.Single().Y),
+        //                new Point(minYVehicles.Single().X, minYVehicles.Single().Y),
+        //                new Point(maxXVehicles.Single().X, maxXVehicles.Single().Y),
+        //                new Point(maxYVehicles.Single().X, maxYVehicles.Single().Y),
+        //            }
+        //    };
+        //}
 
         private void SandvichMove(int groupId, IsAStarMoveFinished isAStarMoveFinished, Shift shift, Compress compress)
         {
@@ -1226,6 +1237,10 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     {
                         MoveToEnemy(vehicles, groupId);
                     }
+                    else
+                    {
+                        _currentGroupAngle[groupId] += _currentAngularSpeed[groupId];
+                    }
                     break;
                 case SandvichAction.MovingToEnemy:
                 {
@@ -1238,10 +1253,10 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                             new Point(centerPoint.X + 100, centerPoint.Y)),
                         new Vector(centerPoint, nearestGroup.Center));
 
-                    var rectangle = GetGroupRectangel(vehicles);
+                    //var rectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles)); 
 
                     var isSmallEnemyGroup = IsSmallEnemyGroup(vehicles, nearestGroup.Vehicles);
-                    if (!isSmallEnemyGroup && Math.Abs(rectangle.TurnAngle - angle) > MaxAngle &&
+                    if (!isSmallEnemyGroup && Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle &&
                              _world.TickIndex >= _groupEndMovementTime[groupId])
                     {
                         RotateToEnemy(vehicles, groupId);
@@ -1584,6 +1599,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
 
             return targetTypeEnemyVehicles;
+        }
+
+        private IList<Point> GetVehicleGroupPoints(IList<Vehicle> vehicles)
+        {
+            return vehicles.Select(v => new Point(v.X, v.Y)).ToList();
         }
 
         private enum TornadoAction

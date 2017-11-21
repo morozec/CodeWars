@@ -33,120 +33,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
             //-, ибо другое расположение осей x-y
             return -((b.X - a.X) * (c.Y - b.Y) - (b.Y - a.Y) * (c.X - b.X));
         }
-
-        private static bool Intersect(Point a, Point b, Point c, Point d)
-        {
-            return Rotate(a, b, c) * Rotate(a, b, d) <= 0 && Rotate(c, d, a) * Rotate(c, d, b) < 0;
-        }
-
-        private static bool PointLoc(Rectangle rect, Point a)
-        {
-            var n = rect.Points.Count;
-            if (Rotate(rect.Points[0], rect.Points[1], a) < 0 || Rotate(rect.Points[0], rect.Points[n - 1], a) > 0)
-                return false;
-            var p = 1;
-            var r = n - 1;
-            var q = 0;
-            while (r - p > 1)
-            {
-                q = (p + r) / 2;
-                if (Rotate(rect.Points[0], rect.Points[q], a) < 0)
-                {
-                    r = q;
-                }
-                else
-                {
-                    p = q;
-                }
-            }
-
-            return !Intersect(rect.Points[0], a, rect.Points[p], rect.Points[r]);
-        }
-
-
-        public static bool IsIntersects(Rectangle movingRectangle, Rectangle stayingRectangle, Point destPoint)
-        {
-            var points = stayingRectangle.Points.ToList();
-            points.Add(new Point(points.Average(p => p.X), points.Average(p => p.Y)));
-
-            var pathRectangle = new Rectangle { Points = new List<Point>() };
-            if (destPoint.X > 0 && destPoint.Y > 0)
-            {
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[0].X, movingRectangle.Points[0].Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[1].X, movingRectangle.Points[1].Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[1].X + destPoint.X,
-                    movingRectangle.Points[1].Y + destPoint.Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[2].X + destPoint.X,
-                    movingRectangle.Points[2].Y + destPoint.Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[3].X + destPoint.X,
-                    movingRectangle.Points[3].Y + destPoint.Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[3].X, movingRectangle.Points[3].Y));
-            }
-            else if (destPoint.X < 0 && destPoint.Y > 0)
-            {
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[0].X, movingRectangle.Points[0].Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[0].X + destPoint.X,
-                    movingRectangle.Points[0].Y + destPoint.Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[1].X + destPoint.X,
-                    movingRectangle.Points[1].Y + destPoint.Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[2].X + destPoint.X,
-                    movingRectangle.Points[2].Y + destPoint.Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[2].X, movingRectangle.Points[2].Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[3].X, movingRectangle.Points[3].Y));
-            }
-            else if (destPoint.X > 0 && destPoint.Y < 0)
-            {
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[0].X, movingRectangle.Points[0].Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[1].X, movingRectangle.Points[1].Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[2].X, movingRectangle.Points[2].Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[2].X + destPoint.X,
-                    movingRectangle.Points[2].Y + destPoint.Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[3].X + destPoint.X,
-                    movingRectangle.Points[3].Y + destPoint.Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[1].X + destPoint.X,
-                    movingRectangle.Points[1].Y + destPoint.Y));
-            }
-            else if (destPoint.X < 0 && destPoint.Y < 0)
-            {
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[1].X, movingRectangle.Points[1].Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[2].X, movingRectangle.Points[2].Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[3].X, movingRectangle.Points[3].Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[3].X + destPoint.X,
-                    movingRectangle.Points[3].Y + destPoint.Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[1].X + destPoint.X,
-                    movingRectangle.Points[1].Y + destPoint.Y));
-                pathRectangle.Points.Add(new Point(movingRectangle.Points[2].X + destPoint.X,
-                    movingRectangle.Points[2].Y + destPoint.Y));
-            }
-
-            foreach (var point in points)
-            {
-                if (PointLoc(pathRectangle, point)) return true;
-            }
-            return false;
-        }
-
-        /// <summary>
-        ///     Находит дальнюю точку пересчечения окружности и прямой, проходящей через центр окружности
-        /// </summary>
-        /// <param name="a">центр окружности</param>
-        /// <param name="b">вторая точка прямой</param>
-        /// <param name="c">точка на краю окружности</param>
-        /// <returns></returns>
-        public static Point GetLineCircleBehindCrossPoint(Point a, Point b, Point c)
-        {
-            var radius = a.GetDistance(c);
-            var x1 = a.X + radius / Math.Sqrt(1 + Math.Pow((b.Y - a.Y) / (b.X - a.X), 2));
-            var x2 = a.X - radius / Math.Sqrt(1 + Math.Pow((b.Y - a.Y) / (b.X - a.X), 2));
-
-            var y1 = (x1 - a.X) * (b.Y - a.Y) / (b.X - a.X) + a.Y;
-            var y2 = (x2 - a.X) * (b.Y - a.Y) / (b.X - a.X) + a.Y;
-
-            var p1 = new Point(x1, y1);
-            var p2 = new Point(x2, y2);
-
-            return b.GetDistance(p1) > b.GetDistance(p2) ? p1 : p2;
-        }
+        
 
         public static Point GetNearestRectangleCrossPoint(Point p, Rectangle rectangle, Point rectangeCenter)
         {
@@ -210,6 +97,81 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
                 ((p1.X * p2.Y - p1.Y*p2.X)*(p3.Y - p4.Y) - (p1.Y - p2.Y)*(p3.X*p4.Y-p3.Y*p4.X))/((p1.X-p2.X)*(p3.Y - p4.Y)-(p1.Y-p2.Y)*(p3.X-p4.X))
                 );
         }
+        
+
+        public static Rectangle GetJarvisRectangle(IList<Point> a)
+        {
+            var n = a.Count; //число точек
+
+            if (n == 1)
+                return new Rectangle()
+                {
+                    Points = new List<Point>()
+                    {
+                        new Point(a.Single().X - Tolerance, a.Single().Y - Tolerance),
+                        new Point(a.Single().X - Tolerance, a.Single().Y + Tolerance),
+                        new Point(a.Single().X + Tolerance, a.Single().Y + Tolerance),
+                        new Point(a.Single().X + Tolerance, a.Single().Y - Tolerance),
+                    }
+                };
+
+            if (n == 2)
+                return new Rectangle() {Points = new List<Point>()
+                {
+                    new Point(a.Min(po => po.X), a.Min(po => po.Y)),
+                    new Point(a.Min(po => po.X), a.Max(po => po.Y)),
+                    new Point(a.Max(po => po.X), a.Max(po => po.Y)),
+                    new Point(a.Max(po => po.X), a.Min(po => po.Y)),
+                }};
+
+            var p = new List<int>(); //список номеров точек
+
+            for (var i = 0; i < n; ++i)
+            {
+                p.Add(i);
+            }
+            for (var i = 1; i < n; ++i)
+            {
+                if (a[p[i]].X < a[p[0]].X)
+                {
+                    var c = p[i];
+                    p[i] = p[0];
+                    p[0] = c;
+                }
+            }
+
+            var h = new List<int> {p[0]};
+            p.RemoveAt(0);
+            p.Add(h[0]);
+
+            while (true)
+            {
+                var right = 0;
+                for (var i = 1; i < p.Count; ++i)
+                {
+                    if (Rotate(a[h.Last()], a[p[right]], a[p[i]]) < 0)
+                    {
+                        right = i;
+                    }
+                }
+                if (p[right] == h[0]) break;
+                else
+                {
+                    h.Add(p[right]);
+                    p.RemoveAt(right);
+                }
+            }
+
+            var rect = new Rectangle() {Points = new List<Point>()};
+            for (var i = 0; i < h.Count; ++i)
+            {
+                rect.Points.Add(a[h[i]]);
+            }
+
+            return rect;
+
+        }
+
 
     }
 }
