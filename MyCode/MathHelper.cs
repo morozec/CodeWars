@@ -10,25 +10,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
 {
     public static class MathHelper
     {
-        public static Rectangle GetGroupRectangle(IList<Vehicle> vehicles)
-        {
-            var x1 = vehicles.Min(v => v.X);
-            var x2 = vehicles.Max(v => v.X);
-            var y1 = vehicles.Min(v => v.Y);
-            var y2 = vehicles.Max(v => v.Y);
-
-            return new Rectangle
-            {
-                Points = new List<Point>
-                {
-                    new Point(x1, y1),
-                    new Point(x1, y2),
-                    new Point(x2, y2),
-                    new Point(x2, y1)
-                }
-            };
-        }
-
+        private const double Tolerance = 1E-3;
+        
 
         public static double GetAnlge(Vector v1, Vector v2)
         {
@@ -175,7 +158,28 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
                 var a1 = rectangle.Points[i < rectangle.Points.Count - 1 ? i + 1 : 0];
                 var cp = GetCrossPoint(p, rectangeCenter, a0, a1);
 
-                if (cp.X < a0.X && cp.X < a1.X || cp.X > a0.X && cp.X > a1.X) continue; // точка снаружи отрезка границы прямоугольника
+                bool isOutsideAnchor;
+                if (Math.Abs(a0.X - a1.X) < Tolerance)
+                {
+                    isOutsideAnchor = a0.Y - cp.Y > Tolerance && a1.Y - cp.Y > Tolerance ||
+                                      a0.Y - cp.Y < Tolerance && a1.Y - cp.Y < Tolerance;
+                }
+                else if (Math.Abs(a0.Y - a1.Y) < Tolerance)
+                {
+                    isOutsideAnchor = a0.X - cp.X > Tolerance && a1.X - cp.X > Tolerance ||
+                                      a0.X - cp.X < Tolerance && a1.X - cp.X < Tolerance;
+                }
+                else
+                {
+                    var isOutsideX = a0.X - cp.X > Tolerance && a1.X - cp.X > Tolerance ||
+                                     a0.X - cp.X < Tolerance && a1.X - cp.X < Tolerance;
+                    var isOutsideY = a0.Y - cp.Y > Tolerance && a1.Y - cp.Y > Tolerance ||
+                                     a0.Y - cp.Y < Tolerance && a1.Y - cp.Y < Tolerance;
+
+                    isOutsideAnchor = isOutsideX && isOutsideY;
+                }
+
+                if (isOutsideAnchor) continue; // точка снаружи отрезка границы прямоугольника
 
                 var dist = p.GetDistance(cp);
                 if (dist < minDist)
