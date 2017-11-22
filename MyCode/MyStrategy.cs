@@ -136,7 +136,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private int _nuclearVehicleGroup = -1;
         private long _nuclearVehicleId = -1;
 
-        private VehicleType? _waitingVehicleType = null;
+        private readonly IDictionary<int, bool> _isRotating = new Dictionary<int, bool>()
+        {
+            {1, false},
+            {2, false}
+        };
 
         private Player _me;
         private Move _move;
@@ -162,6 +166,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         };
 
         private readonly IDictionary<int, double> _currentGroupAngle = new Dictionary<int, double>()
+        {
+            {1, 0d},
+            {2, 0d},
+        };
+
+        private readonly IDictionary<int, double> _tmpGroupAngle = new Dictionary<int, double>()
         {
             {1, 0d},
             {2, 0d},
@@ -826,7 +836,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.Angle = turnAngle;
                 _groupEndMovementTime[groupId] = _world.TickIndex + turnTime;
                 move.MaxAngularSpeed = angularSpeed;
+
+
                 _currentAngularSpeed[groupId] = turnAngle > 0 ? angularSpeed : -angularSpeed;
+                _isRotating[groupId] = true;
+                _currentGroupAngle[groupId] = newAngle;
+                _tmpGroupAngle[groupId] = _currentGroupAngle[groupId];
             });
         }
 
@@ -872,11 +887,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                   centerPoint.Y <= _world.Height - FarBorderDistance;
             var hasAdvantege = HasAdvantage(groupId, nearestGroup);
 
-            //var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles)); ;
+            var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles)); ;
             var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
 
-            var minCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
-            var distToEnemyCenter = nearestGroup.Center.GetDistance(minCp) + ShootingDistance;
+            var myCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, myRectangle, nearestGroup.Center);
+            var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
+
+            Debug.circleFill(myCp.X, myCp.Y, 2, 0x00FF00);
+            Debug.circleFill(enemyCp.X, enemyCp.Y, 2, 0xFF0000);
+
+            var distToEnemyCenter = nearestGroup.Center.GetDistance(enemyCp) + ShootingDistance;
             
 
             var dx = isFarFromBorder && !hasAdvantege ? distToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]) : 0d;
@@ -1227,6 +1247,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             if (sandvichAction != SandvichAction.Uncompress && _enemy.NextNuclearStrikeTickIndex > -1 &&
                 isCompressed && NeedNuclearUncompress(vehicles))
             {
+                if (sandvichAction == SandvichAction.Rotating)
+                {
+                    _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
+                }
+
                 Uncompress(groupId);
                 return;
             }
@@ -1279,11 +1304,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (_world.TickIndex >= _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
+                        _isRotating[groupId] = false;
                         MoveToEnemy(vehicles, groupId);
-                    }
-                    else
-                    {
-                        _currentGroupAngle[groupId] += _currentAngularSpeed[groupId];
+
                     }
                     break;
                 case SandvichAction.MovingToEnemy:
@@ -1524,6 +1547,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
 
             if (_enemy.NextNuclearStrikeTickIndex == -1) _isNuclearStrikeConsidered = false;
+
+            for (var i = 1; i <= 2; ++i)
+            {
+                if (_isRotating[i] && _world.TickIndex < _groupEndMovementTime[i])
+                {
+                    _tmpGroupAngle[i] += _currentAngularSpeed[i];
+                }
+            }
+
         }
 
         /// <summary>
