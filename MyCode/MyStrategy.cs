@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Com.CodeGame.CodeRacing2015.DevKit.CSharpCgdk;
 using Com.CodeGame.CodeRacing2015.DevKit.CSharpCgdk.AStar;
 using Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.Model;
 using Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode;
@@ -17,10 +18,10 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             ENEMY
         }
 
-        //static MyStrategy()
-        //{
-        //    Debug.connect("localhost", 13579);
-        //}
+        static MyStrategy()
+        {
+            Debug.connect("localhost", 13579);
+        }
 
         private const double Tolerance = 1E-3;
         private const int MoveToEnemyTicks = 6;
@@ -135,6 +136,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private int _nuclearVehicleGroup = -1;
         private long _nuclearVehicleId = -1;
 
+        private VehicleType? _waitingVehicleType = null;
+
         private Player _me;
         private Move _move;
 
@@ -196,8 +199,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         /// <param name="move"></param>
         public void Move(Player me, World world, Game game, Move move)
         {
-            //Debug.beginPost();
-            //Debug.circle(200, 200, 10, 150);
+            Debug.beginPost();
+            Draw(2);
 
             InitializeStrategy(world, game);
             InitializeTick(me, world, game, move);
@@ -249,7 +252,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             ExecuteDelayedMove();
 
-            //Debug.endPost();
+            Debug.endPost();
         }
 
         private void GroundVehiclesInit()
@@ -400,35 +403,59 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         {VehicleType.Helicopter, GetVehicles(Ownership.ALLY, VehicleType.Helicopter)},
                     };
 
-            var variants = new List<VariantContainer>()
-            {
-                new VariantContainer()
-                {
-                    PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
-                    {
-                        new PointVehilceTypeContainer(0, VehicleType.Fighter,
-                            GetVehiclesCenter(vehicles[VehicleType.Fighter]).GetDistance(_airKeyPoints[0])),
-                        new PointVehilceTypeContainer(1, VehicleType.Helicopter,
-                            GetVehiclesCenter(vehicles[VehicleType.Helicopter]).GetDistance(_airKeyPoints[1])),
-                    },
-                },
-                new VariantContainer()
-                {
-                    PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
-                    {
-                        new PointVehilceTypeContainer(0, VehicleType.Helicopter,
-                            GetVehiclesCenter(vehicles[VehicleType.Helicopter]).GetDistance(_airKeyPoints[0])),
-                        new PointVehilceTypeContainer(1, VehicleType.Fighter,
-                            GetVehiclesCenter(vehicles[VehicleType.Fighter]).GetDistance(_airKeyPoints[1])),
-                    },
-                },
-            };
-
-            variants.Sort();
-            var bestVariant = variants.First();
             _airPointsVehicleTypes = new Dictionary<int, VehicleType>();
-            _airPointsVehicleTypes.Add(0, bestVariant.PointVehilceTypeContainers.Single(p => p.PointIndex == 0).VehicleType);
-            _airPointsVehicleTypes.Add(1, bestVariant.PointVehilceTypeContainers.Single(p => p.PointIndex == 1).VehicleType);
+
+            var fCenter = GetVehiclesCenter(vehicles[VehicleType.Fighter]);
+            var hCenter = GetVehiclesCenter(vehicles[VehicleType.Helicopter]);
+            if (hCenter.GetDistance(45, 119) < Tolerance && (fCenter.GetDistance(45, 45) < Tolerance || fCenter.GetDistance(45, 193) < Tolerance))
+            {
+                _airPointsVehicleTypes.Add(0, VehicleType.Helicopter);
+                _airPointsVehicleTypes.Add(1, VehicleType.Fighter);
+            }
+            else if (fCenter.GetDistance(45, 119) < Tolerance &&
+                     (hCenter.GetDistance(45, 45) < Tolerance || hCenter.GetDistance(45, 193) < Tolerance))
+            {
+                _airPointsVehicleTypes.Add(0, VehicleType.Fighter);
+                _airPointsVehicleTypes.Add(1, VehicleType.Helicopter);
+            }
+            else
+            {
+                var variants = new List<VariantContainer>()
+                {
+                    new VariantContainer()
+                    {
+                        PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
+                        {
+                            new PointVehilceTypeContainer(0,
+                                VehicleType.Fighter,
+                                GetVehiclesCenter(vehicles[VehicleType.Fighter]).GetDistance(_airKeyPoints[0])),
+                            new PointVehilceTypeContainer(1,
+                                VehicleType.Helicopter,
+                                GetVehiclesCenter(vehicles[VehicleType.Helicopter]).GetDistance(_airKeyPoints[1])),
+                        },
+                    },
+                    new VariantContainer()
+                    {
+                        PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
+                        {
+                            new PointVehilceTypeContainer(0,
+                                VehicleType.Helicopter,
+                                GetVehiclesCenter(vehicles[VehicleType.Helicopter]).GetDistance(_airKeyPoints[0])),
+                            new PointVehilceTypeContainer(1,
+                                VehicleType.Fighter,
+                                GetVehiclesCenter(vehicles[VehicleType.Fighter]).GetDistance(_airKeyPoints[1])),
+                        },
+                    },
+                };
+
+                variants.Sort();
+                var bestVariant = variants.First();
+
+                _airPointsVehicleTypes.Add(0,
+                    bestVariant.PointVehilceTypeContainers.Single(p => p.PointIndex == 0).VehicleType);
+                _airPointsVehicleTypes.Add(1,
+                    bestVariant.PointVehilceTypeContainers.Single(p => p.PointIndex == 1).VehicleType);
+            }
 
             var needMove = false;
             foreach (var pointIndex in _airPointsVehicleTypes.Keys)
@@ -803,6 +830,23 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             });
         }
 
+        private void Draw(int groupId)
+        {
+            var vehicles = GetVehicles(groupId);
+            if (!vehicles.Any()) return;
+            var center = GetVehiclesCenter(vehicles);
+
+            var enemyGroups = GetEnemyVehicleGroups();
+            var nearestGroup = GetNearestEnemyGroup(enemyGroups, center.X, center.Y);
+
+            var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
+
+            foreach (var p in enemyRectangle.Points)
+            {
+                Debug.circleFill(p.X, p.Y, 2, 150);
+            }
+        }
+
         private void MoveToEnemy(IList<Vehicle> vehicles, int groupId)
         {
 
@@ -829,11 +873,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var hasAdvantege = HasAdvantage(groupId, nearestGroup);
 
             //var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles)); ;
-            var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles)); 
+            var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
+
             var minCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
             var distToEnemyCenter = nearestGroup.Center.GetDistance(minCp) + ShootingDistance;
-
-
+            
 
             var dx = isFarFromBorder && !hasAdvantege ? distToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]) : 0d;
             var dy = isFarFromBorder && !hasAdvantege ? distToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]) : 0d;

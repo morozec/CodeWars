@@ -16,7 +16,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
         public static double GetAnlge(Vector v1, Vector v2)
         {
             var scalarMult = v1.V.X * v2.V.X + v1.V.Y * v2.V.Y;
-            var cos = scalarMult / v1.Length / v2.Length;
+            var cos = Math.Round(scalarMult / v1.Length / v2.Length, 5);
             var angle = Math.Acos(cos);
             var rotate = Rotate(v1.P1, v1.P2, v2.P2);
             return rotate < 0 ? angle : -angle;
@@ -140,7 +140,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
                 }
             }
 
-            var h = new List<int> {p[0]};
+            //Джарвис
+            var h = new List<int> { p[0] };
             p.RemoveAt(0);
             p.Add(h[0]);
 
@@ -149,6 +150,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
                 var right = 0;
                 for (var i = 1; i < p.Count; ++i)
                 {
+
                     if (Rotate(a[h.Last()], a[p[right]], a[p[i]]) < 0)
                     {
                         right = i;
@@ -162,14 +164,65 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
                 }
             }
 
-            var rect = new Rectangle() {Points = new List<Point>()};
+
+
+            //Грэхем
+            //for (var i = 2; i < n; ++i)
+            //{
+            //    var j = i;
+            //    while (j > 1 && Rotate(a[p[0]], a[p[j - 1]], a[p[j]]) < 0)
+            //    {
+            //        var c = p[j];
+            //        p[j] = p[j-1];
+            //        p[j-1] = c;
+            //        j -= 1;
+            //    }
+            //}
+
+            //var h = new List<int>() {p[0], p[1]};
+            //for (var i = 2; i < n; ++i)
+            //{
+            //    while (Rotate(a[h[h.Count - 2]], a[h[h.Count - 1]], a[p[i]]) < 0)
+            //    {
+            //        h.RemoveAt(h.Count - 1);
+            //    }
+            //    h.Add(p[i]);
+            //}
+
+
+            var rect = new Rectangle() { Points = new List<Point>() };
             for (var i = 0; i < h.Count; ++i)
             {
                 rect.Points.Add(a[h[i]]);
             }
 
+
+            SmoothRectangle(rect);
             return rect;
 
+        }
+
+        private static void SmoothRectangle(Rectangle rectangle)
+        {
+            var hasChanges = true;
+            while (hasChanges)
+            {
+                hasChanges = false;
+                for (var i = rectangle.Points.Count - 1; i >= 0; --i)
+                {
+
+                    var p = rectangle.Points[i];
+                    var p0 = rectangle.Points[i > 0 ? i - 1 : rectangle.Points.Count - 1];
+                    var p1 = rectangle.Points[i < rectangle.Points.Count - 1 ? i + 1 : 0];
+
+                    var angle = GetAnlge(new Vector(p0, p), new Vector(p0, p1));
+                    if (Math.Abs(angle) < Tolerance)
+                    {
+                        rectangle.Points.RemoveAt(i);
+                        hasChanges = true;
+                    }
+                }
+            }
         }
 
 
