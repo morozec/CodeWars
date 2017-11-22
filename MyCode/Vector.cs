@@ -27,5 +27,19 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
             get { return Math.Sqrt(V.X * V.X + V.Y * V.Y); }
         }
 
+        public void Mult(double coeff)
+        {
+            P2.X = P1.X + V.X * coeff;
+            P2.Y = P1.Y + V.Y * coeff;
+        }
+
+        public void Turn(double angle)
+        {
+            var x = V.X * Math.Cos(angle) - V.Y * Math.Sin(angle);
+            var y = V.Y * Math.Cos(angle) + V.X * Math.Sin(angle);
+            P2.X = P1.X + x;
+            P2.Y = P1.Y + y;
+        }
+
     }
 }

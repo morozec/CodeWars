@@ -22,6 +22,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
             return rotate < 0 ? angle : -angle;
         }
 
+
         /// <summary>
         /// </summary>
         /// <param name="a"></param>
@@ -49,8 +50,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
 
                 if (isOutsideAnchor) continue; // точка снаружи отрезка границы прямоугольника
 
-                isOutsideAnchor = IsOutsideAnchor(sourcePoint, destPoint, cp);
-                if (isOutsideAnchor) continue; //находится за моим центром или центром врага
+                //isOutsideAnchor = IsOutsideAnchor(sourcePoint, destPoint, cp);
+                //if (isOutsideAnchor) continue; //находится за моим центром или центром врага
 
                 var dist = sourcePoint.GetDistance(cp);
                 if (dist < minDist)
