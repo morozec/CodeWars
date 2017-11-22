@@ -35,7 +35,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
         }
         
 
-        public static Point GetNearestRectangleCrossPoint(Point p, Rectangle rectangle, Point rectangeCenter)
+        public static Point GetNearestRectangleCrossPoint(Point sourcePoint, Rectangle rectangle, Point destPoint)
         {
             Point minCp = null;
             var minDist = double.MaxValue;
@@ -43,32 +43,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
             {
                 var a0 = rectangle.Points[i];
                 var a1 = rectangle.Points[i < rectangle.Points.Count - 1 ? i + 1 : 0];
-                var cp = GetCrossPoint(p, rectangeCenter, a0, a1);
+                var cp = GetCrossPoint(sourcePoint, destPoint, a0, a1);
 
-                bool isOutsideAnchor;
-                if (Math.Abs(a0.X - a1.X) < Tolerance)
-                {
-                    isOutsideAnchor = a0.Y - cp.Y > Tolerance && a1.Y - cp.Y > Tolerance ||
-                                      a0.Y - cp.Y < Tolerance && a1.Y - cp.Y < Tolerance;
-                }
-                else if (Math.Abs(a0.Y - a1.Y) < Tolerance)
-                {
-                    isOutsideAnchor = a0.X - cp.X > Tolerance && a1.X - cp.X > Tolerance ||
-                                      a0.X - cp.X < Tolerance && a1.X - cp.X < Tolerance;
-                }
-                else
-                {
-                    var isOutsideX = a0.X - cp.X > Tolerance && a1.X - cp.X > Tolerance ||
-                                     a0.X - cp.X < Tolerance && a1.X - cp.X < Tolerance;
-                    var isOutsideY = a0.Y - cp.Y > Tolerance && a1.Y - cp.Y > Tolerance ||
-                                     a0.Y - cp.Y < Tolerance && a1.Y - cp.Y < Tolerance;
-
-                    isOutsideAnchor = isOutsideX && isOutsideY;
-                }
+                bool isOutsideAnchor = IsOutsideAnchor(a0, a1, cp);
 
                 if (isOutsideAnchor) continue; // точка снаружи отрезка границы прямоугольника
 
-                var dist = p.GetDistance(cp);
+                isOutsideAnchor = IsOutsideAnchor(sourcePoint, destPoint, cp);
+                if (isOutsideAnchor) continue; //находится за моим центром или центром врага
+
+                var dist = sourcePoint.GetDistance(cp);
                 if (dist < minDist)
                 {
                     minDist = dist;
@@ -79,6 +63,33 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
             if (minCp == null) throw new Exception("No cross point");
 
             return minCp;
+        }
+
+        private static bool IsOutsideAnchor(Point a0, Point a1, Point p)
+        {
+            if (p.GetDistance(a0) < Tolerance || p.GetDistance(a1) < Tolerance) return false;
+
+            bool isOutsideAnchor;
+            if (Math.Abs(a0.X - a1.X) < Tolerance)
+            {
+                isOutsideAnchor = a0.Y - p.Y > Tolerance && a1.Y - p.Y > Tolerance ||
+                                  a0.Y - p.Y < Tolerance && a1.Y - p.Y < Tolerance;
+            }
+            else if (Math.Abs(a0.Y - a1.Y) < Tolerance)
+            {
+                isOutsideAnchor = a0.X - p.X > Tolerance && a1.X - p.X > Tolerance ||
+                                  a0.X - p.X < Tolerance && a1.X - p.X < Tolerance;
+            }
+            else
+            {
+                var isOutsideX = a0.X - p.X > Tolerance && a1.X - p.X > Tolerance ||
+                                 a0.X - p.X < Tolerance && a1.X - p.X < Tolerance;
+                var isOutsideY = a0.Y - p.Y > Tolerance && a1.Y - p.Y > Tolerance ||
+                                 a0.Y - p.Y < Tolerance && a1.Y - p.Y < Tolerance;
+
+                isOutsideAnchor = isOutsideX && isOutsideY;
+            }
+            return isOutsideAnchor;
         }
 
         //public static double GetPointAnchorDistance(Point p, Point a0, Point a1)

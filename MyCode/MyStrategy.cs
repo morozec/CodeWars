@@ -27,7 +27,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const int MoveToEnemyTicks = 6;
 
         private const double FarBorderDistance = 100;
-        private const double ShootingDistance = 30d;
+        private const double ShootingDistance = 20d;
 
         private const int VehiclesCountAdvantage = 100;
         private const double VehiclesCoeffAdvantage = 2;
@@ -860,6 +860,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 Debug.circleFill(p.X, p.Y, 2, 150);
             }
+
+            var centerPoint = GetVehiclesCenter(vehicles);
+            var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
+
+            var myCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, myRectangle, nearestGroup.Center);
+            var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
+
+            Debug.circleFill(myCp.X, myCp.Y, 2, 0x00FF00);
+            Debug.circleFill(enemyCp.X, enemyCp.Y, 2, 0xFF0000);
+
         }
 
         private void MoveToEnemy(IList<Vehicle> vehicles, int groupId)
@@ -887,16 +897,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                   centerPoint.Y <= _world.Height - FarBorderDistance;
             var hasAdvantege = HasAdvantage(groupId, nearestGroup);
 
-            var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles)); ;
+            var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles)); 
             var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
 
             var myCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, myRectangle, nearestGroup.Center);
             var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
-
-            Debug.circleFill(myCp.X, myCp.Y, 2, 0x00FF00);
-            Debug.circleFill(enemyCp.X, enemyCp.Y, 2, 0xFF0000);
-
-            var distToEnemyCenter = nearestGroup.Center.GetDistance(enemyCp) + ShootingDistance;
+            
+            var distToEnemyCenter = centerPoint.GetDistance(myCp) + nearestGroup.Center.GetDistance(enemyCp) + ShootingDistance;
             
 
             var dx = isFarFromBorder && !hasAdvantege ? distToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]) : 0d;
