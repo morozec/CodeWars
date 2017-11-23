@@ -11,6 +11,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
     {
         public List<Vehicle> Vehicles { get; set; }
         public Point Center { get; set; }
+        public Vehicle NuclearStrikeVehicle { get; set; }
 
         public GroupContainer()
         {
