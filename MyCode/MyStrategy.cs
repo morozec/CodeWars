@@ -931,18 +931,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var requiredDistToEnemyCenter = centerPoint.GetDistance(myCp) + nearestGroup.Center.GetDistance(enemyCp) + ShootingDistance;
 
             var isFarFromEnemy = currentDistanceToEnemyCenter > requiredDistToEnemyCenter;
-            
 
-            if (isFarFromEnemy || hasAdvantege)
+            if (hasAdvantege)
             {
                 var x = nearestGroup.Center.X - centerPoint.X;
                 var y = nearestGroup.Center.Y - centerPoint.Y;
-
-                if (!hasAdvantege && isFarFromBorder)
-                {
-                    x -= requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
-                    y -= requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
-                }
 
                 var isStaticEnemy = _currentMoveEnemyPoint[groupId].GetDistance(x, y) <=
                                     MoveEnemyPointTolerance;
@@ -969,39 +962,98 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 });
 
                 return;
-                
             }
+
+
+
+
+            //if (isFarFromEnemy || hasAdvantege)
+            //{
+            //    var x = nearestGroup.Center.X - centerPoint.X;
+            //    var y = nearestGroup.Center.Y - centerPoint.Y;
+
+            //    if (!hasAdvantege && isFarFromBorder)
+            //    {
+            //        x -= requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
+            //        y -= requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
+            //    }
+
+                
+
+            //    if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
+            //    {
+            //        _delayedMoves.Enqueue(move =>
+            //        {
+            //            move.Action = ActionType.ClearAndSelect;
+            //            move.Group = groupId;
+            //        });
+            //        _selectedGroupId = groupId;
+            //    }
+
+            //    _delayedMoves.Enqueue(move =>
+            //    {
+            //        move.Action = ActionType.Move;
+            //        move.X = x;
+            //        move.Y = y;
+            //        move.MaxSpeed = GetMaxSpeed(groupId);
+            //        _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
+            //        _currentMoveEnemyPoint[groupId] = new Point(x, y);
+            //    });
+
+            //    return;
+                
+            //}
            
 
             var needRotate90 = false;
             if (groupId == 2)
             {
-                var rotationContainerPlus = GetRotationContainer(vehicles, Math.PI/2);
-                var distancePlus = nearestGroup.Center.GetDistance(rotationContainerPlus.AfterRotationPoint);
-                var rotationContainerMinus = GetRotationContainer(vehicles, -Math.PI/2);
-                var distanceMinus = nearestGroup.Center.GetDistance(rotationContainerMinus.AfterRotationPoint);
-              
 
-                var isOkPlus = rotationContainerPlus.IsFarFromBroder(_world.Width, _world.Height, FarBorderDistance) &&
-                               distancePlus - requiredDistToEnemyCenter > MoreSideDist;
-                var isOkMinus = rotationContainerMinus.IsFarFromBroder(_world.Width, _world.Height, FarBorderDistance) &&
-                                distanceMinus - requiredDistToEnemyCenter > MoreSideDist;
+                var maxRadiusPoint = GetMaxRadiusEnemyPoint(centerPoint, enemyRectangle, nearestGroup.Center);
 
-                if (isOkPlus && isOkMinus)
+                if (maxRadiusPoint != null)
                 {
-                    needRotate90 = true;
-                    _rotationContainer = distancePlus > distanceMinus ? rotationContainerPlus : rotationContainerMinus;
+                    
+
+                    var currVector = new Vector(nearestGroup.Center, enemyCp);
+                    var newVector = new Vector(nearestGroup.Center, maxRadiusPoint);
+
+                    if (currentDistanceToEnemyCenter - newVector.Length - centerPoint.GetDistance(myCp) < ShootingDistance &&
+                        newVector.Length - currVector.Length > MoreSideDist)
+                    {
+                        var angle = MathHelper.GetAnlge(currVector, newVector);
+                        needRotate90 = true;
+                        _rotationContainer = GetRotationContainer(vehicles, angle);
+                    }
                 }
-                else if (isOkPlus)
-                {
-                    needRotate90 = true;
-                    _rotationContainer = rotationContainerPlus;
-                }
-                else if (isOkMinus)
-                {
-                    needRotate90 = true;
-                    _rotationContainer = rotationContainerMinus;
-                }
+
+
+                //var rotationContainerPlus = GetRotationContainer(vehicles, Math.PI/2);
+                //var distancePlus = nearestGroup.Center.GetDistance(rotationContainerPlus.AfterRotationPoint);
+                //var rotationContainerMinus = GetRotationContainer(vehicles, -Math.PI/2);
+                //var distanceMinus = nearestGroup.Center.GetDistance(rotationContainerMinus.AfterRotationPoint);
+
+
+                //var isOkPlus = rotationContainerPlus.IsFarFromBroder(_world.Width, _world.Height, FarBorderDistance) &&
+                //               distancePlus - requiredDistToEnemyCenter > MoreSideDist;
+                //var isOkMinus = rotationContainerMinus.IsFarFromBroder(_world.Width, _world.Height, FarBorderDistance) &&
+                //                distanceMinus - requiredDistToEnemyCenter > MoreSideDist;
+
+                //if (isOkPlus && isOkMinus)
+                //{
+                //    needRotate90 = true;
+                //    _rotationContainer = distancePlus > distanceMinus ? rotationContainerPlus : rotationContainerMinus;
+                //}
+                //else if (isOkPlus)
+                //{
+                //    needRotate90 = true;
+                //    _rotationContainer = rotationContainerPlus;
+                //}
+                //else if (isOkMinus)
+                //{
+                //    needRotate90 = true;
+                //    _rotationContainer = rotationContainerMinus;
+                //}
             }
 
             if (needRotate90)
@@ -1115,6 +1167,37 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 
             });
         }
+
+        private Point GetMaxRadiusEnemyPoint(Point myVehiclesCenter, Rectangle rect, Point rectangleCenter)
+        {
+            var maxRadius = 0d;
+            Point maxRadiusPoint = null;
+            for (var i = 0; i < rect.Points.Count; ++i)
+            {
+                var point = rect.Points[i];
+
+                var isFarFromBorder = point.X >= FarBorderDistance && point.Y >= FarBorderDistance &&
+                                      point.X <= _world.Width - FarBorderDistance &&
+                                      point.Y <= _world.Height - FarBorderDistance;
+
+                if (!isFarFromBorder) continue;
+
+                var radius = rectangleCenter.GetDistance(point);
+               
+                if (radius > maxRadius)
+                {
+                    maxRadius = radius;
+                    maxRadiusPoint = point;
+                }
+            }
+
+            return maxRadiusPoint;
+
+            //var myVector = new Vector(rectangleCenter, myVehiclesCenter); 
+            //var newVector = new Vector(rectangleCenter, maxRadiusPoint);
+            //return MathHelper.GetAnlge(myVector, newVector);
+        }
+
 
         private RotationContainer GetRotationContainer(IList<Vehicle> vehicles, double angle)
         {
