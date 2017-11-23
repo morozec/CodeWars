@@ -12,5 +12,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
         public Point PrepareRotationPoint { get; set; }
         public Point RotationCenterPoint { get; set; }
         public double RotationAngle { get; set; }
+
+        public bool IsFarFromBroder(double width, double height, double farBorderDistance)
+        {
+            var isFarFromBorder = AfterRotationPoint.X >= farBorderDistance && AfterRotationPoint.Y >= farBorderDistance &&
+                                  AfterRotationPoint.X <= width - farBorderDistance &&
+                                  AfterRotationPoint.Y <= height - farBorderDistance;
+            return isFarFromBorder;
+        }
     }
 }

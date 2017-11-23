@@ -937,24 +937,27 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var distancePlus = nearestGroup.Center.GetDistance(rotationContainerPlus.AfterRotationPoint);
                 var rotationContainerMinus = GetRotationContainer(vehicles, -Math.PI/2);
                 var distanceMinus = nearestGroup.Center.GetDistance(rotationContainerMinus.AfterRotationPoint);
+              
 
-                RotationContainer maxRotationContainer;
-                double maxDistance;
-                if (distancePlus > distanceMinus)
-                {
-                    maxRotationContainer = rotationContainerPlus;
-                    maxDistance = distancePlus;
-                }
-                else
-                {
-                    maxRotationContainer = rotationContainerMinus;
-                    maxDistance = distanceMinus;
-                }
+                var isOkPlus = rotationContainerPlus.IsFarFromBroder(_world.Width, _world.Height, FarBorderDistance) &&
+                               distancePlus - requiredDistToEnemyCenter > MoreSideDist;
+                var isOkMinus = rotationContainerMinus.IsFarFromBroder(_world.Width, _world.Height, FarBorderDistance) &&
+                                distanceMinus - requiredDistToEnemyCenter > MoreSideDist;
 
-                if (maxDistance - requiredDistToEnemyCenter > MoreSideDist)
+                if (isOkPlus && isOkMinus)
                 {
-                    _rotationContainer = maxRotationContainer;
                     needRotate90 = true;
+                    _rotationContainer = distancePlus > distanceMinus ? rotationContainerPlus : rotationContainerMinus;
+                }
+                else if (isOkMinus)
+                {
+                    needRotate90 = true;
+                    _rotationContainer = rotationContainerPlus;
+                }
+                else if (isOkMinus)
+                {
+                    needRotate90 = true;
+                    _rotationContainer = rotationContainerMinus;
                 }
             }
 
