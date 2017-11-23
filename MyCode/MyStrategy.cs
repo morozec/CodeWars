@@ -234,9 +234,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                 var isCompressed = _isGroupCompressed.Values.All(x => x);
 
-                if (_me.RemainingNuclearStrikeCooldownTicks == 0 && isCompressed && MakeNuclearStrike())
+                if (_me.RemainingNuclearStrikeCooldownTicks == 0 && MakeNuclearStrike())
                 {
-                    _delayedMoves.Clear();
+                    if (isCompressed) _delayedMoves.Clear();
                 }
                 else if (!_isNuclearStrikeConsidered && isCompressed && _enemy.NextNuclearStrikeTickIndex > -1)
                 {
@@ -784,8 +784,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.X = x;
                 move.Y = y;
                 _groupEndMovementTime[groupId] = Math.Max(_groupEndMovementTime[groupId], _world.TickIndex + time);
+                _isGroupCompressed[groupId] = true;
             });
-            _isGroupCompressed[groupId] = true;
+            
         }
 
         private void RotateToEnemy(IList<Vehicle> vehicles, int groupId)
@@ -949,7 +950,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     needRotate90 = true;
                     _rotationContainer = distancePlus > distanceMinus ? rotationContainerPlus : rotationContainerMinus;
                 }
-                else if (isOkMinus)
+                else if (isOkPlus)
                 {
                     needRotate90 = true;
                     _rotationContainer = rotationContainerPlus;
@@ -967,6 +968,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
             else
             {
+
+                //_currentMoveEnemyPoint[groupId].GetDistance(nearestGroup.Center) > MoveEnemyPointTolerance
 
                 var dx = isFarFromBorder && !hasAdvantege ? requiredDistToEnemyCenter*Math.Cos(_currentGroupAngle[groupId]) : 0d;
                 var dy = isFarFromBorder && !hasAdvantege ? requiredDistToEnemyCenter*Math.Sin(_currentGroupAngle[groupId]) : 0d;
@@ -1454,8 +1457,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     {
                         RotateToEnemy(vehicles, groupId);
                     }
-                    else if (_world.TickIndex >= _groupEndMovementTime[groupId] &&
-                             _currentMoveEnemyPoint[groupId].GetDistance(nearestGroup.Center) > MoveEnemyPointTolerance)
+                    else if (_world.TickIndex >= _groupEndMovementTime[groupId])
                     {
                         MoveToEnemy(vehicles, groupId);
                     }
