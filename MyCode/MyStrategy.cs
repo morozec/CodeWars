@@ -140,11 +140,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private RotationContainer _rotationContainer;
 
-        //private readonly IDictionary<int, bool> _isRotating = new Dictionary<int, bool>()
-        //{
-        //    {1, false},
-        //    {2, false}
-        //};
+        private readonly IDictionary<int, bool> _isRotating = new Dictionary<int, bool>()
+        {
+            {1, false},
+            {2, false}
+        };
 
         private Player _me;
         private Move _move;
@@ -832,6 +832,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 _selectedGroupId = groupId;
             }
 
+            var currentAngle = _currentGroupAngle[groupId];
+
             _delayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Rotate;
@@ -843,9 +845,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
 
                 _currentAngularSpeed[groupId] = turnAngle > 0 ? angularSpeed : -angularSpeed;
-                //_isRotating[groupId] = true;
+                _isRotating[groupId] = true;
+                _tmpGroupAngle[groupId] = currentAngle;
                 _currentGroupAngle[groupId] = newAngle;
-                _tmpGroupAngle[groupId] = _currentGroupAngle[groupId];
             });
         }
 
@@ -879,6 +881,22 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             Debug.circleFill(myCp.X, myCp.Y, 4, 0x00FF00);
             Debug.circleFill(enemyCp.X, enemyCp.Y, 4, 0xFF0000);
+
+            var nuclearVehilce = GetVehicles(42, Ownership.ALLY).SingleOrDefault();
+            if (nuclearVehilce != null)
+            {
+                Debug.circleFill(nuclearVehilce.X, nuclearVehilce.Y, 2, 0x00000);
+            }
+
+            if (_sandvichActions[2] == SandvichAction.PrepareToRotate90 ||
+                _sandvichActions[2] == SandvichAction.Rotate90)
+            {
+                Debug.line(center.X, center.Y, _rotationContainer.PrepareRotationPoint.X, _rotationContainer.PrepareRotationPoint.Y, 0x0000FF);
+
+                var radius =
+                    _rotationContainer.RotationCenterPoint.GetDistance(_rotationContainer.PrepareRotationPoint);
+                Debug.circle(_rotationContainer.RotationCenterPoint.X, _rotationContainer.RotationCenterPoint.Y, radius, 0x0000FF);
+            }
 
         }
 
@@ -1024,7 +1042,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 });
                 _selectedGroupId = groupId;
             }
-
+            var currentAngle = _currentGroupAngle[groupId];
             _delayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Rotate;
@@ -1034,10 +1052,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 _groupEndMovementTime[groupId] = _world.TickIndex + turnTime;
                 move.MaxAngularSpeed = angularSpeed;
 
-                //_currentAngularSpeed[groupId] = turnAngle > 0 ? angularSpeed : -angularSpeed;
-                //_isRotating[groupId] = true;
+                _currentAngularSpeed[groupId] = turnAngle > 0 ? angularSpeed : -angularSpeed;
+                _isRotating[groupId] = true;
+
+                _tmpGroupAngle[groupId] = currentAngle;
                 _currentGroupAngle[groupId] = newAngle;
-                //_tmpGroupAngle[groupId] = _currentGroupAngle[groupId];
+                
             });
         }
 
@@ -1160,7 +1180,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var targetGroup = GetNuclearStrikeEnemyGroup(enemyGroups);
 
             if (targetGroup == null) return false;
-
+           
             var myVehicles = GetVehicles(Ownership.ALLY);
             var canStrikeMyVehilces = myVehicles.Where(v =>
                 v.VisionRange >= v.GetDistanceTo(targetGroup.Center.X, targetGroup.Center.Y) + NuclearStrikeDistDelta);
@@ -1212,6 +1232,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private void Uncompress(int groupId)
         {
+            if (_sandvichActions[groupId] == SandvichAction.Rotating || _sandvichActions[groupId] == SandvichAction.Rotate90)
+            {
+                _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
+            }
+
             _sandvichActions[groupId] = SandvichAction.Uncompress;
 
             if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
@@ -1413,11 +1438,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             if (sandvichAction != SandvichAction.Uncompress && _enemy.NextNuclearStrikeTickIndex > -1 &&
                 isCompressed && NeedNuclearUncompress(vehicles))
             {
-                if (sandvichAction == SandvichAction.Rotating)
-                {
-                    _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
-                }
-
                 Uncompress(groupId);
                 return;
             }
@@ -1463,19 +1483,21 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (_world.TickIndex >= _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
-                        RotateToEnemy(vehicles, groupId);
+                        if (_isNuclearVehicleReturnedToGroup) RotateToEnemy(vehicles, groupId);
                     }
                     break;
                 case SandvichAction.Rotating:
                     if (_world.TickIndex >= _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
-                        //_isRotating[groupId] = false;
-                        MoveToEnemy(vehicles, groupId);
+                        _isRotating[groupId] = false;
+                        if (_isNuclearVehicleReturnedToGroup) MoveToEnemy(vehicles, groupId);
                     }
                     break;
                 case SandvichAction.MovingToEnemy:
                 {
+                    if (!_isNuclearVehicleReturnedToGroup) break;
+
                     var centerPoint = GetVehiclesCenter(vehicles);
                     var enemyGroups = GetEnemyVehicleGroups();
                     var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
@@ -1513,12 +1535,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                     break;
                 }
-                case SandvichAction.NuclearStrike:
-                    if (_world.TickIndex >= _groupEndMovementTime[groupId]) //TODO: все стоят?
-                    {
-                        MoveToEnemy(vehicles, groupId);
-                    }
-                    break;
+                //case SandvichAction.NuclearStrike:
+                //    if (_world.TickIndex >= _groupEndMovementTime[groupId]) //TODO: все стоят?
+                //    {
+                //        MoveToEnemy(vehicles, groupId);
+                //    }
+                //    break;
                 case SandvichAction.Uncompress:
                     if (_world.TickIndex >= _groupEndMovementTime[groupId]) //TODO: все стоят?
                     {
@@ -1530,14 +1552,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (_world.TickIndex >= _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
-                        Rotate90(vehicles, groupId);
+                        if (_isNuclearVehicleReturnedToGroup) Rotate90(vehicles, groupId);
                     }
                     break;
                 case SandvichAction.Rotate90:
                     if (_world.TickIndex >= _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
-                        MoveToEnemy(vehicles, groupId);
+                        _isRotating[groupId] = false;
+                        if (_isNuclearVehicleReturnedToGroup) MoveToEnemy(vehicles, groupId);
                     }
                     break;
 
@@ -1740,13 +1763,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             if (_enemy.NextNuclearStrikeTickIndex == -1) _isNuclearStrikeConsidered = false;
 
-            //for (var i = 1; i <= 2; ++i)
-            //{
-            //    if (_isRotating[i] && _world.TickIndex < _groupEndMovementTime[i])
-            //    {
-            //        _tmpGroupAngle[i] += _currentAngularSpeed[i];
-            //    }
-            //}
+            for (var i = 1; i <= 2; ++i)
+            {
+                if (_isRotating[i] && _world.TickIndex < _groupEndMovementTime[i])
+                {
+                    _tmpGroupAngle[i] += _currentAngularSpeed[i];
+                }
+            }
 
         }
 
