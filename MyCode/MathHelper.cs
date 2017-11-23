@@ -40,6 +40,14 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
         {
             Point minCp = null;
             var minDist = double.MaxValue;
+
+            if (sourcePoint.GetDistance(destPoint) < Tolerance)
+            {
+                var p0 = rectangle.Points[0];
+                var p1 = rectangle.Points[1];
+                return new Point((p0.X + p1.X)/ 2, (p0.Y + p1.Y)/2);
+            }
+            
             for (var i = 0; i < rectangle.Points.Count; ++i)
             {
                 var a0 = rectangle.Points[i];
