@@ -216,8 +216,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         /// <param name="move"></param>
         public void Move(Player me, World world, Game game, Move move)
         {
-            Debug.beginPost();
-            Draw(2);
+            //Debug.beginPost();
+            //Draw(2);
 
             InitializeStrategy(world, game);
             InitializeTick(me, world, game, move);
@@ -292,7 +292,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             ExecuteDelayedMove();
 
-            Debug.endPost();
+            //Debug.endPost();
         }
 
         private void GroundVehiclesInit()
@@ -553,7 +553,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.X = destX - GetVehiclesCenter(vehicles).X;
                 move.Y = destY - GetVehiclesCenter(vehicles).Y;
                 _groupEndMovementTime[1] = Math.Max(_groupEndMovementTime[1],
-                    _world.TickIndex + dist/ GetMaxSpeed(1));
+                    _world.TickIndex + dist/ GetGroupMaxSpeed(1));
             });
         }
 
@@ -587,7 +587,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.X = destX - GetVehiclesCenter(vehicles).X;
                 move.Y = destY - GetVehiclesCenter(vehicles).Y;
                 _groupEndMovementTime[2] = Math.Max(_groupEndMovementTime[2],
-                    _world.TickIndex + dist / GetMaxSpeed(2));
+                    _world.TickIndex + dist / GetGroupMaxSpeed(2));
             });
         }
 
@@ -603,7 +603,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 move.Action = ActionType.Move;
                 move.X = 0;
-                move.Y = GetMaxSpeed(groupId);
+                move.Y = GetGroupMaxSpeed(groupId);
             });
             
 
@@ -612,7 +612,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var minY = vehicles.Min(v => v.Y);
             for (var i = 0; i < 5; ++i)
             {
-                var y = minY + GetMaxSpeed(groupId) + SquardDelta*i;
+                var y = minY + GetGroupMaxSpeed(groupId) + SquardDelta*i;
 
                 _delayedMoves.Enqueue(move =>
                 {
@@ -634,14 +634,14 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     move.Y = -moveY;
 
                     _groupEndMovementTime[groupId] = Math.Max(_groupEndMovementTime[groupId],
-                        _world.TickIndex + moveY/GetMaxSpeed(groupId));
+                        _world.TickIndex + moveY/GetGroupMaxSpeed(groupId));
                 });
             }
 
             var maxY = vehicles.Max(v => v.Y);
             for (var i = 0; i < 4; ++i)
             {
-                var y = maxY + GetMaxSpeed(groupId) - SquardDelta*i;
+                var y = maxY + GetGroupMaxSpeed(groupId) - SquardDelta*i;
 
                 _delayedMoves.Enqueue(move =>
                 {
@@ -662,7 +662,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     move.Y = moveY;
 
                     _groupEndMovementTime[groupId] = Math.Max(_groupEndMovementTime[groupId],
-                        _world.TickIndex + moveY/ GetMaxSpeed(groupId));
+                        _world.TickIndex + moveY/ GetGroupMaxSpeed(groupId));
                 });
             }
         }
@@ -688,7 +688,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.Y = -SquardDelta;
 
                 _groupEndMovementTime[groupId] = Math.Max(_groupEndMovementTime[groupId],
-                    _world.TickIndex + SquardDelta/ GetMaxSpeed(groupId));
+                    _world.TickIndex + SquardDelta/ GetGroupMaxSpeed(groupId));
             });
 
             _delayedMoves.Enqueue(move =>
@@ -706,7 +706,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.Y = SquardDelta;
 
                 _groupEndMovementTime[groupId] = Math.Max(_groupEndMovementTime[groupId],
-                    _world.TickIndex + SquardDelta/GetMaxSpeed(groupId));
+                    _world.TickIndex + SquardDelta/GetGroupMaxSpeed(groupId));
             });
         }
 
@@ -754,7 +754,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.Y = 0;
 
                 _groupEndMovementTime[groupId] = Math.Max(_groupEndMovementTime[groupId],
-                    _world.TickIndex + AStar.SquareSize/ GetMaxSpeed(groupId));
+                    _world.TickIndex + AStar.SquareSize/ GetGroupMaxSpeed(groupId));
             });
 
             _delayedMoves.Enqueue(move =>
@@ -772,7 +772,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.Y = 0;
 
                 _groupEndMovementTime[groupId] = Math.Max(_groupEndMovementTime[groupId],
-                    _world.TickIndex + AStar.SquareSize/ GetMaxSpeed(groupId));
+                    _world.TickIndex + AStar.SquareSize/ GetGroupMaxSpeed(groupId));
             });
         }
 
@@ -854,7 +854,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             else if (turnAngle < -Math.PI/2) turnAngle += Math.PI;
 
             var radius = vehicles.Max(v => v.GetDistanceTo(centerPoint.X, centerPoint.Y));
-            var speed = GetMaxSpeed(groupId);
+            var speed = GetGroupMaxSpeed(groupId);
             var angularSpeed = speed/radius;
 
             var turnTime = Math.Abs(turnAngle)/angularSpeed;
@@ -990,7 +990,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     move.Action = ActionType.Move;
                     move.X = x;
                     move.Y = y;
-                    move.MaxSpeed = GetMaxSpeed(groupId);
+                    move.MaxSpeed = GetGroupMaxSpeed(groupId);
                     _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
                     _currentMoveEnemyPoint[groupId] = new Point(nearestGroup.Center.X, nearestGroup.Center.Y);
                 });
@@ -1151,7 +1151,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     move.Action = ActionType.Move;
                     move.X = targetX - centerPoint.X;
                     move.Y = targetY - centerPoint.Y;
-                    move.MaxSpeed = GetMaxSpeed(groupId);
+                    move.MaxSpeed = GetGroupMaxSpeed(groupId);
                     _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
                     _currentMoveEnemyPoint[groupId] = new Point(targetX, targetY);
                 });
@@ -1200,7 +1200,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             else if (newAngle < -Math.PI) newAngle += 2 * Math.PI;
 
             var radius = vehicles.Max(v => v.GetDistanceTo(_rotationContainer.RotationCenterPoint.X, _rotationContainer.RotationCenterPoint.Y));
-            var speed = GetMaxSpeed(groupId);
+            var speed = GetGroupMaxSpeed(groupId);
             var angularSpeed = speed / radius;
 
             var turnTime = Math.Abs(turnAngle) / angularSpeed;
@@ -1506,7 +1506,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         move.Y = destY - GetVehiclesCenter(currVehicles).Y;
 
                         _groupEndMovementTime[groupId] = Math.Max(_groupEndMovementTime[groupId],
-                            _world.TickIndex + dist / GetMaxSpeed(groupId));
+                            _world.TickIndex + dist / GetGroupMaxSpeed(groupId));
                     });
                 }
             }
@@ -1557,7 +1557,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         move.Y = destY - GetVehiclesCenter(currVehicles).Y;
 
                         _groupEndMovementTime[groupId] = Math.Max(_groupEndMovementTime[groupId],
-                            _world.TickIndex + dist / GetMaxSpeed(groupId));
+                            _world.TickIndex + dist / GetGroupMaxSpeed(groupId));
                     });
                 }
             }
@@ -1565,8 +1565,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             return isFinished;
         }
 
-        private double GetMaxSpeed(int groupId)
+        private double GetGroupMaxSpeed(int groupId)
         {
+            //var vehicles = GetVehicles(groupId, Ownership.ALLY);
+            //return vehicles.Select(v => GetActualMaxSpeed(v)).Min();
+
             switch (groupId)
             {
                 case 1:
@@ -1978,6 +1981,52 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     break;
             }
             return visualRange;
+        }
+
+        private double GetActualMaxSpeed(Vehicle vehicle)
+        {
+            var maxSpeed = vehicle.MaxSpeed;
+            var x = (int)Math.Truncate(vehicle.X / 32d);
+            var y = (int)Math.Truncate(vehicle.Y / 32d);
+
+            switch (vehicle.Type)
+            {
+                case VehicleType.Fighter:
+                case VehicleType.Helicopter:
+                    var weatherType = _weatherTypeByCellXY[x][y];
+                    switch (weatherType)
+                    {
+                        case WeatherType.Clear:
+                            maxSpeed *= _game.ClearWeatherSpeedFactor;
+                            break;
+                        case WeatherType.Cloud:
+                            maxSpeed *= _game.CloudWeatherSpeedFactor;
+                            break;
+                        case WeatherType.Rain:
+                            maxSpeed *= _game.RainWeatherSpeedFactor;
+                            break;
+                    }
+                    break;
+
+                case VehicleType.Arrv:
+                case VehicleType.Ifv:
+                case VehicleType.Tank:
+                    var terrainType = _terrainTypeByCellXY[x][y];
+                    switch (terrainType)
+                    {
+                        case TerrainType.Plain:
+                            maxSpeed *= _game.PlainTerrainSpeedFactor;
+                            break;
+                        case TerrainType.Forest:
+                            maxSpeed *= _game.ForestTerrainSpeedFactor;
+                            break;
+                        case TerrainType.Swamp:
+                            maxSpeed *= _game.SwampTerrainSpeedFactor;
+                            break;
+                    }
+                    break;
+            }
+            return maxSpeed;
         }
 
 
