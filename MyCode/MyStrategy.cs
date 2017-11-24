@@ -241,9 +241,35 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 }
                 else if (!_isNuclearStrikeConsidered && isCompressed && _enemy.NextNuclearStrikeTickIndex > -1)
                 {
-                    //Сама реакция будет в методах SandvichMove
                     _delayedMoves.Clear();
                     _isNuclearStrikeConsidered = true;
+
+                    if (_selectedGroupId == 1 || _selectedGroupId == -1)
+                    {
+                        var vehicles1 = GetVehicles(1, Ownership.ALLY);
+                        if (vehicles1.Any() && NeedNuclearUncompress(vehicles1))
+                        {
+                            Uncompress(1);
+                        }
+                        var vehicles2 = GetVehicles(2, Ownership.ALLY);
+                        if (vehicles2.Any() && NeedNuclearUncompress(vehicles2))
+                        {
+                            Uncompress(2);
+                        }
+                    }
+                    else if (_selectedGroupId == 2)
+                    {
+                        var vehicles2 = GetVehicles(2, Ownership.ALLY);
+                        if (vehicles2.Any() && NeedNuclearUncompress(vehicles2))
+                        {
+                            Uncompress(2);
+                        }
+                        var vehicles1 = GetVehicles(1, Ownership.ALLY);
+                        if (vehicles1.Any() && NeedNuclearUncompress(vehicles1))
+                        {
+                            Uncompress(1);
+                        }
+                    }
                 }
 
                 if (ExecuteDelayedMove()) return;
@@ -251,11 +277,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 if (_selectedGroupId == 1 || _selectedGroupId == -1)
                 {
                     SandvichMove(1, IsGroundAStarMoveFinished, GroundShift, GroundCompress);
+                    if (ExecuteDelayedMove()) return;
                     SandvichMove(2, IsAirAStarMoveFinished, AirShift, AirCompress);
                 }
                 else if (_selectedGroupId == 2)
                 {
                     SandvichMove(2, IsAirAStarMoveFinished, AirShift, AirCompress);
+                    if (ExecuteDelayedMove()) return;
                     SandvichMove(1, IsGroundAStarMoveFinished, GroundShift, GroundCompress);
                 }
             }
@@ -1537,16 +1565,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private void SandvichMove(int groupId, IsAStarMoveFinished isAStarMoveFinished, Shift shift, Compress compress)
         {
             var sandvichAction = _sandvichActions[groupId];
-            var isCompressed = _isGroupCompressed[groupId];
             var vehicles = GetVehicles(groupId, Ownership.ALLY);
             if (!vehicles.Any()) return;
-            
-            if (sandvichAction != SandvichAction.Uncompress && _enemy.NextNuclearStrikeTickIndex > -1 &&
-                isCompressed && NeedNuclearUncompress(vehicles))
-            {
-                Uncompress(groupId);
-                return;
-            }
 
             switch (sandvichAction)
             {
