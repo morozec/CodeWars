@@ -27,11 +27,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const int MoveToEnemyTicks = 6;
 
         private const double FarBorderDistance = 100;
-        private const double ShootingDistance = 20d;
+        private const double ShootingDistance = 15d;
         private const double CloseFriendDistance = 100d;
 
-        private const int VehiclesCountAdvantage = 100;
-        private const double VehiclesCoeffAdvantage = 2;
+        private const int VehiclesCountAdvantage = 50;
+        private const double VehiclesCoeffAdvantage = 1.5;
 
         private const double NuclearStrikeDistDelta = 20d;
 
@@ -135,7 +135,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private IDictionary<VehicleType, int> _groundPathIndexes = new Dictionary<VehicleType, int>();
         private IDictionary<int, VehicleType> _groundPointsVehicleTypes;
 
-        private bool _isNuclearStrikeConsidered = false;
+        private bool _isEnemyNuclearStrikeConsidered = false;
+        private bool _isMyNuclearStrikeConsidered = false;
 
         private int _nuclearVehicleGroup = -1;
         private long _nuclearVehicleId = -1;
@@ -235,14 +236,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                 var isCompressed = _isGroupCompressed.Values.All(x => x);
 
-                if (_me.RemainingNuclearStrikeCooldownTicks == 0 && MakeNuclearStrike())
-                {
-                    if (isCompressed) _delayedMoves.Clear();
-                }
-                else if (!_isNuclearStrikeConsidered && isCompressed && _enemy.NextNuclearStrikeTickIndex > -1)
+                if (!_isMyNuclearStrikeConsidered && isCompressed && _me.RemainingNuclearStrikeCooldownTicks == 0 && MakeNuclearStrike())
                 {
                     _delayedMoves.Clear();
-                    _isNuclearStrikeConsidered = true;
+                    _isMyNuclearStrikeConsidered = true;
+                }
+                else if (!_isEnemyNuclearStrikeConsidered && isCompressed && _enemy.NextNuclearStrikeTickIndex > -1)
+                {
+                    _delayedMoves.Clear();
+                    _isEnemyNuclearStrikeConsidered = true;
 
                     if (_selectedGroupId == 1 || _selectedGroupId == -1)
                     {
@@ -940,7 +942,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private void MoveToEnemy(IList<Vehicle> vehicles, int groupId)
         {
 
-            _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
+            
 
             var centerPoint = GetVehiclesCenter(vehicles);
 
@@ -962,11 +964,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             if (hasAdvantege)
             {
-                var x = nearestGroup.Center.X - centerPoint.X;
-                var y = nearestGroup.Center.Y - centerPoint.Y;
-
-                var isStaticEnemy = _currentMoveEnemyPoint[groupId].GetDistance(x, y) <=
+                var isStaticEnemy = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
+                                    _currentMoveEnemyPoint[groupId]
+                                        .GetDistance(nearestGroup.Center.X, nearestGroup.Center.Y) <=
                                     MoveEnemyPointTolerance;
+                _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
+
                 if (isStaticEnemy) return;
 
                 if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
@@ -979,6 +982,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     _selectedGroupId = groupId;
                 }
 
+                var x = nearestGroup.Center.X - centerPoint.X;
+                var y = nearestGroup.Center.Y - centerPoint.Y;
+
                 _delayedMoves.Enqueue(move =>
                 {
                     move.Action = ActionType.Move;
@@ -986,7 +992,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     move.Y = y;
                     move.MaxSpeed = GetMaxSpeed(groupId);
                     _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
-                    _currentMoveEnemyPoint[groupId] = new Point(x, y);
+                    _currentMoveEnemyPoint[groupId] = new Point(nearestGroup.Center.X, nearestGroup.Center.Y);
                 });
 
                 return;
@@ -1037,20 +1043,43 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             if (groupId == 2)
             {
 
-                var maxRadiusPoint = GetMaxRadiusEnemyPoint(centerPoint, enemyRectangle, nearestGroup.Center);
+                //var maxRadiusPoint = GetMaxRadiusEnemyPoint(centerPoint, enemyRectangle, nearestGroup.Center);
 
-                if (maxRadiusPoint != null)
+                Point enemyTargetRadiusPoint = null;
+                var enemyTargetRadiusPointDistToMe = double.MaxValue;
+
+                var currentEnemyCenterDist = nearestGroup.Center.GetDistance(enemyCp);
+                for (var i = 0; i < enemyRectangle.Points.Count; ++i)
+                {
+                    var point = enemyRectangle.Points[i];
+
+                    var isEnemyFarFromBorder = point.X >= FarBorderDistance && point.Y >= FarBorderDistance &&
+                                          point.X <= _world.Width - FarBorderDistance &&
+                                          point.Y <= _world.Height - FarBorderDistance;
+
+                    if (!isEnemyFarFromBorder) continue;
+
+                    var radius = nearestGroup.Center.GetDistance(point);
+                    var distToMe = point.GetDistance(centerPoint);
+
+                    if (currentDistanceToEnemyCenter - radius - centerPoint.GetDistance(myCp) < ShootingDistance &&
+                        radius - currentEnemyCenterDist > MoreSideDist &&
+                        distToMe < enemyTargetRadiusPointDistToMe)
+                    {
+                        enemyTargetRadiusPoint = point;
+                        enemyTargetRadiusPointDistToMe = distToMe;
+                    }
+                }
+
+                if (enemyTargetRadiusPoint != null)
                 {
                     var currVector = new Vector(nearestGroup.Center, enemyCp);
-                    var newVector = new Vector(nearestGroup.Center, maxRadiusPoint);
-
-                    if (currentDistanceToEnemyCenter - newVector.Length - centerPoint.GetDistance(myCp) < ShootingDistance &&
-                        newVector.Length - currVector.Length > MoreSideDist)
-                    {
-                        var angle = MathHelper.GetAnlge(currVector, newVector);
-                        needRotate90 = true;
-                        _rotationContainer = GetRotationContainer(vehicles, angle);
-                    }
+                    var newVector = new Vector(nearestGroup.Center, enemyTargetRadiusPoint);
+                    
+                    var angle = MathHelper.GetAnlge(currVector, newVector);
+                    needRotate90 = true;
+                    _rotationContainer = GetRotationContainer(vehicles, angle);
+                    
                 }
 
 
@@ -1088,18 +1117,21 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
             else
             {
-                var x = nearestGroup.Center.X - centerPoint.X;
-                var y = nearestGroup.Center.Y - centerPoint.Y;
+                var targetX = nearestGroup.Center.X;
+                var targetY = nearestGroup.Center.Y;
 
                 if (isFarFromBorder)
                 {
-                    x -= requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
-                    y -= requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
+                    targetX -= requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
+                    targetY -= requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
                 }
 
                 var isFarFromEnemy = currentDistanceToEnemyCenter > requiredDistToEnemyCenter;
-                var isStaticEnemy = _currentMoveEnemyPoint[groupId].GetDistance(x, y) <=
+                var isStaticEnemy = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
+                                    _currentMoveEnemyPoint[groupId].GetDistance(targetX, targetY) <=
                                     MoveEnemyPointTolerance;
+
+                _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
 
                 if (isFarFromEnemy && isStaticEnemy) return;
 
@@ -1117,11 +1149,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 _delayedMoves.Enqueue(move =>
                 {
                     move.Action = ActionType.Move;
-                    move.X = x;
-                    move.Y = y;
+                    move.X = targetX - centerPoint.X;
+                    move.Y = targetY - centerPoint.Y;
                     move.MaxSpeed = GetMaxSpeed(groupId);
                     _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
-                    _currentMoveEnemyPoint[groupId] = new Point(x, y);
+                    _currentMoveEnemyPoint[groupId] = new Point(targetX, targetY);
                 });
             }
         }
@@ -1388,6 +1420,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.X = targetGroup.Center.X;
                 move.Y = targetGroup.Center.Y;
                 move.VehicleId = targetGroup.NuclearStrikeVehicle.Id;
+                _isMyNuclearStrikeConsidered = false;
             });
 
             _sandvichActions[groupId] = SandvichAction.NuclearStrike;
@@ -1876,29 +1909,78 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 .ToList();
 
             var vehicle = orderedVehicles.FirstOrDefault(v =>
-                v.Durability >= v.MaxDurability * HpNuclerStrikeCoeff && v.VisionRange >=
+                v.Durability >= v.MaxDurability * HpNuclerStrikeCoeff && GetActualVisualRange(v) >=
                 v.GetDistanceTo(enemyGroup.Center.X, enemyGroup.Center.Y) +
                 v.MaxSpeed * _game.TacticalNuclearStrikeDelay);
 
             if (vehicle != null) return vehicle;
 
             vehicle = orderedVehicles.FirstOrDefault(v =>
-                v.VisionRange >= v.GetDistanceTo(enemyGroup.Center.X, enemyGroup.Center.Y) +
+                GetActualVisualRange(v) >= v.GetDistanceTo(enemyGroup.Center.X, enemyGroup.Center.Y) +
                 v.MaxSpeed * _game.TacticalNuclearStrikeDelay);
 
             if (vehicle != null) return vehicle;
 
             vehicle = orderedVehicles.FirstOrDefault(v =>
                 v.Durability >= v.MaxDurability * HpNuclerStrikeCoeff &&
-                v.VisionRange >= v.GetDistanceTo(enemyGroup.Center.X, enemyGroup.Center.Y) + NuclearStrikeDistDelta);
+                GetActualVisualRange(v) >= v.GetDistanceTo(enemyGroup.Center.X, enemyGroup.Center.Y) + NuclearStrikeDistDelta);
 
             if (vehicle != null) return vehicle;
 
             vehicle = orderedVehicles.FirstOrDefault(v =>
-                v.VisionRange >= v.GetDistanceTo(enemyGroup.Center.X, enemyGroup.Center.Y) + NuclearStrikeDistDelta);
+                GetActualVisualRange(v) >= v.GetDistanceTo(enemyGroup.Center.X, enemyGroup.Center.Y) + NuclearStrikeDistDelta);
          
             return vehicle;
         }
+
+
+        private double GetActualVisualRange(Vehicle vehicle)
+        {
+            var visualRange = vehicle.VisionRange;
+            var x = (int) Math.Truncate(vehicle.X / 32d);
+            var y = (int) Math.Truncate(vehicle.Y / 32d);
+
+            switch (vehicle.Type)
+            {
+                case VehicleType.Fighter:
+                case VehicleType.Helicopter:
+                    var weatherType = _weatherTypeByCellXY[x][y];
+                    switch (weatherType)
+                    {
+                        case WeatherType.Clear:
+                            visualRange *= _game.ClearWeatherVisionFactor;
+                            break;
+                        case WeatherType.Cloud:
+                            visualRange *= _game.CloudWeatherVisionFactor;
+                            break;
+                        case WeatherType.Rain:
+                            visualRange *= _game.RainWeatherVisionFactor;
+                            break;
+                    }
+                    break;
+
+                case VehicleType.Arrv:
+                case VehicleType.Ifv:
+                case VehicleType.Tank:
+                    var terrainType = _terrainTypeByCellXY[x][y];
+                    switch (terrainType)
+                    {
+                        case TerrainType.Plain:
+                            visualRange *= _game.PlainTerrainVisionFactor;
+                            break;
+                        case TerrainType.Forest:
+                            visualRange *= _game.ForestTerrainVisionFactor;
+                            break;
+                        case TerrainType.Swamp:
+                            visualRange *= _game.SwampTerrainVisionFactor;
+                            break;
+                    }
+                    break;
+            }
+            return visualRange;
+        }
+
+
 
         /// <summary>
         ///     Инциализируем стратегию.
@@ -1978,8 +2060,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 }
             }
 
-            if (_enemy.NextNuclearStrikeTickIndex == -1) _isNuclearStrikeConsidered = false;
-
+            if (_enemy.NextNuclearStrikeTickIndex == -1) _isEnemyNuclearStrikeConsidered = false;
             for (var i = 1; i <= 2; ++i)
             {
                 if (_isRotating[i] && _world.TickIndex < _groupEndMovementTime[i])
