@@ -1878,16 +1878,26 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             return sumDamage;
         }
 
-        private GroupContainer GetNuclearStrikeEnemyGroup(IList<GroupContainer> enemyGroups)
+        private Vehicle GetNuclearStrikeEnemyVehicle(IList<GroupContainer> enemyGroups)
         {
             var myVehicles = GetVehicles(Ownership.ALLY);
+            var enemyVehicles = GetVehicles(Ownership.ENEMY);
 
             GroupContainer targetGroup = null;
 
             var maxDiffDamage = 0d;
+
+            foreach (var v in enemyVehicles)
+            {
+                var group = enemyGroups.Single(g => g.Vehicles.Any(gv => gv.Id == v.Id));
+                if (group.Vehicles.Count < MinNuclearStrikeCount) continue;
+
+                
+            }
+
             foreach (var eg in enemyGroups.Where(x => x.Vehicles.Count >= MinNuclearStrikeCount))
             {
-                var strikingVehicle = GetNuclearStrikeVehcile(eg, myVehicles);
+                var strikingVehicle = GetNuclearStrikeVehicle(eg, myVehicles);
 
                 if (strikingVehicle == null) continue;
 
@@ -1905,33 +1915,34 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             return targetGroup;
         }
+       
 
-        private Vehicle GetNuclearStrikeVehcile(GroupContainer enemyGroup, IList<Vehicle> myVehicles)
+        private Vehicle GetNuclearStrikeVehicle(Point nuclearStrikePoint, IList<Vehicle> myVehicles)
         {
-            var orderedVehicles = myVehicles.OrderByDescending(v => v.GetDistanceTo(enemyGroup.Center.X, enemyGroup.Center.Y))
+            var orderedVehicles = myVehicles.OrderByDescending(v => v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y))
                 .ToList();
 
             var vehicle = orderedVehicles.FirstOrDefault(v =>
                 v.Durability >= v.MaxDurability * HpNuclerStrikeCoeff && GetActualVisualRange(v) >=
-                v.GetDistanceTo(enemyGroup.Center.X, enemyGroup.Center.Y) +
+                v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
                 v.MaxSpeed * _game.TacticalNuclearStrikeDelay);
 
             if (vehicle != null) return vehicle;
 
             vehicle = orderedVehicles.FirstOrDefault(v =>
-                GetActualVisualRange(v) >= v.GetDistanceTo(enemyGroup.Center.X, enemyGroup.Center.Y) +
+                GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
                 v.MaxSpeed * _game.TacticalNuclearStrikeDelay);
 
             if (vehicle != null) return vehicle;
 
             vehicle = orderedVehicles.FirstOrDefault(v =>
                 v.Durability >= v.MaxDurability * HpNuclerStrikeCoeff &&
-                GetActualVisualRange(v) >= v.GetDistanceTo(enemyGroup.Center.X, enemyGroup.Center.Y) + NuclearStrikeDistDelta);
+                GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) + NuclearStrikeDistDelta);
 
             if (vehicle != null) return vehicle;
 
             vehicle = orderedVehicles.FirstOrDefault(v =>
-                GetActualVisualRange(v) >= v.GetDistanceTo(enemyGroup.Center.X, enemyGroup.Center.Y) + NuclearStrikeDistDelta);
+                GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) + NuclearStrikeDistDelta);
          
             return vehicle;
         }
