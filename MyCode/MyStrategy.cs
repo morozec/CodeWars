@@ -26,7 +26,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const double Tolerance = 1E-3;
         private const int MoveToEnemyTicks = 6;
 
-        private const double FarBorderDistance = 100;
         private const double ShootingDistance = 15d;
         private const double CloseFriendDistance = 100d;
 
@@ -951,10 +950,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             var enemyGroups = GetEnemyVehicleGroups();
             var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
-
-            var isFarFromBorder = centerPoint.X >= FarBorderDistance && centerPoint.Y >= FarBorderDistance &&
-                                  centerPoint.X <= _world.Width - FarBorderDistance &&
-                                  centerPoint.Y <= _world.Height - FarBorderDistance;
+            
             var hasAdvantege = HasAdvantage(groupId, nearestGroup, enemyGroups);
             var currentDistanceToEnemyCenter = centerPoint.GetDistance(nearestGroup.Center);
 
@@ -1056,12 +1052,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 {
                     var point = enemyRectangle.Points[i];
 
-                    var isEnemyFarFromBorder = point.X >= FarBorderDistance && point.Y >= FarBorderDistance &&
-                                          point.X <= _world.Width - FarBorderDistance &&
-                                          point.Y <= _world.Height - FarBorderDistance;
-
-                    if (!isEnemyFarFromBorder) continue;
-
                     var radius = nearestGroup.Center.GetDistance(point);
                     var distToMe = point.GetDistance(centerPoint);
 
@@ -1069,6 +1059,27 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         radius - currentEnemyCenterDist > MoreSideDist &&
                         distToMe < enemyTargetRadiusPointDistToMe)
                     {
+
+                        var turnVector = new Vector(new Point(nearestGroup.Center), new Point(point));
+                        turnVector.Mult(centerPoint.GetDistance(nearestGroup.Center) / turnVector.Length);
+
+                        var currVector = new Vector(new Point(nearestGroup.Center), new Point(centerPoint));
+                        var angle = MathHelper.GetAnlge(currVector, turnVector);
+                        var dAnlge = angle / 10d;
+
+                        var isFarFromBorder = true;
+                        for (var j = 0; j < 10; ++j)
+                        {
+                            currVector.Turn(dAnlge);
+                            if (!IsFarFromBorderPoint(vehicles, currVector.P2))
+                            {
+                                isFarFromBorder = false;
+                                break;
+                            }
+                        }
+
+                        if (!isFarFromBorder) continue;
+
                         enemyTargetRadiusPoint = point;
                         enemyTargetRadiusPointDistToMe = distToMe;
                     }
@@ -1123,10 +1134,14 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var targetX = nearestGroup.Center.X;
                 var targetY = nearestGroup.Center.Y;
 
+                
+                var newX = targetX - requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
+                var newY = targetY - requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
+                var isFarFromBorder = IsFarFromBorderPoint(vehicles, new Point(newX, newY));
                 if (isFarFromBorder)
                 {
-                    targetX -= requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
-                    targetY -= requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
+                    targetX = newX;
+                    targetY = newY;
                 }
 
                 var isFarFromEnemy = currentDistanceToEnemyCenter > requiredDistToEnemyCenter;
@@ -1202,7 +1217,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             if (newAngle > Math.PI) newAngle -= 2 * Math.PI;
             else if (newAngle < -Math.PI) newAngle += 2 * Math.PI;
 
-            var radius = vehicles.Max(v => v.GetDistanceTo(_rotationContainer.RotationCenterPoint.X, _rotationContainer.RotationCenterPoint.Y));
+            var radius =
+                vehicles.Max(
+                    v =>
+                        v.GetDistanceTo(_rotationContainer.RotationCenterPoint.X,
+                            _rotationContainer.RotationCenterPoint.Y));
             var speed = GetGroupMaxSpeed(groupId);
             var angularSpeed = speed / radius;
 
@@ -1234,36 +1253,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 _currentGroupAngle[groupId] = newAngle;
                 
             });
-        }
-
-        private Point GetMaxRadiusEnemyPoint(Point myVehiclesCenter, Rectangle rect, Point rectangleCenter)
-        {
-            var maxRadius = 0d;
-            Point maxRadiusPoint = null;
-            for (var i = 0; i < rect.Points.Count; ++i)
-            {
-                var point = rect.Points[i];
-
-                var isFarFromBorder = point.X >= FarBorderDistance && point.Y >= FarBorderDistance &&
-                                      point.X <= _world.Width - FarBorderDistance &&
-                                      point.Y <= _world.Height - FarBorderDistance;
-
-                if (!isFarFromBorder) continue;
-
-                var radius = rectangleCenter.GetDistance(point);
-               
-                if (radius > maxRadius)
-                {
-                    maxRadius = radius;
-                    maxRadiusPoint = point;
-                }
-            }
-
-            return maxRadiusPoint;
-
-            //var myVector = new Vector(rectangleCenter, myVehiclesCenter); 
-            //var newVector = new Vector(rectangleCenter, maxRadiusPoint);
-            //return MathHelper.GetAnlge(myVector, newVector);
         }
 
 
@@ -1683,7 +1672,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (_world.TickIndex >= _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
-                        RotateToEnemy(vehicles, groupId);
+                        var isFarFromBorder = IsFarFromBorderPoint(vehicles, GetVehiclesCenter(vehicles));
+                        if (isFarFromBorder) RotateToEnemy(vehicles, groupId);
+                        else MoveToEnemy(vehicles, groupId);
                     }
                     break;
                 case SandvichAction.Rotating:
@@ -1701,7 +1692,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                             new Vector(centerPoint, nearestGroup.Center));
 
                         var isSmallEnemyGroup = IsSmallEnemyGroup(vehicles, nearestGroup.Vehicles);
-                        if (!isSmallEnemyGroup && Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle)
+                        var isFarFromBorder = IsFarFromBorderPoint(vehicles, GetVehiclesCenter(vehicles));
+                        if (!isSmallEnemyGroup && Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle && isFarFromBorder)
                         {
                             RotateToEnemy(vehicles, groupId);
                         }
@@ -1713,38 +1705,42 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     break;
                 case SandvichAction.MovingToEnemy:
                 {
-                    var centerPoint = GetVehiclesCenter(vehicles);
-                    var enemyGroups = GetEnemyVehicleGroups();
-                    var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
-
-                    var angle = MathHelper.GetAnlge(
-                        new Vector(centerPoint,
-                            new Point(centerPoint.X + 100, centerPoint.Y)),
-                        new Vector(centerPoint, nearestGroup.Center));
-
-                    var isSmallEnemyGroup = IsSmallEnemyGroup(vehicles, nearestGroup.Vehicles);
-
-                    //var isGroup1Close = false;
-                    //if (groupId == 2 && !_isGroup2Rotated)
-                    //{
-                    //    var g1Vehilces = GetVehicles(1, Ownership.ALLY);
-                    //    if (g1Vehilces.Any() && GetVehiclesCenter(g1Vehilces).GetDistance(nearestGroup.Center) < 700) //TODO: кол-во больше некой константы
-                    //    {
-                    //        isGroup1Close = true;
-                    //    }
-                    //}
-                    //if (isGroup1Close)
-                    //{
-                    //    PrepareToRotate90(vehicles, groupId);
-                    //}
-                    if (!isSmallEnemyGroup && Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle &&
-                             _world.TickIndex >= _groupEndMovementTime[groupId])
+                    if (_world.TickIndex >= _groupEndMovementTime[groupId])
                     {
-                        RotateToEnemy(vehicles, groupId);
-                    }
-                    else if (_world.TickIndex >= _groupEndMovementTime[groupId])
-                    {
-                        MoveToEnemy(vehicles, groupId);
+                        var centerPoint = GetVehiclesCenter(vehicles);
+                        var enemyGroups = GetEnemyVehicleGroups();
+                        var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
+
+                        var angle = MathHelper.GetAnlge(
+                            new Vector(centerPoint,
+                                new Point(centerPoint.X + 100, centerPoint.Y)),
+                            new Vector(centerPoint, nearestGroup.Center));
+
+                        var isSmallEnemyGroup = IsSmallEnemyGroup(vehicles, nearestGroup.Vehicles);
+
+                        //var isGroup1Close = false;
+                        //if (groupId == 2 && !_isGroup2Rotated)
+                        //{
+                        //    var g1Vehilces = GetVehicles(1, Ownership.ALLY);
+                        //    if (g1Vehilces.Any() && GetVehiclesCenter(g1Vehilces).GetDistance(nearestGroup.Center) < 700) //TODO: кол-во больше некой константы
+                        //    {
+                        //        isGroup1Close = true;
+                        //    }
+                        //}
+                        //if (isGroup1Close)
+                        //{
+                        //    PrepareToRotate90(vehicles, groupId);
+                        //}
+                        var isFarFromBorder = IsFarFromBorderPoint(vehicles, GetVehiclesCenter(vehicles));
+                        if (!isSmallEnemyGroup && Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle &&
+                            isFarFromBorder)
+                        {
+                            RotateToEnemy(vehicles, groupId);
+                        }
+                        else
+                        {
+                            MoveToEnemy(vehicles, groupId);
+                        }
                     }
 
                     break;
@@ -1783,7 +1779,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                             new Vector(centerPoint, nearestGroup.Center));
 
                         var isSmallEnemyGroup = IsSmallEnemyGroup(vehicles, nearestGroup.Vehicles);
-                        if (!isSmallEnemyGroup && Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle)
+                        var isFarFromBorder = IsFarFromBorderPoint(vehicles, GetVehiclesCenter(vehicles));
+                        if (!isSmallEnemyGroup && Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle && isFarFromBorder)
                         {
                             RotateToEnemy(vehicles, groupId);
                         }
@@ -1973,6 +1970,21 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) + NuclearStrikeDistDelta);
          
             return vehicle;
+        }
+
+        private bool IsFarFromBorderPoint(IList<Vehicle> vehicles, Point point)
+        {
+            var radius = GetSandvichRadius(vehicles);
+            var isFarFromBorder = point.X >= radius && point.Y >= radius &&
+                                  point.X <= _world.Width - radius &&
+                                  point.Y <= _world.Height - radius;
+            return isFarFromBorder;
+        }
+
+        private double GetSandvichRadius(IList<Vehicle> vehicles)
+        {
+            var rect = MathHelper.GetJarvisRectangle(vehicles.Select(v => new Point(v.X, v.Y)).ToList());
+            return rect.Points.Max(p => p.GetDistance(GetVehiclesCenter(vehicles)));
         }
 
 
