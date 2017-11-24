@@ -54,6 +54,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const double HpNuclerStrikeCoeff = 0.7;
 
 
+
+        private bool _isFirstNuclearStrike = true;
+
         private readonly IList<Point> _airKeyPoints = new List<Point>
         {
             new Point(119, 119),
@@ -1384,13 +1387,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private bool MakeNuclearStrike()
         {
             var enemyGroups = GetEnemyVehicleGroups();
-            var targetGroup = GetNuclearStrikeEnemyGroup(enemyGroups);
+            var targetPoint = GetNuclearStrikeEnemyPoint(enemyGroups);
+            var myVehicles = GetVehicles(Ownership.ALLY);
 
-            if (targetGroup == null) return false;
-           
-            _nuclearVehicleId = targetGroup.NuclearStrikeVehicle.Id;
+            if (targetPoint == null) return false;
 
-            var groupId = targetGroup.NuclearStrikeVehicle.Groups.Single();
+            var strikingVehicle = GetNuclearStrikeVehicle(targetPoint, myVehicles);
+            _nuclearVehicleId = strikingVehicle.Id;
+
+            var groupId = strikingVehicle.Groups.Single();
 
             if (_sandvichActions[groupId] == SandvichAction.Rotating || _sandvichActions[groupId] == SandvichAction.Rotate90)
             {
@@ -1417,10 +1422,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.TacticalNuclearStrike;
-                move.X = targetGroup.Center.X;
-                move.Y = targetGroup.Center.Y;
-                move.VehicleId = targetGroup.NuclearStrikeVehicle.Id;
+                move.X = targetPoint.X;
+                move.Y = targetPoint.Y;
+                move.VehicleId = strikingVehicle.Id;
                 _isMyNuclearStrikeConsidered = false;
+                _isFirstNuclearStrike = false;
             });
 
             _sandvichActions[groupId] = SandvichAction.NuclearStrike;
@@ -1878,42 +1884,64 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             return sumDamage;
         }
 
-        private Vehicle GetNuclearStrikeEnemyVehicle(IList<GroupContainer> enemyGroups)
+        private Point GetNuclearStrikeEnemyPoint(IList<GroupContainer> enemyGroups)
         {
+            Point targetPoint = null;
+            var maxDiffDamage = 0d;
             var myVehicles = GetVehicles(Ownership.ALLY);
             var enemyVehicles = GetVehicles(Ownership.ENEMY);
 
-            GroupContainer targetGroup = null;
+            if (_isFirstNuclearStrike)
+            {
+                foreach (var group in enemyGroups)
+                {
+                    if (group.Vehicles.Count < MinNuclearStrikeCount) continue;
 
-            var maxDiffDamage = 0d;
+                    var strikingVehicle = GetNuclearStrikeVehicle(group.Center, myVehicles);
 
+                    if (strikingVehicle == null) continue;
+
+                    var damage = GetGroupNuclearDamage(enemyVehicles, group.Center.X, group.Center.Y);
+                    var myVehiclesDamage = GetGroupNuclearDamage(myVehicles, group.Center.X, group.Center.Y);
+                    var diffDamage = damage - myVehiclesDamage;
+
+                    if (diffDamage > maxDiffDamage)
+                    {
+                        maxDiffDamage = diffDamage;
+                        targetPoint = group.Center;
+                    }
+                }
+                return targetPoint;
+            }
+           
+            if (
+                myVehicles.All(
+                    myV =>
+                        enemyVehicles.All(v => myV.GetDistanceTo(v) > GetActualVisualRange(myV) + NuclearStrikeDistDelta)))
+                return null;
+
+           
             foreach (var v in enemyVehicles)
             {
                 var group = enemyGroups.Single(g => g.Vehicles.Any(gv => gv.Id == v.Id));
                 if (group.Vehicles.Count < MinNuclearStrikeCount) continue;
 
-                
-            }
-
-            foreach (var eg in enemyGroups.Where(x => x.Vehicles.Count >= MinNuclearStrikeCount))
-            {
-                var strikingVehicle = GetNuclearStrikeVehicle(eg, myVehicles);
+                var strikingVehicle = GetNuclearStrikeVehicle(new Point(v.X, v.Y), myVehicles);
 
                 if (strikingVehicle == null) continue;
 
-                var damage = GetGroupNuclearDamage(eg.Vehicles, eg.Center.X, eg.Center.Y);
-                var myVehiclesDamage = GetGroupNuclearDamage(myVehicles, eg.Center.X, eg.Center.Y);
+                var damage = GetGroupNuclearDamage(enemyVehicles, v.X, v.Y);
+                var myVehiclesDamage = GetGroupNuclearDamage(myVehicles, v.X, v.Y);
                 var diffDamage = damage - myVehiclesDamage;
 
                 if (diffDamage > maxDiffDamage)
                 {
                     maxDiffDamage = diffDamage;
-                    targetGroup = eg;
-                    targetGroup.NuclearStrikeVehicle = strikingVehicle;
+                    targetPoint = new Point(v.X, v.Y);
                 }
             }
 
-            return targetGroup;
+            return targetPoint;
         }
        
 
