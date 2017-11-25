@@ -18,10 +18,10 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             ENEMY
         }
 
-        static MyStrategy()
-        {
-            Debug.connect("localhost", 13579);
-        }
+        //static MyStrategy()
+        //{
+        //    Debug.connect("localhost", 13579);
+        //}
 
         private const double Tolerance = 1E-3;
         private const int MoveToEnemyTicks = 6;
