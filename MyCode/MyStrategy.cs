@@ -990,6 +990,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
 
 
+
+
             if (groupId == 2)
             {
 
@@ -998,57 +1000,93 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 {
                     var currVector = new Vector(nearestGroup.Center, enemyCp);
                     var newVector = new Vector(nearestGroup.Center, enemyTargetRadiusPoint);
-                    
+
                     var rotationAngle = MathHelper.GetAnlge(currVector, newVector);
                     Rotate90(vehicles, groupId, rotationAngle, nearestGroup.Center);
-                    return;
+
                 }
+                else
+                {
+                    var targetX = enemyCp.X;
+                    var targetY = enemyCp.Y;
+
+                    var isFarFromEnemy = currentDistanceToEnemyCenter > requiredDistToEnemyCenter;
+                    var isStaticEnemy = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
+                                        _currentMoveEnemyPoint[groupId].GetDistance(targetX, targetY) <=
+                                        MoveEnemyPointTolerance;
+
+                    if (isFarFromEnemy && isStaticEnemy) return;
+
+                    _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
+
+                    if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
+                    {
+                        _delayedMoves.Enqueue(move =>
+                        {
+                            move.Action = ActionType.ClearAndSelect;
+                            move.Group = groupId;
+                        });
+                        _selectedGroupId = groupId;
+                    }
+
+                    _delayedMoves.Enqueue(move =>
+                    {
+                        move.Action = ActionType.Move;
+                        move.X = targetX - centerPoint.X;
+                        move.Y = targetY - centerPoint.Y;
+                        move.MaxSpeed = GetGroupMaxSpeed(groupId);
+                        _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
+                        _currentMoveEnemyPoint[groupId] = new Point(targetX, targetY);
+                    });
+                }
+
             }
-
-            
-            var targetX = nearestGroup.Center.X;
-            var targetY = nearestGroup.Center.Y;
-
-                
-            var newX = targetX - requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
-            var newY = targetY - requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
-            var isFarFromBorder = IsFarFromBorderPoint(vehicles, new Point(newX, newY));
-            if (isFarFromBorder)
+            else
             {
-                targetX = newX;
-                targetY = newY;
-            }
 
-            var isFarFromEnemy = currentDistanceToEnemyCenter > requiredDistToEnemyCenter;
-            var isStaticEnemy = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
-                                _currentMoveEnemyPoint[groupId].GetDistance(targetX, targetY) <=
-                                MoveEnemyPointTolerance;
+                var targetX = nearestGroup.Center.X;
+                var targetY = nearestGroup.Center.Y;
 
-            _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
+                var newX = targetX - requiredDistToEnemyCenter*Math.Cos(_currentGroupAngle[groupId]);
+                var newY = targetY - requiredDistToEnemyCenter*Math.Sin(_currentGroupAngle[groupId]);
+                var isFarFromBorder = IsFarFromBorderPoint(vehicles, new Point(newX, newY));
+                if (isFarFromBorder)
+                {
+                    targetX = newX;
+                    targetY = newY;
+                }
 
-            if (isFarFromEnemy && isStaticEnemy) return;
+                var isFarFromEnemy = currentDistanceToEnemyCenter > requiredDistToEnemyCenter;
+                var isStaticEnemy = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
+                                    _currentMoveEnemyPoint[groupId].GetDistance(targetX, targetY) <=
+                                    MoveEnemyPointTolerance;
+
+                _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
+
+                if (isFarFromEnemy && isStaticEnemy) return;
 
 
-            if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
-            {
+                if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
+                {
+                    _delayedMoves.Enqueue(move =>
+                    {
+                        move.Action = ActionType.ClearAndSelect;
+                        move.Group = groupId;
+                    });
+                    _selectedGroupId = groupId;
+                }
+
                 _delayedMoves.Enqueue(move =>
                 {
-                    move.Action = ActionType.ClearAndSelect;
-                    move.Group = groupId;
+                    move.Action = ActionType.Move;
+                    move.X = targetX - centerPoint.X;
+                    move.Y = targetY - centerPoint.Y;
+                    move.MaxSpeed = GetGroupMaxSpeed(groupId);
+                    _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
+                    _currentMoveEnemyPoint[groupId] = new Point(targetX, targetY);
                 });
-                _selectedGroupId = groupId;
             }
 
-            _delayedMoves.Enqueue(move =>
-            {
-                move.Action = ActionType.Move;
-                move.X = targetX - centerPoint.X;
-                move.Y = targetY - centerPoint.Y;
-                move.MaxSpeed = GetGroupMaxSpeed(groupId);
-                _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
-                _currentMoveEnemyPoint[groupId] = new Point(targetX, targetY);
-            });
-            
         }
 
         private Point GetEnemyTargetRadiusPoint(IList<Vehicle> vehicles)
@@ -1321,22 +1359,29 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
             }
 
-            if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
+            var isUncompress = _sandvichActions[groupId] == SandvichAction.Uncompress;
+
+            if (!isUncompress)
             {
+                if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
+                {
+                    _importantDelayedMoves.Enqueue(move =>
+                    {
+                        move.Action = ActionType.ClearAndSelect;
+                        move.Group = groupId;
+                    });
+                    _selectedGroupId = groupId;
+                }
+
                 _importantDelayedMoves.Enqueue(move =>
                 {
-                    move.Action = ActionType.ClearAndSelect;
-                    move.Group = groupId;
+                    move.Action = ActionType.Move;
+                    move.X = 0;
+                    move.Y = 0;
                 });
-                _selectedGroupId = groupId;
-            }
 
-            _importantDelayedMoves.Enqueue(move =>
-            {
-                move.Action = ActionType.Move;
-                move.X = 0;
-                move.Y = 0;
-            });
+                _sandvichActions[groupId] = SandvichAction.NuclearStrike;
+            }
 
             _importantDelayedMoves.Enqueue(move =>
             {
@@ -1346,10 +1391,10 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.VehicleId = strikingVehicle.Id;
                 _isMyNuclearStrikeConsidered = false;
                 _isFirstNuclearStrike = false;
+                if (!isUncompress)
+                    _groupEndMovementTime[groupId] = _world.TickIndex + _game.TacticalNuclearStrikeDelay;
             });
-
-            _sandvichActions[groupId] = SandvichAction.NuclearStrike;
-            _groupEndMovementTime[groupId] = _world.TickIndex + _game.TacticalNuclearStrikeDelay;
+           
 
             return true;
         }

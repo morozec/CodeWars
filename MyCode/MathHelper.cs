@@ -171,7 +171,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
                 for (var i = 1; i < p.Count; ++i)
                 {
 
-                    if (Rotate(a[h.Last()], a[p[right]], a[p[i]]) < 0)
+                    if (Rotate(a[h.Last()], a[p[right]], a[p[i]]) < -Tolerance)
                     {
                         right = i;
                     }
@@ -193,13 +193,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
             //    while (j > 1 && Rotate(a[p[0]], a[p[j - 1]], a[p[j]]) < 0)
             //    {
             //        var c = p[j];
-            //        p[j] = p[j-1];
-            //        p[j-1] = c;
+            //        p[j] = p[j - 1];
+            //        p[j - 1] = c;
             //        j -= 1;
             //    }
             //}
 
-            //var h = new List<int>() {p[0], p[1]};
+            //var h = new List<int>() { p[0], p[1] };
             //for (var i = 2; i < n; ++i)
             //{
             //    while (Rotate(a[h[h.Count - 2]], a[h[h.Count - 1]], a[p[i]]) < 0)
