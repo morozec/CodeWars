@@ -994,7 +994,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             if (groupId == 2)
             {
-
                 var enemyTargetRadiusPoint = GetEnemyTargetRadiusPoint(vehicles);
                 if (enemyTargetRadiusPoint != null)
                 {
@@ -1003,89 +1002,61 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                     var rotationAngle = MathHelper.GetAnlge(currVector, newVector);
                     Rotate90(vehicles, groupId, rotationAngle, nearestGroup.Center);
-
+                    return;
                 }
-                else
-                {
-                    var targetX = enemyCp.X;
-                    var targetY = enemyCp.Y;
-
-                    var isFarFromEnemy = currentDistanceToEnemyCenter > requiredDistToEnemyCenter;
-                    var isStaticEnemy = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
-                                        _currentMoveEnemyPoint[groupId].GetDistance(targetX, targetY) <=
-                                        MoveEnemyPointTolerance;
-
-                    if (isFarFromEnemy && isStaticEnemy) return;
-
-                    _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
-
-                    if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
-                    {
-                        _delayedMoves.Enqueue(move =>
-                        {
-                            move.Action = ActionType.ClearAndSelect;
-                            move.Group = groupId;
-                        });
-                        _selectedGroupId = groupId;
-                    }
-
-                    _delayedMoves.Enqueue(move =>
-                    {
-                        move.Action = ActionType.Move;
-                        move.X = targetX - centerPoint.X;
-                        move.Y = targetY - centerPoint.Y;
-                        move.MaxSpeed = GetGroupMaxSpeed(groupId);
-                        _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
-                        _currentMoveEnemyPoint[groupId] = new Point(targetX, targetY);
-                    });
-                }
-
+            }
+           
+            double targetX, targetY;
+            if (groupId == 2 && !IsBalancedRectange(enemyRectangle, nearestGroup.Center))
+            {
+                targetX = enemyCp.X;
+                targetY = enemyCp.Y;
             }
             else
             {
+                targetX = nearestGroup.Center.X;
+                targetY = nearestGroup.Center.Y;
 
-                var targetX = nearestGroup.Center.X;
-                var targetY = nearestGroup.Center.Y;
-
-                var newX = targetX - requiredDistToEnemyCenter*Math.Cos(_currentGroupAngle[groupId]);
-                var newY = targetY - requiredDistToEnemyCenter*Math.Sin(_currentGroupAngle[groupId]);
+                var newX = targetX - requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
+                var newY = targetY - requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
                 var isFarFromBorder = IsFarFromBorderPoint(vehicles, new Point(newX, newY));
                 if (isFarFromBorder)
                 {
                     targetX = newX;
                     targetY = newY;
                 }
+            }
 
-                var isFarFromEnemy = currentDistanceToEnemyCenter > requiredDistToEnemyCenter;
-                var isStaticEnemy = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
-                                    _currentMoveEnemyPoint[groupId].GetDistance(targetX, targetY) <=
-                                    MoveEnemyPointTolerance;
+            var isFarFromEnemy = currentDistanceToEnemyCenter > requiredDistToEnemyCenter;
+            var isStaticEnemy = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
+                                _currentMoveEnemyPoint[groupId].GetDistance(targetX, targetY) <=
+                                MoveEnemyPointTolerance;
 
-                _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
+            _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
 
-                if (isFarFromEnemy && isStaticEnemy) return;
+            if (isFarFromEnemy && isStaticEnemy) return;
 
 
-                if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
-                {
-                    _delayedMoves.Enqueue(move =>
-                    {
-                        move.Action = ActionType.ClearAndSelect;
-                        move.Group = groupId;
-                    });
-                    _selectedGroupId = groupId;
-                }
-
+            if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
+            {
                 _delayedMoves.Enqueue(move =>
                 {
-                    move.Action = ActionType.Move;
-                    move.X = targetX - centerPoint.X;
-                    move.Y = targetY - centerPoint.Y;
-                    move.MaxSpeed = GetGroupMaxSpeed(groupId);
-                    _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
-                    _currentMoveEnemyPoint[groupId] = new Point(targetX, targetY);
+                    move.Action = ActionType.ClearAndSelect;
+                    move.Group = groupId;
                 });
+                _selectedGroupId = groupId;
             }
+
+            _delayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.Move;
+                move.X = targetX - centerPoint.X;
+                move.Y = targetY - centerPoint.Y;
+                move.MaxSpeed = GetGroupMaxSpeed(groupId);
+                _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
+                _currentMoveEnemyPoint[groupId] = new Point(targetX, targetY);
+            });
+            
 
         }
 
@@ -2257,6 +2228,32 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         public Point GetVehiclesCenter(IList<Vehicle> vehicles)
         {
             return new Point(vehicles.Select(v => v.X).Average(), vehicles.Select(v => v.Y).Average());
+        }
+
+
+        private bool IsBalancedRectange(Rectangle rectangle, Point rectCenter)
+        {
+            var rectPointDistances = rectangle.Points.Select(p => p.GetDistance(rectCenter));
+            var minRectPointDistance = rectPointDistances.Min();
+            var maxRectPointDistance = rectPointDistances.Max();
+
+            if (maxRectPointDistance - minRectPointDistance > MoreSideDist) return false;
+
+            var midPoints = new List<Point>();
+            for (var i = 0; i < rectangle.Points.Count; ++i)
+            {
+                var p0 = rectangle.Points[i];
+                var p1 = rectangle.Points[i < rectangle.Points.Count - 1 ? i + 1 : 0];
+                var midPoint = new Point((p0.X + p1.X)/2d, (p0.Y + p1.Y) / 2d);
+                midPoints.Add(midPoint);
+            }
+
+            var midRectPointDistances = midPoints.Select(p => p.GetDistance(rectCenter));
+            var minMidRectPointDistance = midRectPointDistances.Min();
+            var maxMidRectPointDistance = midRectPointDistances.Max();
+
+            if (maxMidRectPointDistance - minMidRectPointDistance > MoreSideDist) return false;
+            return true;
         }
 
         /// <summary>

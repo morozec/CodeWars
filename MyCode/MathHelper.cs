@@ -18,7 +18,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
             var scalarMult = v1.V.X * v2.V.X + v1.V.Y * v2.V.Y;
             var cos = Math.Round(scalarMult / v1.Length / v2.Length, 5);
             var angle = Math.Acos(cos);
-            var rotate = Rotate(v1.P1, v1.P2, v2.P2);
+            var rotate = Rotate(new Point(0,0), v1.V, v2.V);
             return rotate < 0 ? angle : -angle;
         }
 
@@ -28,7 +28,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <param name="c"></param>
-        /// <returns>+, если точка справа. -, если точка слева</returns>
+        /// <returns>+, если точка слева. -, если точка справа</returns>
         private static double Rotate(Point a, Point b, Point c)
         {
             //-, ибо другое расположение осей x-y
@@ -170,10 +170,20 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
                 var right = 0;
                 for (var i = 1; i < p.Count; ++i)
                 {
+                    var rotate = Rotate(a[h.Last()], a[p[right]], a[p[i]]);
 
-                    if (Rotate(a[h.Last()], a[p[right]], a[p[i]]) < -Tolerance)
+                    if (rotate < -Tolerance)
                     {
                         right = i;
+                    }
+                    else if (Math.Abs(rotate) < Tolerance)
+                    {
+                        var v1 = new Vector(a[h.Last()], a[p[right]]);
+                        var v2 = new Vector(a[h.Last()], a[p[i]]);
+                        if (v2.Length > v1.Length && Math.Abs(GetAnlge(v1, v2)) < Tolerance)
+                        {
+                            right = i;
+                        }
                     }
                 }
                 if (p[right] == h[0]) break;
@@ -244,7 +254,5 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
                 }
             }
         }
-
-
     }
 }
