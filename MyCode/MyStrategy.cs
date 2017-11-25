@@ -32,8 +32,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const int VehiclesCountAdvantage = 50;
         private const double VehiclesCoeffAdvantage = 1.5;
 
-        private const double NuclearStrikeDistDelta = 20d;
-
         private const double GroupMaxRadius = 15;
 
         private const double MaxAngle = Math.PI/180*2;
@@ -998,93 +996,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
 
 
-
-
-            //if (isFarFromEnemy || hasAdvantege)
-            //{
-            //    var x = nearestGroup.Center.X - centerPoint.X;
-            //    var y = nearestGroup.Center.Y - centerPoint.Y;
-
-            //    if (!hasAdvantege && isFarFromBorder)
-            //    {
-            //        x -= requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
-            //        y -= requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
-            //    }
-
-                
-
-            //    if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
-            //    {
-            //        _delayedMoves.Enqueue(move =>
-            //        {
-            //            move.Action = ActionType.ClearAndSelect;
-            //            move.Group = groupId;
-            //        });
-            //        _selectedGroupId = groupId;
-            //    }
-
-            //    _delayedMoves.Enqueue(move =>
-            //    {
-            //        move.Action = ActionType.Move;
-            //        move.X = x;
-            //        move.Y = y;
-            //        move.MaxSpeed = GetMaxSpeed(groupId);
-            //        _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
-            //        _currentMoveEnemyPoint[groupId] = new Point(x, y);
-            //    });
-
-            //    return;
-                
-            //}
-           
-
             var needRotate90 = false;
             if (groupId == 2)
             {
 
-                //var maxRadiusPoint = GetMaxRadiusEnemyPoint(centerPoint, enemyRectangle, nearestGroup.Center);
-
-                Point enemyTargetRadiusPoint = null;
-                var enemyTargetRadiusPointDistToMe = double.MaxValue;
-
-                var currentEnemyCenterDist = nearestGroup.Center.GetDistance(enemyCp);
-                for (var i = 0; i < enemyRectangle.Points.Count; ++i)
-                {
-                    var point = enemyRectangle.Points[i];
-
-                    var radius = nearestGroup.Center.GetDistance(point);
-                    var distToMe = point.GetDistance(centerPoint);
-
-                    if (currentDistanceToEnemyCenter - radius - centerPoint.GetDistance(myCp) < ShootingDistance &&
-                        radius - currentEnemyCenterDist > MoreSideDist &&
-                        distToMe < enemyTargetRadiusPointDistToMe)
-                    {
-
-                        var turnVector = new Vector(new Point(nearestGroup.Center), new Point(point));
-                        turnVector.Mult(centerPoint.GetDistance(nearestGroup.Center) / turnVector.Length);
-
-                        var currVector = new Vector(new Point(nearestGroup.Center), new Point(centerPoint));
-                        var angle = MathHelper.GetAnlge(currVector, turnVector);
-                        var dAnlge = angle / 10d;
-
-                        var isFarFromBorder = true;
-                        for (var j = 0; j < 10; ++j)
-                        {
-                            currVector.Turn(dAnlge);
-                            if (!IsFarFromBorderPoint(vehicles, currVector.P2))
-                            {
-                                isFarFromBorder = false;
-                                break;
-                            }
-                        }
-
-                        if (!isFarFromBorder) continue;
-
-                        enemyTargetRadiusPoint = point;
-                        enemyTargetRadiusPointDistToMe = distToMe;
-                    }
-                }
-
+                var enemyTargetRadiusPoint = GetEnemyTargetRadiusPoint(vehicles);
                 if (enemyTargetRadiusPoint != null)
                 {
                     var currVector = new Vector(nearestGroup.Center, enemyCp);
@@ -1174,6 +1090,65 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     _currentMoveEnemyPoint[groupId] = new Point(targetX, targetY);
                 });
             }
+        }
+
+        private Point GetEnemyTargetRadiusPoint(IList<Vehicle> vehicles)
+        {
+
+            var centerPoint = GetVehiclesCenter(vehicles);
+
+            var enemyGroups = GetEnemyVehicleGroups();
+            var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
+
+            var currentDistanceToEnemyCenter = centerPoint.GetDistance(nearestGroup.Center);
+
+            var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
+            var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
+            var myCp = MathHelper.GetNearestRectangleCrossPoint(nearestGroup.Center, myRectangle, centerPoint);
+            var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
+
+            Point enemyTargetRadiusPoint = null;
+            var enemyTargetRadiusPointDistToMe = double.MaxValue;
+
+            var currentEnemyCenterDist = nearestGroup.Center.GetDistance(enemyCp);
+            for (var i = 0; i < enemyRectangle.Points.Count; ++i)
+            {
+                var point = enemyRectangle.Points[i];
+
+                var radius = nearestGroup.Center.GetDistance(point);
+                var distToMe = point.GetDistance(centerPoint);
+
+                if (currentDistanceToEnemyCenter - radius - centerPoint.GetDistance(myCp) < ShootingDistance &&
+                    radius - currentEnemyCenterDist > MoreSideDist &&
+                    distToMe < enemyTargetRadiusPointDistToMe)
+                {
+
+                    var turnVector = new Vector(new Point(nearestGroup.Center), new Point(point));
+                    turnVector.Mult(centerPoint.GetDistance(nearestGroup.Center) / turnVector.Length);
+
+                    var currVector = new Vector(new Point(nearestGroup.Center), new Point(centerPoint));
+                    var angle = MathHelper.GetAnlge(currVector, turnVector);
+                    var dAnlge = angle / 10d;
+
+                    var isFarFromBorder = true;
+                    for (var j = 0; j < 10; ++j)
+                    {
+                        currVector.Turn(dAnlge);
+                        if (!IsFarFromBorderPoint(vehicles, currVector.P2))
+                        {
+                            isFarFromBorder = false;
+                            break;
+                        }
+                    }
+
+                    if (!isFarFromBorder) continue;
+
+                    enemyTargetRadiusPoint = point;
+                    enemyTargetRadiusPointDistToMe = distToMe;
+                }
+            }
+
+            return enemyTargetRadiusPoint;
         }
 
         //private void PrepareToRotate90(IList<Vehicle> vehicles, int groupId)
@@ -1759,7 +1734,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     }
                     break;
                 case SandvichAction.Rotate90:
-                    if (_world.TickIndex >= _groupEndMovementTime[groupId] ||
+                    var enemyTargetRadiusPoint = GetEnemyTargetRadiusPoint(vehicles);
+                    if (enemyTargetRadiusPoint != null)
+                    {
+                        _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
+                        _isRotating[groupId] = false;
+                        MoveToEnemy(vehicles, groupId);
+                    }
+
+                    else if (_world.TickIndex >= _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
                         _isRotating[groupId] = false;
@@ -1914,14 +1897,18 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             if (
                 myVehicles.All(
                     myV =>
-                        enemyVehicles.All(v => myV.GetDistanceTo(v) > GetActualVisualRange(myV) + NuclearStrikeDistDelta)))
+                        enemyGroups.All(g => myV.GetDistanceTo(g.Center.X, g.Center.Y) > GetActualVisualRange(myV))))
                 return null;
 
            
             foreach (var v in enemyVehicles)
             {
                 var group = enemyGroups.Single(g => g.Vehicles.Any(gv => gv.Id == v.Id));
+                
                 if (group.Vehicles.Count < MinNuclearStrikeCount) continue;
+                //Если все мои далеко от центра группы, стрелять еще рано
+                if (myVehicles.All(myV => v.GetDistanceTo(group.Center.X, group.Center.Y) > GetActualVisualRange(myV)))
+                    continue;
 
                 var strikingVehicle = GetNuclearStrikeVehicle(new Point(v.X, v.Y), myVehicles);
 
@@ -1944,31 +1931,33 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private Vehicle GetNuclearStrikeVehicle(Point nuclearStrikePoint, IList<Vehicle> myVehicles)
         {
+
+            double runAwayTime;
+            if (_enemy.NextNuclearStrikeTickIndex > -1)
+            {
+                runAwayTime = _enemy.NextNuclearStrikeTickIndex - _world.TickIndex;
+            }
+            else
+            {
+                runAwayTime = _enemy.RemainingNuclearStrikeCooldownTicks >= _game.TacticalNuclearStrikeDelay
+                    ? 0
+                    : _game.TacticalNuclearStrikeDelay - _enemy.RemainingNuclearStrikeCooldownTicks;
+            }
+
             var orderedVehicles = myVehicles.OrderByDescending(v => v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y))
                 .ToList();
 
             var vehicle = orderedVehicles.FirstOrDefault(v =>
-                v.Durability >= v.MaxDurability * HpNuclerStrikeCoeff && GetActualVisualRange(v) >=
+                v.Durability >= v.MaxDurability*HpNuclerStrikeCoeff && GetActualVisualRange(v) >=
                 v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
-                v.MaxSpeed * _game.TacticalNuclearStrikeDelay);
+                GetActualMaxSpeed(v)*runAwayTime);
 
             if (vehicle != null) return vehicle;
 
             vehicle = orderedVehicles.FirstOrDefault(v =>
                 GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
-                v.MaxSpeed * _game.TacticalNuclearStrikeDelay);
+                GetActualMaxSpeed(v) * runAwayTime);
 
-            if (vehicle != null) return vehicle;
-
-            vehicle = orderedVehicles.FirstOrDefault(v =>
-                v.Durability >= v.MaxDurability * HpNuclerStrikeCoeff &&
-                GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) + NuclearStrikeDistDelta);
-
-            if (vehicle != null) return vehicle;
-
-            vehicle = orderedVehicles.FirstOrDefault(v =>
-                GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) + NuclearStrikeDistDelta);
-         
             return vehicle;
         }
 
