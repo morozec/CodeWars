@@ -1275,10 +1275,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private bool HasAdvantage(int groupId, GroupContainer enemyGroup, IList<GroupContainer> enemyGroups)
         {
             var vehicles = GetVehicles(groupId, Ownership.ALLY);
+            var enemyWeight = enemyGroup.Vehicles.Aggregate(0d, (current, v) => current + v.Durability);
             switch (groupId)
             {
                 case 1:
-                    var count = vehicles.Count;
+                    var myWeight = vehicles.Aggregate(0d, (current, v) => current + v.Durability);
                     var g2 = GetVehicles(2, Ownership.ALLY);
                     if (g2.Any())
                     {
@@ -1288,15 +1289,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         if (centerPoint.GetDistance(g2NearestEnemy.Center) < CloseFriendDistance &&
                             g2NearestEnemy.Center.GetDistance(enemyGroup.Center) < Tolerance)
                         {
-                            count += g2.Count;
+                            myWeight = g2.Aggregate(myWeight, (current, v) => current + v.Durability);
                         }
                     }
 
-                    return count - enemyGroup.Vehicles.Count >= VehiclesCountAdvantage ||
-                           count * 1d / enemyGroup.Vehicles.Count >= VehiclesCoeffAdvantage;
+                    return myWeight - enemyWeight >= _game.TankDurability * VehiclesCountAdvantage ||
+                           myWeight * 1d / enemyWeight >= VehiclesCoeffAdvantage;
                 case 2:
 
-                    var myWeight = vehicles.Count;
+                    myWeight = vehicles.Aggregate(0d, (current, v) => current + v.Durability);
 
                     var g1 = GetVehicles(1, Ownership.ALLY);
                     var hasCloseG1 = false;
@@ -1314,33 +1315,32 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                     if (hasCloseG1)
                     {
-                        myWeight += g1.Count;
-                        return myWeight - enemyGroup.Vehicles.Count >= VehiclesCountAdvantage ||
-                               myWeight * 1d / enemyGroup.Vehicles.Count >= VehiclesCoeffAdvantage;
+                        myWeight = g1.Aggregate(myWeight, (current, v) => current + v.Durability);
+                        return myWeight - enemyWeight >= _game.TankDurability*VehiclesCountAdvantage ||
+                               myWeight*1d/enemyWeight >= VehiclesCoeffAdvantage;
                     }
 
-                    
-                    var enemyWeight = 0d;
+                    var otherEnemyWeight = 0d;
                     foreach (var v in enemyGroup.Vehicles)
                     {
                         switch (v.Type)
                         {
                             case VehicleType.Fighter:
-                                enemyWeight += 1;
+                                otherEnemyWeight += 1 * v.Durability;
                                 break;
                             case VehicleType.Helicopter:
-                                enemyWeight += 1;
+                                otherEnemyWeight += 1 * v.Durability;
                                 break;
                             case VehicleType.Tank:
-                                enemyWeight += 1;
+                                otherEnemyWeight += 1 * v.Durability;
                                 break;
                             case VehicleType.Ifv:
-                                enemyWeight += 3;
+                                otherEnemyWeight += 3 * v.Durability;
                                 break;
                         }
                     }
 
-                    return myWeight >= enemyWeight;
+                    return myWeight >= otherEnemyWeight;
 
                 default:
                     throw new Exception("Unknown group id");
