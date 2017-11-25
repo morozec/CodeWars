@@ -141,7 +141,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private int _nuclearVehicleGroup = -1;
         private long _nuclearVehicleId = -1;
 
-        private RotationContainer _rotationContainer;
+        //private RotationContainer _rotationContainer;
 
         private readonly IDictionary<int, bool> _isRotating = new Dictionary<int, bool>()
         {
@@ -928,13 +928,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             if (_sandvichActions[2] == SandvichAction.Rotate90)
             {
-                //Debug.line(center.X, center.Y, _rotationContainer.PrepareRotationPoint.X, _rotationContainer.PrepareRotationPoint.Y, 0x0000FF);
-
-                //var radius =
-                //    _rotationContainer.RotationCenterPoint.GetDistance(_rotationContainer.PrepareRotationPoint);
-                //Debug.circle(_rotationContainer.RotationCenterPoint.X, _rotationContainer.RotationCenterPoint.Y, radius, 0x0000FF);
-
-                Debug.circle(_rotationContainer.AfterRotationPoint.X, _rotationContainer.AfterRotationPoint.Y, 3d, 0x000505);
+                //Debug.circle(_rotationContainer.AfterRotationPoint.X, _rotationContainer.AfterRotationPoint.Y, 3d, 0x000505);
             }
 
         }
@@ -997,6 +991,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
 
             var needRotate90 = false;
+            var rotationAngle = 0d;
             if (groupId == 2)
             {
 
@@ -1006,9 +1001,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     var currVector = new Vector(nearestGroup.Center, enemyCp);
                     var newVector = new Vector(nearestGroup.Center, enemyTargetRadiusPoint);
                     
-                    var angle = MathHelper.GetAnlge(currVector, newVector);
+                    rotationAngle = MathHelper.GetAnlge(currVector, newVector);
                     needRotate90 = true;
-                    _rotationContainer = GetRotationContainer(vehicles, angle);
+                    //_rotationContainer = GetRotationContainer(vehicles, angle);
                     
                 }
 
@@ -1043,7 +1038,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             if (needRotate90)
             {
-                Rotate90(vehicles, groupId);
+                Rotate90(vehicles, groupId, rotationAngle, nearestGroup.Center);
             }
             else
             {
@@ -1180,14 +1175,10 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             
         //}
 
-        private void Rotate90(IList<Vehicle> vehicles, int groupId)
+        private void Rotate90(IList<Vehicle> vehicles, int groupId, double rotationAngle, Point rotationCenter)
         {
             _sandvichActions[groupId] = SandvichAction.Rotate90;
-
-            var centerPoint = GetVehiclesCenter(vehicles);
-            
-            var turnAngle = _rotationContainer.RotationAngle;
-            var newAngle = _currentGroupAngle[groupId] + turnAngle;
+            var newAngle = _currentGroupAngle[groupId] + rotationAngle;
 
             if (newAngle > Math.PI) newAngle -= 2 * Math.PI;
             else if (newAngle < -Math.PI) newAngle += 2 * Math.PI;
@@ -1195,12 +1186,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var radius =
                 vehicles.Max(
                     v =>
-                        v.GetDistanceTo(_rotationContainer.RotationCenterPoint.X,
-                            _rotationContainer.RotationCenterPoint.Y));
+                        v.GetDistanceTo(rotationCenter.X,
+                            rotationCenter.Y));
             var speed = GetGroupMaxSpeed(groupId);
             var angularSpeed = speed / radius;
 
-            var turnTime = Math.Abs(turnAngle) / angularSpeed;
+            var turnTime = Math.Abs(rotationAngle) / angularSpeed;
 
             if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
             {
@@ -1215,13 +1206,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             _delayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Rotate;
-                move.X = _rotationContainer.RotationCenterPoint.X;
-                move.Y = _rotationContainer.RotationCenterPoint.Y;
-                move.Angle = turnAngle;
+                move.X = rotationCenter.X;
+                move.Y = rotationCenter.Y;
+                move.Angle = rotationAngle;
                 _groupEndMovementTime[groupId] = _world.TickIndex + turnTime;
                 move.MaxAngularSpeed = angularSpeed;
 
-                _currentAngularSpeed[groupId] = turnAngle > 0 ? angularSpeed : -angularSpeed;
+                _currentAngularSpeed[groupId] = rotationAngle > 0 ? angularSpeed : -angularSpeed;
                 _isRotating[groupId] = true;
 
                 _tmpGroupAngle[groupId] = currentAngle;
