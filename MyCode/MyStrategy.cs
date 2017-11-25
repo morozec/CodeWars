@@ -955,13 +955,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             if (hasAdvantege)
             {
-                var isStaticEnemy = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
+                var isAdvantageStaticEnemy = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
                                     _currentMoveEnemyPoint[groupId]
                                         .GetDistance(nearestGroup.Center.X, nearestGroup.Center.Y) <=
                                     MoveEnemyPointTolerance;
                 _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
 
-                if (isStaticEnemy) return;
+                if (isAdvantageStaticEnemy) return;
 
                 if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
                 {
@@ -990,8 +990,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
 
 
-            var needRotate90 = false;
-            var rotationAngle = 0d;
             if (groupId == 2)
             {
 
@@ -1001,90 +999,56 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     var currVector = new Vector(nearestGroup.Center, enemyCp);
                     var newVector = new Vector(nearestGroup.Center, enemyTargetRadiusPoint);
                     
-                    rotationAngle = MathHelper.GetAnlge(currVector, newVector);
-                    needRotate90 = true;
-                    //_rotationContainer = GetRotationContainer(vehicles, angle);
-                    
+                    var rotationAngle = MathHelper.GetAnlge(currVector, newVector);
+                    Rotate90(vehicles, groupId, rotationAngle, nearestGroup.Center);
+                    return;
                 }
-
-
-                //var rotationContainerPlus = GetRotationContainer(vehicles, Math.PI/2);
-                //var distancePlus = nearestGroup.Center.GetDistance(rotationContainerPlus.AfterRotationPoint);
-                //var rotationContainerMinus = GetRotationContainer(vehicles, -Math.PI/2);
-                //var distanceMinus = nearestGroup.Center.GetDistance(rotationContainerMinus.AfterRotationPoint);
-
-
-                //var isOkPlus = rotationContainerPlus.IsFarFromBroder(_world.Width, _world.Height, FarBorderDistance) &&
-                //               distancePlus - requiredDistToEnemyCenter > MoreSideDist;
-                //var isOkMinus = rotationContainerMinus.IsFarFromBroder(_world.Width, _world.Height, FarBorderDistance) &&
-                //                distanceMinus - requiredDistToEnemyCenter > MoreSideDist;
-
-                //if (isOkPlus && isOkMinus)
-                //{
-                //    needRotate90 = true;
-                //    _rotationContainer = distancePlus > distanceMinus ? rotationContainerPlus : rotationContainerMinus;
-                //}
-                //else if (isOkPlus)
-                //{
-                //    needRotate90 = true;
-                //    _rotationContainer = rotationContainerPlus;
-                //}
-                //else if (isOkMinus)
-                //{
-                //    needRotate90 = true;
-                //    _rotationContainer = rotationContainerMinus;
-                //}
             }
 
-            if (needRotate90)
-            {
-                Rotate90(vehicles, groupId, rotationAngle, nearestGroup.Center);
-            }
-            else
-            {
-                var targetX = nearestGroup.Center.X;
-                var targetY = nearestGroup.Center.Y;
+            
+            var targetX = nearestGroup.Center.X;
+            var targetY = nearestGroup.Center.Y;
 
                 
-                var newX = targetX - requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
-                var newY = targetY - requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
-                var isFarFromBorder = IsFarFromBorderPoint(vehicles, new Point(newX, newY));
-                if (isFarFromBorder)
-                {
-                    targetX = newX;
-                    targetY = newY;
-                }
+            var newX = targetX - requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
+            var newY = targetY - requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
+            var isFarFromBorder = IsFarFromBorderPoint(vehicles, new Point(newX, newY));
+            if (isFarFromBorder)
+            {
+                targetX = newX;
+                targetY = newY;
+            }
 
-                var isFarFromEnemy = currentDistanceToEnemyCenter > requiredDistToEnemyCenter;
-                var isStaticEnemy = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
-                                    _currentMoveEnemyPoint[groupId].GetDistance(targetX, targetY) <=
-                                    MoveEnemyPointTolerance;
+            var isFarFromEnemy = currentDistanceToEnemyCenter > requiredDistToEnemyCenter;
+            var isStaticEnemy = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
+                                _currentMoveEnemyPoint[groupId].GetDistance(targetX, targetY) <=
+                                MoveEnemyPointTolerance;
 
-                _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
+            _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
 
-                if (isFarFromEnemy && isStaticEnemy) return;
+            if (isFarFromEnemy && isStaticEnemy) return;
 
 
-                if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
-                {
-                    _delayedMoves.Enqueue(move =>
-                    {
-                        move.Action = ActionType.ClearAndSelect;
-                        move.Group = groupId;
-                    });
-                    _selectedGroupId = groupId;
-                }
-
+            if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
+            {
                 _delayedMoves.Enqueue(move =>
                 {
-                    move.Action = ActionType.Move;
-                    move.X = targetX - centerPoint.X;
-                    move.Y = targetY - centerPoint.Y;
-                    move.MaxSpeed = GetGroupMaxSpeed(groupId);
-                    _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
-                    _currentMoveEnemyPoint[groupId] = new Point(targetX, targetY);
+                    move.Action = ActionType.ClearAndSelect;
+                    move.Group = groupId;
                 });
+                _selectedGroupId = groupId;
             }
+
+            _delayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.Move;
+                move.X = targetX - centerPoint.X;
+                move.Y = targetY - centerPoint.Y;
+                move.MaxSpeed = GetGroupMaxSpeed(groupId);
+                _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
+                _currentMoveEnemyPoint[groupId] = new Point(targetX, targetY);
+            });
+            
         }
 
         private Point GetEnemyTargetRadiusPoint(IList<Vehicle> vehicles)
