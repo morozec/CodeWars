@@ -254,5 +254,59 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
                 }
             }
         }
+
+        public static IList<Tuple<int, int>> GetLineSquares(Point start, Point end)
+        {
+            var realStart = start.X <= end.X ? start : end;
+            var realEnd = start.X <= end.X ? end : start;
+
+            var xCoeff = realEnd.X > realStart.X ? 1 : -1;
+            var yCoeff = realEnd.Y > realStart.Y ? 1 : -1;
+
+            var startX = GetIndex(realStart.X) * 32;
+            var startY = GetIndex(realStart.Y) * 32;
+
+            var endX = GetIndex(realEnd.X) * 32;
+            var endY = GetIndex(realEnd.Y) * 32;
+
+            var result = new List<Tuple<int, int>>()
+            {
+                new Tuple<int, int>(GetIndex(startX), GetIndex(startY))
+            };
+            var x = startX;
+            var y = startY;
+
+            while (x != endX)
+            {
+                x += 32 * xCoeff;
+                var yReal = start.Y + (end.Y - start.Y) * (x - start.X) / (end.X - start.X);
+                var newY = GetIndex(yReal) * 32;
+                while (y != newY)
+                {
+                    y += 32 * yCoeff;
+                    result.Add(new Tuple<int, int>(GetIndex(x - 32 * xCoeff), GetIndex(y)));
+                }
+                result.Add(new Tuple<int, int>(GetIndex(x), GetIndex(y)));
+
+            }
+
+            {
+                var newY = GetIndex(endY) * 32;
+                while (y != newY)
+                {
+                    y += 32 * yCoeff;
+                    result.Add(new Tuple<int, int>(GetIndex(x), GetIndex(y)));
+                }
+            }
+
+            return result;
+        }
+
+
+        private static int GetIndex(double value)
+        {
+            return (int)Math.Truncate(value / 32d);
+        }
+
     }
 }

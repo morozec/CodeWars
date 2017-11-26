@@ -547,13 +547,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var destY = (_groundAStarPathes[vehicleType][1] as ASquare).CenterY;
             var dist = GetVehiclesCenter(vehicles).GetDistance(destX, destY);
 
+            var endPoint = new Point(destX, destY);
+            var speed = GetGroupLineMaxSpeed(vehicles, endPoint);
+
             _delayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Move;
                 move.X = destX - GetVehiclesCenter(vehicles).X;
                 move.Y = destY - GetVehiclesCenter(vehicles).Y;
                 _groupEndMovementTime[1] = Math.Max(_groupEndMovementTime[1],
-                    _world.TickIndex + dist/ GetGroupMaxSpeed(1));
+                    _world.TickIndex + dist/ speed);
             });
         }
 
@@ -581,13 +584,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var destY = (_airAStarPathes[vehicleType][1] as ASquare).CenterY;
             var dist = GetVehiclesCenter(vehicles).GetDistance(destX, destY);
 
+            var endPoint = new Point(destX, destY);
+            var speed = GetGroupLineMaxSpeed(vehicles, endPoint);
+
             _delayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Move;
                 move.X = destX - GetVehiclesCenter(vehicles).X;
                 move.Y = destY - GetVehiclesCenter(vehicles).Y;
                 _groupEndMovementTime[2] = Math.Max(_groupEndMovementTime[2],
-                    _world.TickIndex + dist / GetGroupMaxSpeed(2));
+                    _world.TickIndex + dist / speed);
             });
         }
 
@@ -953,6 +959,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var requiredDistToEnemyCenter = centerPoint.GetDistance(myCp) + nearestGroup.Center.GetDistance(enemyCp) + ShootingDistance;
             var isFarFromEnemy = currentDistanceToEnemyCenter > requiredDistToEnemyCenter;
 
+            Point endPoint;
+            double speed;
+
             if (hasAdvantege)
             {
                 var isAdvantageStaticEnemy = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
@@ -976,12 +985,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var x = nearestGroup.Center.X - centerPoint.X;
                 var y = nearestGroup.Center.Y - centerPoint.Y;
 
+                endPoint = new Point(nearestGroup.Center.X, nearestGroup.Center.Y);
+                speed = GetGroupLineMaxSpeed(vehicles, endPoint);
+
                 _delayedMoves.Enqueue(move =>
                 {
                     move.Action = ActionType.Move;
                     move.X = x;
                     move.Y = y;
-                    move.MaxSpeed = GetGroupMaxSpeed(groupId);
+                    move.MaxSpeed = speed;
                     _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
                     _currentMoveEnemyPoint[groupId] = new Point(nearestGroup.Center.X, nearestGroup.Center.Y);
                 });
@@ -1065,18 +1077,23 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 _selectedGroupId = groupId;
             }
 
+            endPoint = new Point(targetX, targetY);
+            speed = GetGroupLineMaxSpeed(vehicles, endPoint);
+
             _delayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Move;
                 move.X = targetX - centerPoint.X;
                 move.Y = targetY - centerPoint.Y;
-                move.MaxSpeed = GetGroupMaxSpeed(groupId);
+                move.MaxSpeed = speed;
                 _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
                 _currentMoveEnemyPoint[groupId] = new Point(targetX, targetY);
             });
             
 
         }
+
+
 
         private Point GetEnemyTargetRadiusPoint(IList<Vehicle> vehicles)
         {
@@ -1937,15 +1954,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 .ToList();
 
             var vehicle = orderedVehicles.FirstOrDefault(v =>
-                v.Durability >= v.MaxDurability*HpNuclerStrikeCoeff && GetActualVisualRange(v) >=
+                v.Durability >= v.MaxDurability * HpNuclerStrikeCoeff && GetActualVisualRange(v) >=
                 v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
-                GetActualMaxSpeed(v)*runAwayTime);
+                GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) * runAwayTime);
 
             if (vehicle != null) return vehicle;
 
             vehicle = orderedVehicles.FirstOrDefault(v =>
                 GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
-                GetActualMaxSpeed(v) * runAwayTime);
+                GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) * runAwayTime);
 
             return vehicle;
         }
@@ -2012,11 +2029,32 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             return visualRange;
         }
 
-        private double GetActualMaxSpeed(Vehicle vehicle)
+        private double GetGroupLineMaxSpeed(IList<Vehicle> vehicles, Point endPoint)
+        {
+            var startPoint = GetVehiclesCenter(vehicles);
+
+            var dx = endPoint.X - startPoint.X;
+            var dy = endPoint.Y - startPoint.Y;
+
+            var minSpeed = double.MaxValue;
+            foreach (var v in vehicles)
+            {
+                var currStartPoint = new Point(v.X, v.Y);
+                var currEndPoint = new Point(v.X + dx, v.Y + dy);
+                var line = MathHelper.GetLineSquares(currStartPoint, currEndPoint);
+
+                foreach (var sqaure in line)
+                {
+                    var speed = GetActualMaxSpeed(v, sqaure.Item1, sqaure.Item2);
+                    if (speed < minSpeed) minSpeed = speed;
+                }
+            }
+            return minSpeed;
+        }
+
+        private double GetActualMaxSpeed(Vehicle vehicle, int x, int y)
         {
             var maxSpeed = vehicle.MaxSpeed;
-            var x = (int)Math.Truncate(vehicle.X / 32d);
-            var y = (int)Math.Truncate(vehicle.Y / 32d);
 
             switch (vehicle.Type)
             {
