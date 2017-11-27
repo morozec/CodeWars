@@ -52,6 +52,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private const double HpNuclerStrikeCoeff = 0.7;
         private const int GoToEnemyCpCount = 33;
+        private const int WeakAviationHelicoptersCount = 50;
 
 
 
@@ -1800,6 +1801,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             }
         }
+
+        private bool IsWeakAviationGroup(IList<Vehicle> vehicles)
+        {
+            return vehicles.Count(v => v.Type == VehicleType.Helicopter) < WeakAviationHelicoptersCount;
+        }
        
 
         private IList<GroupContainer> GetEnemyVehicleGroups()
@@ -2056,7 +2062,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var currEndPoint = new Point(v.X + dx, v.Y + dy);
                 var line = MathHelper.GetLineSquares(currStartPoint, currEndPoint);
 
-                foreach (var sqaure in line)
+                foreach (var sqaure in line.Where(sq =>
+                    sq.Item1 < _game.TerrainWeatherMapColumnCount && sq.Item2 < _game.TerrainWeatherMapRowCount))
                 {
                     var speed = GetActualMaxSpeed(v, sqaure.Item1, sqaure.Item2);
                     if (speed < minSpeed) minSpeed = speed;
