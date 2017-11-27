@@ -160,11 +160,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {1, SandvichAction.AStarMove },
             {2, SandvichAction.AStarMove },
         };
-        private readonly IDictionary<int, bool> _isGroupCompressed = new Dictionary<int, bool>()
-        {
-            {1, false },
-            {2, false },
-        };
+        //private readonly IDictionary<int, bool> _isGroupCompressed = new Dictionary<int, bool>()
+        //{
+        //    {1, false },
+        //    {2, false },
+        //};
 
         private readonly IDictionary<int, double> _groupEndMovementTime = new Dictionary<int, double>()
         {
@@ -234,14 +234,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 if (me.RemainingActionCooldownTicks > 0) return;
 
-                var isCompressed = _isGroupCompressed.Values.All(x => x);
-
-                if (!_isMyNuclearStrikeConsidered && isCompressed && _me.RemainingNuclearStrikeCooldownTicks == 0 && MakeNuclearStrike())
+                if (!_isMyNuclearStrikeConsidered && _me.RemainingNuclearStrikeCooldownTicks == 0 && !_importantDelayedMoves.Any() && MakeNuclearStrike())
                 {
                     _delayedMoves.Clear();
                     _isMyNuclearStrikeConsidered = true;
                 }
-                else if (!_isEnemyNuclearStrikeConsidered && isCompressed && _enemy.NextNuclearStrikeTickIndex > -1)
+                else if (!_isEnemyNuclearStrikeConsidered && _enemy.NextNuclearStrikeTickIndex > -1 && !_importantDelayedMoves.Any())
                 {
                     _delayedMoves.Clear();
                     _isEnemyNuclearStrikeConsidered = true;
@@ -535,13 +533,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             _groundAStarPathes.Add(vehicleType, _aStar.GetStraightPath(path));
             _groundPathIndexes.Add(vehicleType, 1);
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.ClearAndSelect;
                 move.Bottom = _world.Height;
                 move.Right = _world.Width;
                 move.VehicleType = vehicleType;
             });
+            _selectedGroupId = -1;
+
 
             var destX = (_groundAStarPathes[vehicleType][1] as ASquare).CenterX;
             var destY = (_groundAStarPathes[vehicleType][1] as ASquare).CenterY;
@@ -550,7 +550,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var endPoint = new Point(destX, destY);
             var speed = GetGroupLineMaxSpeed(vehicles, endPoint);
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Move;
                 move.X = destX - GetVehiclesCenter(vehicles).X;
@@ -558,6 +558,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 _groupEndMovementTime[1] = Math.Max(_groupEndMovementTime[1],
                     _world.TickIndex + dist/ speed);
             });
+
         }
 
         private void AirMakeMoveToKeyPoint(VehicleType vehicleType, IList<Vehicle> vehicles, int pointIndex)
@@ -572,13 +573,14 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             _airAStarPathes.Add(vehicleType, _aStar.GetStraightPath(path));
             _airPathIndexes.Add(vehicleType, 1);
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.ClearAndSelect;
                 move.Bottom = _world.Height;
                 move.Right = _world.Width;
                 move.VehicleType = vehicleType;
             });
+            _selectedGroupId = -1;
 
             var destX = (_airAStarPathes[vehicleType][1] as ASquare).CenterX;
             var destY = (_airAStarPathes[vehicleType][1] as ASquare).CenterY;
@@ -587,7 +589,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var endPoint = new Point(destX, destY);
             var speed = GetGroupLineMaxSpeed(vehicles, endPoint);
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Move;
                 move.X = destX - GetVehiclesCenter(vehicles).X;
@@ -600,12 +602,14 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private void Scale(IList<Vehicle> vehicles, int groupId)
         {
             //костыль, чтобы потом удобно было выделять
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.ClearAndSelect;
                 move.Group = groupId;
             });
-            _delayedMoves.Enqueue(move =>
+            _selectedGroupId = groupId;
+
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Move;
                 move.X = 0;
@@ -620,7 +624,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 var y = minY + GetGroupMaxSpeed(groupId) + SquardDelta*i;
 
-                _delayedMoves.Enqueue(move =>
+                _importantDelayedMoves.Enqueue(move =>
                 {
                     move.Action = ActionType.ClearAndSelect;
                     move.Top = y - Tolerance;
@@ -633,7 +637,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var moveY = SquardDelta*(5 - i);
                 if (groupId == 1) moveY *= 2; //для наземной техники
 
-                _delayedMoves.Enqueue(move =>
+                _importantDelayedMoves.Enqueue(move =>
                 {
                     move.Action = ActionType.Move;
                     move.X = 0;
@@ -649,7 +653,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 var y = maxY + GetGroupMaxSpeed(groupId) - SquardDelta*i;
 
-                _delayedMoves.Enqueue(move =>
+                _importantDelayedMoves.Enqueue(move =>
                 {
                     move.Action = ActionType.ClearAndSelect;
                     move.Top = y - Tolerance;
@@ -661,7 +665,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var moveY = SquardDelta*(4 - i);
                 if (groupId == 1) moveY *= 2;
 
-                _delayedMoves.Enqueue(move =>
+                _importantDelayedMoves.Enqueue(move =>
                 {
                     move.Action = ActionType.Move;
                     move.X = 0;
@@ -679,15 +683,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         {
             _sandvichActions[groupId] = SandvichAction.Shifting;
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.ClearAndSelect;
                 move.Right = _world.Width;
                 move.Bottom = _world.Height;
                 move.VehicleType = _groundPointsVehicleTypes[0];
             });
+            _selectedGroupId = -1;
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Move;
                 move.X = 0;
@@ -697,7 +702,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     _world.TickIndex + SquardDelta/ GetGroupMaxSpeed(groupId));
             });
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.ClearAndSelect;
                 move.Right = _world.Width;
@@ -705,7 +710,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.VehicleType = _groundPointsVehicleTypes[2];
             });
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Move;
                 move.X = 0;
@@ -718,17 +723,18 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private void AirShift(int groupId)
         {
-            _sandvichActions[groupId] = SandvichAction.Shifting; 
+            _sandvichActions[groupId] = SandvichAction.Shifting;
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.ClearAndSelect;
                 move.Bottom = _world.Height;
                 move.Right = _world.Width;
                 move.VehicleType = VehicleType.Fighter;
             });
+            _selectedGroupId = -1;
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Move;
                 move.X = 0;
@@ -745,15 +751,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         {
             _sandvichActions[groupId] = SandvichAction.Compressing;
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.ClearAndSelect;
                 move.Right = _world.Width;
                 move.Bottom = _world.Height;
                 move.VehicleType = _groundPointsVehicleTypes[0];
             });
+            _selectedGroupId = -1;
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Move;
                 move.X = AStar.SquareSize;
@@ -763,7 +770,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     _world.TickIndex + AStar.SquareSize/ GetGroupMaxSpeed(groupId));
             });
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.ClearAndSelect;
                 move.Right = _world.Width;
@@ -771,7 +778,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.VehicleType = _groundPointsVehicleTypes[2];
             });
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Move;
                 move.X = -AStar.SquareSize;
@@ -789,17 +796,18 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var helicoptersCenter = GetVehiclesCenter(GetVehicles(Ownership.ALLY, VehicleType.Helicopter));
             var figtersCenter = GetVehiclesCenter(GetVehicles(Ownership.ALLY, VehicleType.Fighter));
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.ClearAndSelect;
                 move.Right = _world.Width;
                 move.Bottom = _world.Height;
                 move.VehicleType = VehicleType.Fighter;
             });
+            _selectedGroupId = -1;
 
             var delta = helicoptersCenter.X - figtersCenter.X;
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Move;
                 move.X = delta;
@@ -810,13 +818,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             });
         }
 
-        private void Compress2(double x, double y, double compressionCoeff, double time, int groupId, Queue<Action<Move>> actions )
+        private void Compress2(double x, double y, double compressionCoeff, double time, int groupId)
         {
             _sandvichActions[groupId] = SandvichAction.Compressing2;
 
-            if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
+            if (_selectedGroupId != groupId)
             {
-                actions.Enqueue(move =>
+                _importantDelayedMoves.Enqueue(move =>
                 {
                     move.Action = ActionType.ClearAndSelect;
                     move.Group = groupId;
@@ -824,14 +832,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 _selectedGroupId = groupId;
             }
 
-            actions.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Scale;
                 move.Factor = compressionCoeff;
                 move.X = x;
                 move.Y = y;
                 _groupEndMovementTime[groupId] = Math.Max(_groupEndMovementTime[groupId], _world.TickIndex + time);
-                _isGroupCompressed[groupId] = true;
             });
             
         }
@@ -865,7 +872,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             var turnTime = Math.Abs(turnAngle)/angularSpeed;
 
-            if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
+            if (_selectedGroupId != groupId)
             {
                 _delayedMoves.Enqueue(move =>
                 {
@@ -972,7 +979,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                 if (isAdvantageStaticEnemy) return;
 
-                if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
+                if (_selectedGroupId != groupId)
                 {
                     _delayedMoves.Enqueue(move =>
                     {
@@ -1067,7 +1074,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             if (isFarFromEnemy && isStaticEnemy) return;
 
 
-            if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
+            if (_selectedGroupId != groupId)
             {
                 _delayedMoves.Enqueue(move =>
                 {
@@ -1201,7 +1208,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             var turnTime = Math.Abs(rotationAngle) / angularSpeed;
 
-            if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
+            if (_selectedGroupId != groupId)
             {
                 _delayedMoves.Enqueue(move =>
                 {
@@ -1369,7 +1376,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             if (!isUncompress)
             {
-                if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
+                if (_selectedGroupId != groupId)
                 {
                     _importantDelayedMoves.Enqueue(move =>
                     {
@@ -1414,7 +1421,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             _sandvichActions[groupId] = SandvichAction.Uncompress;
 
-            if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
+            if (_selectedGroupId != groupId)
             {
                 _importantDelayedMoves.Enqueue(move =>
                 {
@@ -1463,19 +1470,20 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                     _groundPathIndexes[vehicleType]++;
 
-                    _delayedMoves.Enqueue(move =>
+                    _importantDelayedMoves.Enqueue(move =>
                     {
                         move.Action = ActionType.ClearAndSelect;
                         move.Bottom = _world.Height;
                         move.Right = _world.Width;
                         move.VehicleType = vehicleType;
                     });
+                    _selectedGroupId = -1;
 
                     var destX = (_groundAStarPathes[vehicleType][_groundPathIndexes[vehicleType]] as ASquare).CenterX;
                     var destY = (_groundAStarPathes[vehicleType][_groundPathIndexes[vehicleType]] as ASquare).CenterY;
                     var dist = GetVehiclesCenter(currVehicles).GetDistance(destX, destY);
 
-                    _delayedMoves.Enqueue(move =>
+                    _importantDelayedMoves.Enqueue(move =>
                     {
                         move.Action = ActionType.Move;
                         move.X = destX - GetVehiclesCenter(currVehicles).X;
@@ -1514,19 +1522,20 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                     _airPathIndexes[vehicleType]++;
 
-                    _delayedMoves.Enqueue(move =>
+                    _importantDelayedMoves.Enqueue(move =>
                     {
                         move.Action = ActionType.ClearAndSelect;
                         move.Bottom = _world.Height;
                         move.Right = _world.Width;
                         move.VehicleType = vehicleType;
                     });
+                    _selectedGroupId = -1;
 
                     var destX = (_airAStarPathes[vehicleType][_airPathIndexes[vehicleType]] as ASquare).CenterX;
                     var destY = (_airAStarPathes[vehicleType][_airPathIndexes[vehicleType]] as ASquare).CenterY;
                     var dist = GetVehiclesCenter(currVehicles).GetDistance(destX, destY);
 
-                    _delayedMoves.Enqueue(move =>
+                    _importantDelayedMoves.Enqueue(move =>
                     {
                         move.Action = ActionType.Move;
                         move.X = destX - GetVehiclesCenter(currVehicles).X;
@@ -1566,46 +1575,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         _game.TacticalNuclearStrikeRadius);
         }
 
-        //private Rectangle GetGroupRectangel(IList<Vehicle> vehicles)
-        //{
-        //    var minX = vehicles.Min(v => v.X);
-        //    var minY = vehicles.Min(v => v.Y);
-
-        //    var maxX = vehicles.Max(v => v.X);
-        //    var maxY = vehicles.Max(v => v.Y);
-
-        //    var minXVehicles = vehicles.Where(v => Math.Abs(v.X - minX) < Tolerance);
-        //    var minYVehicles = vehicles.Where(v => Math.Abs(v.Y - minY) < Tolerance);
-        //    var maxXVehicles = vehicles.Where(v => Math.Abs(v.X - maxX) < Tolerance);
-        //    var maxYVehicles = vehicles.Where(v => Math.Abs(v.Y - maxY) < Tolerance);
-
-        //    if (minXVehicles.Count() > 1 || minYVehicles.Count() > 1 || maxXVehicles.Count() > 1 ||
-        //        maxYVehicles.Count() > 1)
-        //        return new Rectangle()
-        //        {
-        //            Points =
-        //                new List<Point>()
-        //                {
-        //                    new Point(minX, minY),
-        //                    new Point(minX, maxY),
-        //                    new Point(maxX, maxY),
-        //                    new Point(maxX, minY)
-        //                }
-        //        };
-
-        //    return new Rectangle()
-        //    {
-        //        Points =
-        //            new List<Point>()
-        //            {
-        //                new Point(minXVehicles.Single().X, minXVehicles.Single().Y),
-        //                new Point(minYVehicles.Single().X, minYVehicles.Single().Y),
-        //                new Point(maxXVehicles.Single().X, maxXVehicles.Single().Y),
-        //                new Point(maxYVehicles.Single().X, maxYVehicles.Single().Y),
-        //            }
-        //    };
-        //}
-
+       
         private void SandvichMove(int groupId, IsAStarMoveFinished isAStarMoveFinished, Shift shift, Compress compress)
         {
             var sandvichAction = _sandvichActions[groupId];
@@ -1645,7 +1615,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
                         var centerPoint = GetVehiclesCenter(vehicles);
-                        Compress2(centerPoint.X, centerPoint.Y, PrepareCompressinFactor, 100d, groupId, _delayedMoves); //TODO
+                        Compress2(centerPoint.X, centerPoint.Y, PrepareCompressinFactor, 100d, groupId); //TODO
                     }
                     break;
 
@@ -1735,8 +1705,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 case SandvichAction.Uncompress:
                     if (_world.TickIndex >= _groupEndMovementTime[groupId]) //TODO: все стоят?
                     {
-                        Compress2(_enemyNuclearStrikeX, _enemyNuclearStrikeY, NuclearCompressionFactor,
-                            _game.TacticalNuclearStrikeDelay, groupId, _importantDelayedMoves);
+                        Compress2(_enemyNuclearStrikeX,
+                            _enemyNuclearStrikeY,
+                            NuclearCompressionFactor,
+                            _game.TacticalNuclearStrikeDelay,
+                            groupId);
                     }
                     break;
                 case SandvichAction.Rotate90:
@@ -2226,15 +2199,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
        
         private void SetAirGroups()
         {
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.ClearAndSelect;
                 move.Right = _world.Width;
                 move.Bottom = _world.Height;
                 move.VehicleType = VehicleType.Fighter;
             });
+            _selectedGroupId = 2;
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.AddToSelection;
                 move.Right = _world.Width;
@@ -2242,7 +2216,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.VehicleType = VehicleType.Helicopter;
             });
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Assign;
                 move.Group = 2;
@@ -2251,15 +2225,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private void SetGroudGroups()
         {
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.ClearAndSelect;
                 move.Right = _world.Width;
                 move.Bottom = _world.Height;
                 move.VehicleType = VehicleType.Arrv;
             });
+            _selectedGroupId = 1;
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.AddToSelection;
                 move.Right = _world.Width;
@@ -2267,7 +2242,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.VehicleType = VehicleType.Ifv;
             });
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.AddToSelection;
                 move.Right = _world.Width;
@@ -2275,7 +2250,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.VehicleType = VehicleType.Tank;
             });
 
-            _delayedMoves.Enqueue(move =>
+            _importantDelayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Assign;
                 move.Group = 1;
