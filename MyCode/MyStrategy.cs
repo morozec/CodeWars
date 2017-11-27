@@ -49,6 +49,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const double MoreSideDist = 20d;
 
         private const double HpNuclerStrikeCoeff = 0.7;
+        private const int GoToEnemyCpCount = 33;
 
 
 
@@ -1025,46 +1026,72 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 }
             }
 
-            var targetX = nearestGroup.Center.X;
-            var targetY = nearestGroup.Center.Y;
+            double targetX;
+            double targetY;
             if (groupId == 2)
             {
-                if (!IsBalancedRectange(enemyRectangle, nearestGroup.Center))
+                if (IsBalancedRectange(enemyRectangle, nearestGroup.Center))
                 {
-                    targetX = enemyCp.X;
-                    targetY = enemyCp.Y;
-                }
-                else if (!isFarFromEnemy)
-                {
-                    var group1Vehicles = GetVehicles(1, Ownership.ALLY);
-                    if (group1Vehicles.Any())
+                    if (isFarFromEnemy)
                     {
-                        var group1Vector = new Vector(new Point(nearestGroup.Center),
-                            GetVehiclesCenter(group1Vehicles));
-                        var group2Vector = new Vector(new Point(nearestGroup.Center), centerPoint);
-
-                        var rotationAngle = MathHelper.GetAnlge(group2Vector, group1Vector);
-                        if (Math.Abs(rotationAngle) > Tolerance)
+                        targetX = nearestGroup.Center.X -
+                                  requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
+                        targetY = nearestGroup.Center.Y -
+                                  requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
+                    }
+                    else
+                    {
+                        var group1Vehicles = GetVehicles(1, Ownership.ALLY);
+                        if (group1Vehicles.Any())
                         {
-                            Rotate90(vehicles, groupId, rotationAngle, nearestGroup.Center);
-                            return;
+                            var group1Vector = new Vector(new Point(nearestGroup.Center),
+                                GetVehiclesCenter(group1Vehicles));
+                            var group2Vector = new Vector(new Point(nearestGroup.Center), centerPoint);
+
+                            var rotationAngle = MathHelper.GetAnlge(group2Vector, group1Vector);
+                            if (Math.Abs(rotationAngle) > Tolerance)
+                            {
+                                Rotate90(vehicles, groupId, rotationAngle, nearestGroup.Center);
+                                return;
+                            }
                         }
+
+                        targetX = nearestGroup.Center.X -
+                                  requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
+                        targetY = nearestGroup.Center.Y -
+                                  requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
+                    }
+                }
+                else
+                {
+                    if (vehicles.Count >= GoToEnemyCpCount)
+                    {
+                        targetX = enemyCp.X;
+                        targetY = enemyCp.Y;
+                    }
+                    else
+                    {
+                        targetX = nearestGroup.Center.X -
+                                  requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
+                        targetY = nearestGroup.Center.Y -
+                                  requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
                     }
                 }
             }
             else
             {
-                var newX = targetX - requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
-                var newY = targetY - requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
-                var isFarFromBorder = IsFarFromBorderPoint(vehicles, new Point(newX, newY));
-                if (isFarFromBorder)
-                {
-                    targetX = newX;
-                    targetY = newY;
-                }
+                targetX = nearestGroup.Center.X - requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
+                targetY = nearestGroup.Center.Y - requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
             }
 
-            
+            var isFarFromBorder = IsFarFromBorderPoint(vehicles, new Point(targetX, targetY));
+            if (!isFarFromBorder)
+            {
+                targetX = enemyCp.X;
+                targetY = enemyCp.Y;
+            }
+
+
             var isStaticEnemy = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
                                 _currentMoveEnemyPoint[groupId].GetDistance(targetX, targetY) <=
                                 MoveEnemyPointTolerance;
