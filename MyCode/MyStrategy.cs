@@ -29,8 +29,10 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const double ShootingDistance = 15d;
         private const double CloseFriendDistance = 100d;
 
-        private const int VehiclesCountAdvantage = 50;
-        private const double VehiclesCoeffAdvantage = 1.5;
+        private const int WeakVehiclesCountAdvantage = 50;
+        private const int StrongVehiclesCountAdvantage = 100;
+        private const double WeakVehiclesCoeffAdvantage = 1.5;
+        private const double StrongVehiclesCoeffAdvantage = 2;
 
         private const double GroupMaxRadius = 15;
 
@@ -44,7 +46,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private const int MinNuclearStrikeCount = 5;
 
-        private const int SmallGroupVehiclesCount = 15;
+        private const int SmallGroupVehiclesCount = 33;
 
         private const double MoreSideDist = 20d;
 
@@ -957,7 +959,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var enemyGroups = GetEnemyVehicleGroups();
             var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
             
-            var hasAdvantege = HasAdvantage(groupId, nearestGroup, enemyGroups);
+            var hasAdvantege = HasAdvantage(groupId, nearestGroup, enemyGroups, WeakVehiclesCountAdvantage, WeakVehiclesCoeffAdvantage);
             var currentDistanceToEnemyCenter = centerPoint.GetDistance(nearestGroup.Center);
 
             var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
@@ -1304,8 +1306,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             };
         }
 
-      
-        private bool HasAdvantage(int groupId, GroupContainer enemyGroup, IList<GroupContainer> enemyGroups)
+
+        private bool HasAdvantage(int groupId, GroupContainer enemyGroup, IList<GroupContainer> enemyGroups,
+            double vehiclesCountAdvantage, double vehiclesCoeffAdvantage)
         {
             var vehicles = GetVehicles(groupId, Ownership.ALLY);
             var enemyWeight = enemyGroup.Vehicles.Aggregate(0d, (current, v) => current + v.Durability);
@@ -1326,8 +1329,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         }
                     }
 
-                    return myWeight - enemyWeight >= _game.TankDurability * VehiclesCountAdvantage ||
-                           myWeight * 1d / enemyWeight >= VehiclesCoeffAdvantage;
+                    return myWeight - enemyWeight >= _game.TankDurability * vehiclesCountAdvantage ||
+                           myWeight * 1d / enemyWeight >= vehiclesCoeffAdvantage;
                 case 2:
 
                     myWeight = vehicles.Aggregate(0d, (current, v) => current + v.Durability);
@@ -1349,8 +1352,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (hasCloseG1)
                     {
                         myWeight = g1.Aggregate(myWeight, (current, v) => current + v.Durability);
-                        return myWeight - enemyWeight >= _game.TankDurability*VehiclesCountAdvantage ||
-                               myWeight*1d/enemyWeight >= VehiclesCoeffAdvantage;
+                        return myWeight - enemyWeight >= _game.TankDurability * vehiclesCountAdvantage ||
+                               myWeight * 1d / enemyWeight >= vehiclesCoeffAdvantage;
                     }
 
                     var otherEnemyWeight = 0d;
@@ -1379,7 +1382,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     throw new Exception("Unknown group id");
             }
         }
-       
+
 
         private bool MakeNuclearStrike()
         {
@@ -1670,7 +1673,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                 new Point(centerPoint.X + 100, centerPoint.Y)),
                             new Vector(centerPoint, nearestGroup.Center));
 
-                        var isSmallEnemyGroup = IsSmallEnemyGroup(vehicles, nearestGroup.Vehicles);
+                        var isSmallEnemyGroup = HasAdvantage(groupId,
+                            nearestGroup,
+                            enemyGroups,
+                            StrongVehiclesCountAdvantage,
+                            StrongVehiclesCoeffAdvantage) && nearestGroup.Vehicles.Count < SmallGroupVehiclesCount;
                         var isFarFromBorder = IsFarFromBorderPoint(vehicles, GetVehiclesCenter(vehicles));
                         if (!isSmallEnemyGroup && Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle && isFarFromBorder)
                         {
@@ -1695,22 +1702,27 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                 new Point(centerPoint.X + 100, centerPoint.Y)),
                             new Vector(centerPoint, nearestGroup.Center));
 
-                        var isSmallEnemyGroup = IsSmallEnemyGroup(vehicles, nearestGroup.Vehicles);
+                        var isSmallEnemyGroup = HasAdvantage(groupId,
+                                                    nearestGroup,
+                                                    enemyGroups,
+                                                    StrongVehiclesCountAdvantage,
+                                                    StrongVehiclesCoeffAdvantage) && nearestGroup.Vehicles.Count <
+                                                SmallGroupVehiclesCount;
 
-                        //var isGroup1Close = false;
-                        //if (groupId == 2 && !_isGroup2Rotated)
-                        //{
-                        //    var g1Vehilces = GetVehicles(1, Ownership.ALLY);
-                        //    if (g1Vehilces.Any() && GetVehiclesCenter(g1Vehilces).GetDistance(nearestGroup.Center) < 700) //TODO: кол-во больше некой константы
-                        //    {
-                        //        isGroup1Close = true;
-                        //    }
-                        //}
-                        //if (isGroup1Close)
-                        //{
-                        //    PrepareToRotate90(vehicles, groupId);
-                        //}
-                        var isFarFromBorder = IsFarFromBorderPoint(vehicles, GetVehiclesCenter(vehicles));
+                            //var isGroup1Close = false;
+                            //if (groupId == 2 && !_isGroup2Rotated)
+                            //{
+                            //    var g1Vehilces = GetVehicles(1, Ownership.ALLY);
+                            //    if (g1Vehilces.Any() && GetVehiclesCenter(g1Vehilces).GetDistance(nearestGroup.Center) < 700) //TODO: кол-во больше некой константы
+                            //    {
+                            //        isGroup1Close = true;
+                            //    }
+                            //}
+                            //if (isGroup1Close)
+                            //{
+                            //    PrepareToRotate90(vehicles, groupId);
+                            //}
+                            var isFarFromBorder = IsFarFromBorderPoint(vehicles, GetVehiclesCenter(vehicles));
                         if (!isSmallEnemyGroup && Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle &&
                             isFarFromBorder)
                         {
@@ -1768,7 +1780,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                 new Point(centerPoint.X + 100, centerPoint.Y)),
                             new Vector(centerPoint, nearestGroup.Center));
 
-                        var isSmallEnemyGroup = IsSmallEnemyGroup(vehicles, nearestGroup.Vehicles);
+                        var isSmallEnemyGroup = HasAdvantage(groupId,
+                                                    nearestGroup,
+                                                    enemyGroups,
+                                                    StrongVehiclesCountAdvantage,
+                                                    StrongVehiclesCoeffAdvantage) && nearestGroup.Vehicles.Count <
+                                                SmallGroupVehiclesCount;
                         var isFarFromBorder = IsFarFromBorderPoint(vehicles, GetVehiclesCenter(vehicles));
                         if (!isSmallEnemyGroup && Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle && isFarFromBorder)
                         {
@@ -1783,13 +1800,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             }
         }
-
-        private bool IsSmallEnemyGroup(IList<Vehicle> myVehicles, IList<Vehicle> enemyVehicles)
-        {
-            return enemyVehicles.Count <= SmallGroupVehiclesCount &&
-                   (myVehicles.Count - enemyVehicles.Count >= VehiclesCountAdvantage ||
-                    myVehicles.Count*1d/enemyVehicles.Count >= VehiclesCoeffAdvantage);
-        }
+       
 
         private IList<GroupContainer> GetEnemyVehicleGroups()
         {
