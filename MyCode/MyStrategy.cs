@@ -1900,20 +1900,21 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 return targetPoint;
             }
            
-            if (
-                myVehicles.All(
-                    myV =>
-                        enemyGroups.All(g => myV.GetDistanceTo(g.Center.X, g.Center.Y) > GetActualVisualRange(myV))))
+            if (enemyGroups.All(g => GetNuclearStrikeVehicle(g.Center, myVehicles) == null)) 
                 return null;
 
-           
+            var isOkToStrikeCenterGroups = new Dictionary<GroupContainer, bool>();
             foreach (var v in enemyVehicles)
             {
                 var group = enemyGroups.Single(g => g.Vehicles.Any(gv => gv.Id == v.Id));
                 
                 if (group.Vehicles.Count < MinNuclearStrikeCount) continue;
                 //Если все мои далеко от центра группы, стрелять еще рано
-                if (myVehicles.All(myV => v.GetDistanceTo(group.Center.X, group.Center.Y) > GetActualVisualRange(myV)))
+                if (!isOkToStrikeCenterGroups.ContainsKey(group))
+                {
+                    isOkToStrikeCenterGroups.Add(group, GetNuclearStrikeVehicle(group.Center, myVehicles) != null);
+                }
+                if (!isOkToStrikeCenterGroups[group])
                     continue;
 
                 var strikingVehicle = GetNuclearStrikeVehicle(new Point(v.X, v.Y), myVehicles);
