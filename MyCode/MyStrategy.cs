@@ -1399,9 +1399,10 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
             }
 
-            var isUncompress = _sandvichActions[groupId] == SandvichAction.Uncompress;
+            var isUncompressing = _sandvichActions[groupId] == SandvichAction.Uncompress;
+            var isCompressing = _sandvichActions[groupId] == SandvichAction.Compressing2;
 
-            if (!isUncompress)
+            if (!isUncompressing && !isCompressing)
             {
                 if (_selectedGroupId != groupId)
                 {
@@ -1431,7 +1432,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.VehicleId = strikingVehicle.Id;
                 _isMyNuclearStrikeConsidered = false;
                 _isFirstNuclearStrike = false;
-                if (!isUncompress)
+                if (!isUncompressing)
                     _groupEndMovementTime[groupId] = _world.TickIndex + _game.TacticalNuclearStrikeDelay;
             });
            
@@ -1622,7 +1623,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 }
 
                 case SandvichAction.Scaling:
-                    if (_world.TickIndex >= _groupEndMovementTime[groupId] ||
+                    if (_world.TickIndex > _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
                         shift(groupId);
@@ -1630,7 +1631,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     break;
 
                 case SandvichAction.Shifting:
-                    if (_world.TickIndex >= _groupEndMovementTime[groupId] ||
+                    if (_world.TickIndex > _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
                         compress(groupId);
@@ -1638,7 +1639,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     break;
 
                 case SandvichAction.Compressing:
-                    if (_world.TickIndex >= _groupEndMovementTime[groupId] ||
+                    if (_world.TickIndex > _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
                         var centerPoint = GetVehiclesCenter(vehicles);
@@ -1647,7 +1648,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     break;
 
                 case SandvichAction.Compressing2:
-                    if (_world.TickIndex >= _groupEndMovementTime[groupId] ||
+                    if (_world.TickIndex > _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
                         var isFarFromBorder = IsFarFromBorderPoint(vehicles, GetVehiclesCenter(vehicles));
@@ -1656,7 +1657,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     }
                     break;
                 case SandvichAction.Rotating:
-                    if (_world.TickIndex >= _groupEndMovementTime[groupId] ||
+                    if (_world.TickIndex > _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
                         _isRotating[groupId] = false;
@@ -1683,7 +1684,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     break;
                 case SandvichAction.MovingToEnemy:
                 {
-                    if (_world.TickIndex >= _groupEndMovementTime[groupId])
+                    if (_world.TickIndex > _groupEndMovementTime[groupId])
                     {
                         var centerPoint = GetVehiclesCenter(vehicles);
                         var enemyGroups = GetEnemyVehicleGroups();
@@ -1730,7 +1731,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 //    }
                 //    break;
                 case SandvichAction.Uncompress:
-                    if (_world.TickIndex >= _groupEndMovementTime[groupId]) //TODO: все стоят?
+                    if (_world.TickIndex > _groupEndMovementTime[groupId]) //TODO: все стоят?
                     {
                         Compress2(_enemyNuclearStrikeX,
                             _enemyNuclearStrikeY,
@@ -1748,7 +1749,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         MoveToEnemy(vehicles, groupId);
                     }
 
-                    else if (_world.TickIndex >= _groupEndMovementTime[groupId] ||
+                    else if (_world.TickIndex > _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
                         _isRotating[groupId] = false;
@@ -1757,7 +1758,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     break;
 
                 case SandvichAction.NuclearStrike:
-                    if (_world.TickIndex >= _groupEndMovementTime[groupId])
+                    if (_world.TickIndex > _groupEndMovementTime[groupId])
                     {
                         var centerPoint = GetVehiclesCenter(vehicles);
                         var enemyGroups = GetEnemyVehicleGroups();
