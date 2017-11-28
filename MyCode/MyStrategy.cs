@@ -49,7 +49,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const int SmallGroupVehiclesCount = 33;
         private const int ConsiderGroupVehiclesCount = 7;
 
-        private const double MoreSideDist = 20d;
+        private const double MoreSideDist = 15d;
 
         private const double HpNuclerStrikeCoeff = 0.7;
         private const int GoToEnemyCpCount = 33;
