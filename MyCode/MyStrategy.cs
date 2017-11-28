@@ -1982,15 +1982,95 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var vehicle = orderedVehicles.FirstOrDefault(v =>
                 v.Durability >= v.MaxDurability * HpNuclerStrikeCoeff && GetActualVisualRange(v) >=
                 v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
-                GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) * runAwayTime);
+                GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) * runAwayTime &&
+                !HasWorseNearSqaures(v));
 
             if (vehicle != null) return vehicle;
 
             vehicle = orderedVehicles.FirstOrDefault(v =>
                 GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
-                GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) * runAwayTime);
+                GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) * runAwayTime &&
+                !HasWorseNearSqaures(v));
+
+            if (vehicle != null) return vehicle;
+
+            vehicle = orderedVehicles.FirstOrDefault(v =>
+                GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
+                GetActualMaxSpeed(v, (int)Math.Truncate(v.X / 32d), (int)Math.Truncate(v.Y / 32d)) * runAwayTime);
 
             return vehicle;
+        }
+
+        private bool HasWorseNearSqaures(Vehicle vehicle)
+        {
+            var x = MathHelper.GetSquareIndex(vehicle.X);
+            var y = MathHelper.GetSquareIndex(vehicle.Y);
+
+            switch (vehicle.Type)
+            {
+                case VehicleType.Helicopter:
+                case VehicleType.Fighter:
+                    var visionFactor = GetVisionFactor(_weatherTypeByCellXY[x][y]);
+                    if (x > 0 && GetVisionFactor(_weatherTypeByCellXY[x - 1][y]) < visionFactor) return true;
+                    if (y > 0 && GetVisionFactor(_weatherTypeByCellXY[x][y - 1]) < visionFactor) return true;
+                    if (x > 0 && y > 0 && GetVisionFactor(_weatherTypeByCellXY[x - 1][y - 1]) < visionFactor) return true;
+                    if (x < _game.TerrainWeatherMapColumnCount && GetVisionFactor(_weatherTypeByCellXY[x + 1][y]) < visionFactor) return true;
+                    if (y < _game.TerrainWeatherMapRowCount && GetVisionFactor(_weatherTypeByCellXY[x][y + 1]) < visionFactor) return true;
+                    if (x < _game.TerrainWeatherMapColumnCount && y < _game.TerrainWeatherMapRowCount &&
+                        GetVisionFactor(_weatherTypeByCellXY[x + 1][y + 1]) < visionFactor) return true;
+
+                    if (x > 0 && y < _game.TerrainWeatherMapRowCount && GetVisionFactor(_weatherTypeByCellXY[x - 1][y + 1]) < visionFactor) return true;
+                    if (x < _game.TerrainWeatherMapColumnCount && y > 0 && GetVisionFactor(_weatherTypeByCellXY[x + 1][y - 1]) < visionFactor) return true;
+                    break;
+
+                case VehicleType.Arrv:
+                case VehicleType.Ifv:
+                case VehicleType.Tank:
+                    var terrVisionFactor = GetVisionFactor(_terrainTypeByCellXY[x][y]);
+                    if (x > 0 && GetVisionFactor(_terrainTypeByCellXY[x - 1][y]) < terrVisionFactor) return true;
+                    if (y > 0 && GetVisionFactor(_terrainTypeByCellXY[x][y - 1]) < terrVisionFactor) return true;
+                    if (x > 0 && y > 0 && GetVisionFactor(_terrainTypeByCellXY[x - 1][y - 1]) < terrVisionFactor) return true;
+                    if (x < _game.TerrainWeatherMapColumnCount && GetVisionFactor(_terrainTypeByCellXY[x + 1][y]) < terrVisionFactor) return true;
+                    if (y < _game.TerrainWeatherMapRowCount && GetVisionFactor(_terrainTypeByCellXY[x][y + 1]) < terrVisionFactor) return true;
+                    if (x < _game.TerrainWeatherMapColumnCount && y < _game.TerrainWeatherMapRowCount &&
+                        GetVisionFactor(_terrainTypeByCellXY[x + 1][y + 1]) < terrVisionFactor) return true;
+
+                    if (x > 0 && y < _game.TerrainWeatherMapRowCount && GetVisionFactor(_terrainTypeByCellXY[x - 1][y + 1]) < terrVisionFactor) return true;
+                    if (x < _game.TerrainWeatherMapColumnCount && y > 0 && GetVisionFactor(_terrainTypeByCellXY[x + 1][y - 1]) < terrVisionFactor) return true;
+
+                    break;
+            }
+            return false;
+        }
+
+        private double GetVisionFactor(TerrainType terrainType)
+        {
+            switch (terrainType)
+            {
+                case TerrainType.Forest:
+                    return _game.ForestTerrainVisionFactor;
+                case TerrainType.Plain:
+                    return _game.PlainTerrainVisionFactor;
+                case TerrainType.Swamp:
+                    return _game.SwampTerrainVisionFactor;
+                default:
+                    throw new Exception("unknown type");
+            }
+        }
+
+        private double GetVisionFactor(WeatherType weatherType)
+        {
+            switch (weatherType)
+            {
+                case WeatherType.Clear:
+                    return _game.ClearWeatherVisionFactor;
+                case WeatherType.Cloud:
+                    return _game.CloudWeatherVisionFactor;
+                case WeatherType.Rain:
+                    return _game.RainWeatherVisionFactor;
+                default:
+                    throw new Exception("unknown type");
+            }
         }
 
         private bool IsFarFromBorderPoint(IList<Vehicle> vehicles, Point point)

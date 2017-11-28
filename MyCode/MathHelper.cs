@@ -265,15 +265,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
             var xCoeff = realEnd.X > realStart.X ? 1 : -1;
             var yCoeff = realEnd.Y > realStart.Y ? 1 : -1;
 
-            var startX = GetIndex(realStart.X) * 32;
-            var startY = GetIndex(realStart.Y) * 32;
+            var startX = GetSquareIndex(realStart.X) * 32;
+            var startY = GetSquareIndex(realStart.Y) * 32;
 
-            var endX = GetIndex(realEnd.X) * 32;
-            var endY = GetIndex(realEnd.Y) * 32;
+            var endX = GetSquareIndex(realEnd.X) * 32;
+            var endY = GetSquareIndex(realEnd.Y) * 32;
 
             var result = new List<Tuple<int, int>>()
             {
-                new Tuple<int, int>(GetIndex(startX), GetIndex(startY))
+                new Tuple<int, int>(GetSquareIndex(startX), GetSquareIndex(startY))
             };
             var x = startX;
             var y = startY;
@@ -282,22 +282,22 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
             {
                 x += 32 * xCoeff;
                 var yReal = start.Y + (end.Y - start.Y) * (x - start.X) / (end.X - start.X);
-                var newY = GetIndex(yReal) * 32;
+                var newY = GetSquareIndex(yReal) * 32;
                 while (y != newY)
                 {
                     y += 32 * yCoeff;
-                    result.Add(new Tuple<int, int>(GetIndex(x - 32 * xCoeff), GetIndex(y)));
+                    result.Add(new Tuple<int, int>(GetSquareIndex(x - 32 * xCoeff), GetSquareIndex(y)));
                 }
-                result.Add(new Tuple<int, int>(GetIndex(x), GetIndex(y)));
+                result.Add(new Tuple<int, int>(GetSquareIndex(x), GetSquareIndex(y)));
 
             }
 
             {
-                var newY = GetIndex(endY) * 32;
+                var newY = GetSquareIndex(endY) * 32;
                 while (y != newY)
                 {
                     y += 32 * yCoeff;
-                    result.Add(new Tuple<int, int>(GetIndex(x), GetIndex(y)));
+                    result.Add(new Tuple<int, int>(GetSquareIndex(x), GetSquareIndex(y)));
                 }
             }
 
@@ -305,7 +305,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
         }
 
 
-        private static int GetIndex(double value)
+        public static int GetSquareIndex(double value)
         {
             return (int)Math.Truncate(value / 32d);
         }
