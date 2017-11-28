@@ -1853,6 +1853,39 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             return groupContainers;
         }
 
+        private GroupContainer GetWeakestEnemyGroup(IList<GroupContainer> enemyGroups, IList<Vehicle> myVehicles)
+        {
+            var dA = myVehicles.Count(v => v.Type == VehicleType.Fighter) * 2 +
+                     myVehicles.Count(v => v.Type == VehicleType.Helicopter);
+            var dT = myVehicles.Count(v => v.Type == VehicleType.Helicopter);
+
+            var maxValue = -double.MaxValue;
+            GroupContainer maxValueGc = null;
+            foreach (var group in enemyGroups)
+            {
+                var nA = group.Vehicles.Count(v => v.Type == VehicleType.Fighter || v.Type == VehicleType.Helicopter);
+                var nT = group.Vehicles.Count(v =>
+                    v.Type == VehicleType.Tank || v.Type == VehicleType.Ifv || v.Type == VehicleType.Arrv);
+                var mA = Math.Min(dA, nA);
+                var mT = Math.Min(dT, nT);
+
+                var dE = group.Vehicles.Count(v => v.Type == VehicleType.Fighter) * 2 +
+                         group.Vehicles.Count(v => v.Type == VehicleType.Helicopter) +
+                         group.Vehicles.Count(v => v.Type == VehicleType.Tank) +
+                         group.Vehicles.Count(v => v.Type == VehicleType.Ifv) * 3;
+
+
+                var delta = mA + mT - dE;
+                if (delta < maxValue)
+                {
+                    maxValue = delta;
+                    maxValueGc = group;
+                }
+            }
+            maxValueGc.DeltaDamage = maxValue;
+            return maxValueGc;
+        }
+
         private GroupContainer GetNearestEnemyGroup(IList<GroupContainer> enemyGroups, double centerX, double centerY)
         {
             var hasBigGroups = enemyGroups.Any(g => g.Vehicles.Count >= ConsiderGroupVehiclesCount);
