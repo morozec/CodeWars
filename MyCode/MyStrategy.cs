@@ -1999,9 +1999,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
 
             var orderedVehicles = myVehicles
-                .Where(mv => mv.Groups.Contains(1)
+                .Where(mv => (mv.Groups.Contains(1)
                     ? group1.Count < SmallGroupVehiclesCount
-                    : group2.Count < SmallGroupVehiclesCount || !IsCloseToGroupBorder(new Point(mv.X, mv.Y),
+                    : group2.Count < SmallGroupVehiclesCount) || !IsCloseToGroupBorder(new Point(mv.X, mv.Y),
                           mv.Groups.Contains(1) ? group1Rectangle : group2Rectangle,
                           nuclearStrikePoint))
                 .OrderByDescending(v => v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y))
@@ -2037,7 +2037,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var cp = MathHelper.GetNearestRectangleCrossPoint(sourcePoint,
                 vehicleRectangle,
                 vehiclePoint);
-            return vehiclePoint.GetDistance(cp) <= CloseToRectangleBorderDist;
+            return cp == null || vehiclePoint.GetDistance(cp) <= CloseToRectangleBorderDist;
         }
 
         private bool HasWorseNearSquares(Vehicle vehicle)
