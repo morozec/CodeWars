@@ -47,6 +47,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const int MinNuclearStrikeCount = 5;
 
         private const int SmallGroupVehiclesCount = 33;
+        private const int ConsiderGroupVehiclesCount = 7;
 
         private const double MoreSideDist = 20d;
 
@@ -1858,10 +1859,14 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private GroupContainer GetNearestEnemyGroup(IList<GroupContainer> enemyGroups, double centerX, double centerY)
         {
+            var hasBigGroups = enemyGroups.Any(g => g.Vehicles.Count >= ConsiderGroupVehiclesCount);
+
             GroupContainer nearestGroup = null;
             var minDist = double.MaxValue;
             foreach (var eg in enemyGroups)
             {
+                if (hasBigGroups && eg.Vehicles.Count < ConsiderGroupVehiclesCount) continue;
+
                 var dist = eg.Center.GetDistance(centerX, centerY);
                 if (dist < minDist)
                 {
