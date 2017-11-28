@@ -2149,7 +2149,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var currEndPoint = new Point(v.X + dx, v.Y + dy);
                 var line = MathHelper.GetLineSquares(currStartPoint, currEndPoint);
 
-                foreach (var sqaure in line.Where(sq =>
+                foreach (var sqaure in line.Where(sq => sq.Item1 >= 0 && sq.Item2 >= 0 &&
                     sq.Item1 < _game.TerrainWeatherMapColumnCount && sq.Item2 < _game.TerrainWeatherMapRowCount))
                 {
                     var speed = GetActualMaxSpeed(v, sqaure.Item1, sqaure.Item2);
