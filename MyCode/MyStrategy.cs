@@ -294,7 +294,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 else if (_selectedGroupId == 2)
                 {
                     SandvichMove(2, IsAirAStarMoveFinished, AirShift, AirCompress);
-                    if (ExecuteDelayedMove()) return;
+                    if (ExecuteDelayedMove())  return;
                     SandvichMove(1, IsGroundAStarMoveFinished, GroundShift, GroundCompress);
                 }
             }
@@ -1038,18 +1038,17 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             double targetX;
             double targetY;
-            if (groupId == 2)
+
+            if (isFarFromEnemy)
             {
-                if (IsBalancedRectange(enemyRectangle, nearestGroup.Center))
+                targetX = nearestGroup.Center.X;
+                targetY = nearestGroup.Center.Y;
+            }
+            else
+            {
+                if (groupId == 2)
                 {
-                    if (isFarFromEnemy)
-                    {
-                        targetX = nearestGroup.Center.X -
-                                  requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
-                        targetY = nearestGroup.Center.Y -
-                                  requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
-                    }
-                    else
+                    if (IsBalancedRectange(enemyRectangle, nearestGroup.Center))
                     {
                         var group1Vehicles = GetVehicles(1, Ownership.ALLY);
                         if (group1Vehicles.Any())
@@ -1070,28 +1069,30 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                   requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
                         targetY = nearestGroup.Center.Y -
                                   requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
-                    }
-                }
-                else
-                {
-                    if (vehicles.Count >= GoToEnemyCpCount)
-                    {
-                        targetX = enemyCp.X;
-                        targetY = enemyCp.Y;
+
                     }
                     else
                     {
-                        targetX = nearestGroup.Center.X -
-                                  requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
-                        targetY = nearestGroup.Center.Y -
-                                  requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
+                        if (vehicles.Count >= GoToEnemyCpCount)
+                        {
+                            targetX = enemyCp.X;
+                            targetY = enemyCp.Y;
+                        }
+                        else
+                        {
+                            targetX = nearestGroup.Center.X -
+                                      requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
+                            targetY = nearestGroup.Center.Y -
+                                      requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
+                        }
                     }
+
                 }
-            }
-            else
-            {
-                targetX = nearestGroup.Center.X - requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
-                targetY = nearestGroup.Center.Y - requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
+                else
+                {
+                    targetX = nearestGroup.Center.X - requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
+                    targetY = nearestGroup.Center.Y - requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
+                }
             }
 
             var isFarFromBorder = IsFarFromBorderPoint(vehicles, new Point(targetX, targetY));
@@ -1108,8 +1109,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
 
-            if (isFarFromEnemy && isStaticEnemy) return;
-
+            if (isStaticEnemy) return; //TODO: возможно, всегда стоит двигатьс€ вблизи врага
 
             if (_selectedGroupId != groupId)
             {
@@ -1763,7 +1763,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     break;
                 case SandvichAction.Rotate90:
                     var enemyTargetRadiusPoint = GetEnemyTargetRadiusPoint(vehicles);
-                    if (enemyTargetRadiusPoint != null)
+                    if (enemyTargetRadiusPoint == null) //ƒостигли точки, с которой можно переть на врага
                     {
                         _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
                         _isRotating[groupId] = false;
@@ -1969,7 +1969,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private Vehicle GetNuclearStrikeVehicle(Point nuclearStrikePoint, IList<Vehicle> myVehicles)
         {
 
-            double runAwayTime;
+            int runAwayTime;
             if (_enemy.NextNuclearStrikeTickIndex > -1)
             {
                 runAwayTime = _enemy.NextNuclearStrikeTickIndex - _world.TickIndex;
@@ -1988,14 +1988,14 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 v.Durability >= v.MaxDurability * HpNuclerStrikeCoeff && GetActualVisualRange(v) >=
                 v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
                 GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) * runAwayTime &&
-                !HasWorseNearSqaures(v));
+                (runAwayTime == 0 || !HasWorseNearSquares(v)));
 
             if (vehicle != null) return vehicle;
 
             vehicle = orderedVehicles.FirstOrDefault(v =>
                 GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
                 GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) * runAwayTime &&
-                !HasWorseNearSqaures(v));
+                (runAwayTime == 0 || !HasWorseNearSquares(v)));
 
             if (vehicle != null) return vehicle;
 
@@ -2006,7 +2006,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             return vehicle;
         }
 
-        private bool HasWorseNearSqaures(Vehicle vehicle)
+        private bool HasWorseNearSquares(Vehicle vehicle)
         {
             var x = MathHelper.GetSquareIndex(vehicle.X);
             var y = MathHelper.GetSquareIndex(vehicle.Y);
