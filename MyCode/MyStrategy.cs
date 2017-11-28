@@ -54,7 +54,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const double HpNuclerStrikeCoeff = 0.7;
         private const int GoToEnemyCpCount = 33;
         private const int WeakAviationHelicoptersCount = 50;
-
+        private const double CloseToRectangleBorderDist = 8d;
 
 
         private bool _isFirstNuclearStrike = true;
@@ -229,6 +229,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         {
             //Debug.beginPost();
             //Draw(2);
+           
 
             InitializeStrategy(world, game);
             InitializeTick(me, world, game, move);
@@ -914,46 +915,41 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private void Draw(int groupId)
         {
-            var vehicles = GetVehicles(groupId);
-            if (!vehicles.Any()) return;
-            var center = GetVehiclesCenter(vehicles);
+            //var vehicles = GetVehicles(groupId);
+            //if (!vehicles.Any()) return;
+            //var center = GetVehiclesCenter(vehicles);
 
-            var enemyGroups = GetEnemyVehicleGroups();
-            var nearestGroup = GetNearestEnemyGroup(enemyGroups, center.X, center.Y);
+            //var enemyGroups = GetEnemyVehicleGroups();
+            //var nearestGroup = GetNearestEnemyGroup(enemyGroups, center.X, center.Y);
 
-            var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
-            var myrectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
+            //var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
+            //var myrectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
 
-            foreach (var p in enemyRectangle.Points)
-            {
-                Debug.circleFill(p.X, p.Y, 2, 150);
-            }
+            //foreach (var p in enemyRectangle.Points)
+            //{
+            //    Debug.circleFill(p.X, p.Y, 2, 150);
+            //}
 
-            foreach (var p in myrectangle.Points)
-            {
-                Debug.circleFill(p.X, p.Y, 2, 0x00FFFF);
-            }
+            //foreach (var p in myrectangle.Points)
+            //{
+            //    Debug.circleFill(p.X, p.Y, 2, 0x00FFFF);
+            //}
 
-            var centerPoint = GetVehiclesCenter(vehicles);
-            var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
+            //var centerPoint = GetVehiclesCenter(vehicles);
+            //var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
 
-            var myCp = MathHelper.GetNearestRectangleCrossPoint(nearestGroup.Center, myRectangle, centerPoint);
-            var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
+            //var myCp = MathHelper.GetNearestRectangleCrossPoint(nearestGroup.Center, myRectangle, centerPoint);
+            //var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
 
-            Debug.circleFill(myCp.X, myCp.Y, 4, 0x00FF00);
-            Debug.circleFill(enemyCp.X, enemyCp.Y, 4, 0xFF0000);
+            //Debug.circleFill(myCp.X, myCp.Y, 4, 0x00FF00);
+            //Debug.circleFill(enemyCp.X, enemyCp.Y, 4, 0xFF0000);
 
             if (_vehicleById.ContainsKey(_nuclearVehicleId) && _me.NextNuclearStrikeTickIndex > -1)
             {
                 var nuclearVehilce = _vehicleById[_nuclearVehicleId];
                 Debug.circleFill(nuclearVehilce.X, nuclearVehilce.Y, 2, 0x00000);
             }
-
-
-            if (_sandvichActions[2] == SandvichAction.Rotate90)
-            {
-                //Debug.circle(_rotationContainer.AfterRotationPoint.X, _rotationContainer.AfterRotationPoint.Y, 3d, 0x000505);
-            }
+            
 
         }
 
@@ -1905,6 +1901,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             Point targetPoint = null;
             var maxDiffDamage = 0d;
             var myVehicles = GetVehicles(Ownership.ALLY);
+
+            if (enemyGroups.All(g =>
+                myVehicles.All(mv => mv.GetDistanceTo(g.Center.X, g.Center.Y) > GetActualVisualRange(mv))))
+                return null;
+
             var enemyVehicles = GetVehicles(Ownership.ENEMY);
 
             if (_isFirstNuclearStrike)
@@ -1930,8 +1931,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 return targetPoint;
             }
            
-            if (enemyGroups.All(g => GetNuclearStrikeVehicle(g.Center, myVehicles) == null)) 
-                return null;
+           
 
             var isOkToStrikeCenterGroups = new Dictionary<GroupContainer, bool>();
             foreach (var v in enemyVehicles)
@@ -1981,10 +1981,34 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     : _game.TacticalNuclearStrikeDelay - _enemy.RemainingNuclearStrikeCooldownTicks;
             }
 
-            var orderedVehicles = myVehicles.OrderByDescending(v => v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y))
+           
+
+            var group1 = GetVehicles(1, Ownership.ALLY);
+            Rectangle group1Rectangle = null;
+            if (group1.Any())
+            {
+                group1Rectangle = MathHelper.GetJarvisRectangle(group1.Select(v => new Point(v.X, v.Y)).ToList());
+            }
+
+            var group2 = GetVehicles(2, Ownership.ALLY);
+            Rectangle group2Rectangle = null;
+            if (group2.Any())
+            {
+                group2Rectangle = MathHelper.GetJarvisRectangle(group2.Select(v => new Point(v.X, v.Y)).ToList());
+            }
+
+
+            var orderedVehicles = myVehicles
+                .Where(mv => mv.Groups.Contains(1)
+                    ? group1.Count < SmallGroupVehiclesCount
+                    : group2.Count < SmallGroupVehiclesCount || !IsCloseToGroupBorder(new Point(mv.X, mv.Y),
+                          mv.Groups.Contains(1) ? group1Rectangle : group2Rectangle,
+                          nuclearStrikePoint))
+                .OrderByDescending(v => v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y))
                 .ToList();
 
-            var vehicle = orderedVehicles.FirstOrDefault(v =>
+            var vehicle = orderedVehicles.FirstOrDefault(v => 
+                //!IsCloseToGroupBorder(new Point(v.X, v.Y), v.Groups.Contains(1) ? group1Rectangle : group2Rectangle, nuclearStrikePoint) &&
                 v.Durability >= v.MaxDurability * HpNuclerStrikeCoeff && GetActualVisualRange(v) >=
                 v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
                 GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) * runAwayTime &&
@@ -1993,6 +2017,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             if (vehicle != null) return vehicle;
 
             vehicle = orderedVehicles.FirstOrDefault(v =>
+                //!IsCloseToGroupBorder(new Point(v.X, v.Y), v.Groups.Contains(1) ? group1Rectangle : group2Rectangle, nuclearStrikePoint) &&
                 GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
                 GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) * runAwayTime &&
                 (runAwayTime == 0 || !HasWorseNearSquares(v)));
@@ -2000,10 +2025,19 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             if (vehicle != null) return vehicle;
 
             vehicle = orderedVehicles.FirstOrDefault(v =>
+                //!IsCloseToGroupBorder(new Point(v.X, v.Y), v.Groups.Contains(1) ? group1Rectangle : group2Rectangle, nuclearStrikePoint) &&
                 GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
                 GetActualMaxSpeed(v, (int)Math.Truncate(v.X / 32d), (int)Math.Truncate(v.Y / 32d)) * runAwayTime);
 
             return vehicle;
+        }
+
+        private bool IsCloseToGroupBorder(Point vehiclePoint, Rectangle vehicleRectangle, Point sourcePoint)
+        {
+            var cp = MathHelper.GetNearestRectangleCrossPoint(sourcePoint,
+                vehicleRectangle,
+                vehiclePoint);
+            return vehiclePoint.GetDistance(cp) <= CloseToRectangleBorderDist;
         }
 
         private bool HasWorseNearSquares(Vehicle vehicle)
