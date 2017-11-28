@@ -176,6 +176,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {2, 0d},
         };
 
+        private readonly IDictionary<int, int> _groupStartUncompressTick = new Dictionary<int, int>()
+        {
+            {1, -1},
+            {2, -1},
+        };
+
         private readonly IDictionary<int, double> _currentGroupAngle = new Dictionary<int, double>()
         {
             {1, 0d},
@@ -1473,6 +1479,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.X = _enemy.NextNuclearStrikeX;
                 move.Y = _enemy.NextNuclearStrikeY;
                 _groupEndMovementTime[groupId] = _enemy.NextNuclearStrikeTickIndex;
+                _groupStartUncompressTick[groupId] = _world.TickIndex;
             });
         }
 
@@ -1749,7 +1756,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         Compress2(_enemyNuclearStrikeX,
                             _enemyNuclearStrikeY,
                             NuclearCompressionFactor,
-                            _game.TacticalNuclearStrikeDelay,
+                            _world.TickIndex - _groupStartUncompressTick[groupId],
                             groupId);
                     }
                     break;
