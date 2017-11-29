@@ -251,7 +251,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     _delayedMoves.Clear();
                     _isMyNuclearStrikeConsidered = true;
                 }
-                else if (!_isEnemyNuclearStrikeConsidered && _enemy.NextNuclearStrikeTickIndex > -1 && !_importantDelayedMoves.Any())
+                else if (!_isEnemyNuclearStrikeConsidered && _enemy.NextNuclearStrikeTickIndex > -1 &&
+                         !_importantDelayedMoves.Any())
                 {
                     _delayedMoves.Clear();
                     _isEnemyNuclearStrikeConsidered = true;
@@ -282,6 +283,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                             Uncompress(1);
                         }
                     }
+                }
+                else
+                {
+                    var enemyGroups = GetEnemyVehicleGroups();
+                    SetFacilitiesProduction(enemyGroups);
                 }
 
                 if (ExecuteDelayedMove()) return;
@@ -990,6 +996,31 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
                 _currentMoveEnemyPoint[groupId] = new Point(facilityPoint.X, facilityPoint.Y);
             });
+        }
+
+        private void SetFacilitiesProduction(IList<GroupContainer> enemyGroups)
+        {
+            var myFacilities = _world.Facilities.Where(f => f.OwnerPlayerId == _me.Id && f.ProductionProgress == 0);
+            if (!myFacilities.Any()) return;
+            var orderedFacilities = myFacilities.OrderByDescending(f =>
+            {
+                var fcp = GetFacilityCenterPoint(f);
+                var ng =  GetNearestEnemyGroup(enemyGroups, fcp.X, fcp.Y);
+                return fcp.GetDistance(ng.Center);
+            });
+
+            _delayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.SetupVehicleProduction;
+                move.VehicleType = VehicleType.Helicopter;
+                move.FacilityId = orderedFacilities.First().Id;
+            });
+
+        }
+
+        private Point GetFacilityCenterPoint(Facility facility)
+        {
+            return new Point(facility.Left + _game.FacilityWidth / 2d, facility.Top + _game.FacilityHeight / 2d);
         }
         
 
