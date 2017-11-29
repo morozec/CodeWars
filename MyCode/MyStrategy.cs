@@ -229,7 +229,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         {
             //Debug.beginPost();
             //Draw(2);
-           
+
 
             InitializeStrategy(world, game);
             InitializeTick(me, world, game, move);
@@ -953,11 +953,48 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         }
 
+        private void MoveToFacility(IList<Vehicle> vehicles, int groupId, Facility facility)
+        {
+            var facilityPoint = new Point(facility.Left + _game.FacilityWidth / 2d,
+                facility.Top + _game.FacilityHeight / 2d);
+
+            //Debug.circleFill(facilityPoint.X, facilityPoint.Y, 4, 0x00000);
+
+            var isStatic = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
+                                _currentMoveEnemyPoint[groupId].GetDistance(facilityPoint.X, facilityPoint.Y) <=
+                                MoveEnemyPointTolerance;
+
+            if (isStatic) return;
+
+            _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
+
+            if (_selectedGroupId != groupId)
+            {
+                _delayedMoves.Enqueue(move =>
+                {
+                    move.Action = ActionType.ClearAndSelect;
+                    move.Group = groupId;
+                });
+                _selectedGroupId = groupId;
+            }
+
+            var speed = GetGroupLineMaxSpeed(vehicles, facilityPoint);
+            var center = GetVehiclesCenter(vehicles);
+
+            _delayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.Move;
+                move.X = facilityPoint.X - center.X;
+                move.Y = facilityPoint.Y - center.Y;
+                move.MaxSpeed = speed;
+                _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
+                _currentMoveEnemyPoint[groupId] = new Point(facilityPoint.X, facilityPoint.Y);
+            });
+        }
+        
+
         private void MoveToEnemy(IList<Vehicle> vehicles, int groupId)
         {
-
-            
-
             var centerPoint = GetVehiclesCenter(vehicles);
 
             var enemyGroups = GetEnemyVehicleGroups();
@@ -1659,9 +1696,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (_world.TickIndex > _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
-                        var isFarFromBorder = IsFarFromBorderPoint(vehicles, GetVehiclesCenter(vehicles));
-                        if (isFarFromBorder) RotateToEnemy(vehicles, groupId);
-                        else MoveToEnemy(vehicles, groupId);
+                        DoMilitaryAction(vehicles, groupId);
                     }
                     break;
                 case SandvichAction.Rotating:
@@ -1670,83 +1705,18 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     {
                         _isRotating[groupId] = false;
 
-                        var centerPoint = GetVehiclesCenter(vehicles);
-                        var enemyGroups = GetEnemyVehicleGroups();
-                        var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
-                        var angle = MathHelper.GetAnlge(
-                            new Vector(centerPoint,
-                                new Point(centerPoint.X + 100, centerPoint.Y)),
-                            new Vector(centerPoint, nearestGroup.Center));
-
-                        var isSmallEnemyGroup = HasAdvantage(groupId,
-                            nearestGroup,
-                            enemyGroups,
-                            StrongVehiclesCountAdvantage,
-                            StrongVehiclesCoeffAdvantage) && nearestGroup.Vehicles.Count < SmallGroupVehiclesCount;
-                        var isFarFromBorder = IsFarFromBorderPoint(vehicles, GetVehiclesCenter(vehicles));
-                        if (!isSmallEnemyGroup && Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle && isFarFromBorder)
-                        {
-                            RotateToEnemy(vehicles, groupId);
-                        }
-                        else
-                        {
-                            MoveToEnemy(vehicles, groupId);
-                        }
+                        DoMilitaryAction(vehicles, groupId);
                     }
                     break;
                 case SandvichAction.MovingToEnemy:
                 {
                     if (_world.TickIndex > _groupEndMovementTime[groupId])
                     {
-                        var centerPoint = GetVehiclesCenter(vehicles);
-                        var enemyGroups = GetEnemyVehicleGroups();
-                        var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
-
-                        var angle = MathHelper.GetAnlge(
-                            new Vector(centerPoint,
-                                new Point(centerPoint.X + 100, centerPoint.Y)),
-                            new Vector(centerPoint, nearestGroup.Center));
-
-                        var isSmallEnemyGroup = HasAdvantage(groupId,
-                                                    nearestGroup,
-                                                    enemyGroups,
-                                                    StrongVehiclesCountAdvantage,
-                                                    StrongVehiclesCoeffAdvantage) && nearestGroup.Vehicles.Count <
-                                                SmallGroupVehiclesCount;
-
-                            //var isGroup1Close = false;
-                            //if (groupId == 2 && !_isGroup2Rotated)
-                            //{
-                            //    var g1Vehilces = GetVehicles(1, Ownership.ALLY);
-                            //    if (g1Vehilces.Any() && GetVehiclesCenter(g1Vehilces).GetDistance(nearestGroup.Center) < 700) //TODO: кол-во больше некой константы
-                            //    {
-                            //        isGroup1Close = true;
-                            //    }
-                            //}
-                            //if (isGroup1Close)
-                            //{
-                            //    PrepareToRotate90(vehicles, groupId);
-                            //}
-                            var isFarFromBorder = IsFarFromBorderPoint(vehicles, GetVehiclesCenter(vehicles));
-                        if (!isSmallEnemyGroup && Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle &&
-                            isFarFromBorder)
-                        {
-                            RotateToEnemy(vehicles, groupId);
-                        }
-                        else
-                        {
-                            MoveToEnemy(vehicles, groupId);
-                        }
+                        DoMilitaryAction(vehicles, groupId);
                     }
 
                     break;
                 }
-                //case SandvichAction.NuclearStrike:
-                //    if (_world.TickIndex >= _groupEndMovementTime[groupId]) //TODO: все стоят?
-                //    {
-                //        MoveToEnemy(vehicles, groupId);
-                //    }
-                //    break;
                 case SandvichAction.Uncompress:
                     if (_world.TickIndex > _groupEndMovementTime[groupId]) //TODO: все стоят?
                     {
@@ -1777,32 +1747,58 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 case SandvichAction.NuclearStrike:
                     if (_world.TickIndex > _groupEndMovementTime[groupId])
                     {
-                        var centerPoint = GetVehiclesCenter(vehicles);
-                        var enemyGroups = GetEnemyVehicleGroups();
-                        var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
-                        var angle = MathHelper.GetAnlge(
-                            new Vector(centerPoint,
-                                new Point(centerPoint.X + 100, centerPoint.Y)),
-                            new Vector(centerPoint, nearestGroup.Center));
-
-                        var isSmallEnemyGroup = HasAdvantage(groupId,
-                                                    nearestGroup,
-                                                    enemyGroups,
-                                                    StrongVehiclesCountAdvantage,
-                                                    StrongVehiclesCoeffAdvantage) && nearestGroup.Vehicles.Count <
-                                                SmallGroupVehiclesCount;
-                        var isFarFromBorder = IsFarFromBorderPoint(vehicles, GetVehiclesCenter(vehicles));
-                        if (!isSmallEnemyGroup && Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle && isFarFromBorder)
-                        {
-                            RotateToEnemy(vehicles, groupId);
-                        }
-                        else
-                        {
-                            MoveToEnemy(vehicles, groupId);
-                        }
+                        DoMilitaryAction(vehicles, groupId);
                     }
                     break;
 
+            }
+        }
+
+        private void DoMilitaryAction(IList<Vehicle> vehicles, int groupId)
+        {
+            var centerPoint = GetVehiclesCenter(vehicles);
+            var enemyGroups = GetEnemyVehicleGroups();
+            var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
+            var angle = MathHelper.GetAnlge(
+                new Vector(centerPoint,
+                    new Point(centerPoint.X + 100, centerPoint.Y)),
+                new Vector(centerPoint, nearestGroup.Center));
+
+            var isSmallEnemyGroup = HasAdvantage(groupId,
+                                        nearestGroup,
+                                        enemyGroups,
+                                        StrongVehiclesCountAdvantage,
+                                        StrongVehiclesCoeffAdvantage) && nearestGroup.Vehicles.Count <
+                                    SmallGroupVehiclesCount;
+            var isFarFromBorder = IsFarFromBorderPoint(vehicles, GetVehiclesCenter(vehicles));
+
+            var nearestFacility = GetNearestFacility(centerPoint);
+
+            var currentDistanceToEnemyCenter = centerPoint.GetDistance(nearestGroup.Center);
+            var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
+            var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
+            var myCp = MathHelper.GetNearestRectangleCrossPoint(nearestGroup.Center, myRectangle, centerPoint);
+            var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
+            var requiredDistToEnemyCenter = centerPoint.GetDistance(myCp) + nearestGroup.Center.GetDistance(enemyCp) + ShootingDistance;
+            var isFarFromEnemy = currentDistanceToEnemyCenter > requiredDistToEnemyCenter;
+
+            var isFacilityCloser = nearestFacility != null &&
+                centerPoint.GetDistance(nearestFacility.Left + _game.FacilityWidth / 2d,
+                    nearestFacility.Top + _game.FacilityHeight / 2d) < centerPoint.GetDistance(nearestGroup.Center);
+
+            var hasGroupVehicle = vehicles.Any(v => v.Type != VehicleType.Helicopter && v.Type != VehicleType.Fighter);
+
+            if (hasGroupVehicle && isFacilityCloser && isFarFromEnemy)
+            {
+                MoveToFacility(vehicles, groupId, nearestFacility);
+            }
+            else if (!isSmallEnemyGroup && Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle && isFarFromBorder)
+            {
+                RotateToEnemy(vehicles, groupId);
+            }
+            else
+            {
+                MoveToEnemy(vehicles, groupId);
             }
         }
 
@@ -1905,6 +1901,23 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
 
             return nearestGroup;
+        }
+
+        private Facility GetNearestFacility(Point groupCenter)
+        {
+            var minDist = double.MaxValue;
+            Facility targetFacility = null;
+            foreach (var facility in _world.Facilities.Where(f => f.CapturePoints < _game.MaxFacilityCapturePoints))
+            {
+                var dist = groupCenter.GetDistance(facility.Left + _game.FacilityWidth / 2d,
+                    facility.Top + _game.FacilityHeight / 2d);
+                if (dist < minDist)
+                {
+                    minDist = dist;
+                    targetFacility = facility;
+                }
+            }
+            return targetFacility;
         }
 
         private double GetGroupNuclearDamage(IList<Vehicle> vehicles, double nuclearX, double nuclearY)
@@ -2086,13 +2099,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (x > 0 && GetVisionFactor(_weatherTypeByCellXY[x - 1][y]) < visionFactor) return true;
                     if (y > 0 && GetVisionFactor(_weatherTypeByCellXY[x][y - 1]) < visionFactor) return true;
                     if (x > 0 && y > 0 && GetVisionFactor(_weatherTypeByCellXY[x - 1][y - 1]) < visionFactor) return true;
-                    if (x < _game.TerrainWeatherMapColumnCount && GetVisionFactor(_weatherTypeByCellXY[x + 1][y]) < visionFactor) return true;
-                    if (y < _game.TerrainWeatherMapRowCount && GetVisionFactor(_weatherTypeByCellXY[x][y + 1]) < visionFactor) return true;
-                    if (x < _game.TerrainWeatherMapColumnCount && y < _game.TerrainWeatherMapRowCount &&
+                    if (x < _game.TerrainWeatherMapColumnCount - 1 && GetVisionFactor(_weatherTypeByCellXY[x + 1][y]) < visionFactor) return true;
+                    if (y < _game.TerrainWeatherMapRowCount - 1 && GetVisionFactor(_weatherTypeByCellXY[x][y + 1]) < visionFactor) return true;
+                    if (x < _game.TerrainWeatherMapColumnCount - 1 && y < _game.TerrainWeatherMapRowCount - 1 &&
                         GetVisionFactor(_weatherTypeByCellXY[x + 1][y + 1]) < visionFactor) return true;
 
-                    if (x > 0 && y < _game.TerrainWeatherMapRowCount && GetVisionFactor(_weatherTypeByCellXY[x - 1][y + 1]) < visionFactor) return true;
-                    if (x < _game.TerrainWeatherMapColumnCount && y > 0 && GetVisionFactor(_weatherTypeByCellXY[x + 1][y - 1]) < visionFactor) return true;
+                    if (x > 0 && y < _game.TerrainWeatherMapRowCount - 1 && GetVisionFactor(_weatherTypeByCellXY[x - 1][y + 1]) < visionFactor) return true;
+                    if (x < _game.TerrainWeatherMapColumnCount - 1 && y > 0 && GetVisionFactor(_weatherTypeByCellXY[x + 1][y - 1]) < visionFactor) return true;
                     break;
 
                 case VehicleType.Arrv:
@@ -2102,13 +2115,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (x > 0 && GetVisionFactor(_terrainTypeByCellXY[x - 1][y]) < terrVisionFactor) return true;
                     if (y > 0 && GetVisionFactor(_terrainTypeByCellXY[x][y - 1]) < terrVisionFactor) return true;
                     if (x > 0 && y > 0 && GetVisionFactor(_terrainTypeByCellXY[x - 1][y - 1]) < terrVisionFactor) return true;
-                    if (x < _game.TerrainWeatherMapColumnCount && GetVisionFactor(_terrainTypeByCellXY[x + 1][y]) < terrVisionFactor) return true;
-                    if (y < _game.TerrainWeatherMapRowCount && GetVisionFactor(_terrainTypeByCellXY[x][y + 1]) < terrVisionFactor) return true;
-                    if (x < _game.TerrainWeatherMapColumnCount && y < _game.TerrainWeatherMapRowCount &&
+                    if (x < _game.TerrainWeatherMapColumnCount - 1 && GetVisionFactor(_terrainTypeByCellXY[x + 1][y]) < terrVisionFactor) return true;
+                    if (y < _game.TerrainWeatherMapRowCount - 1 && GetVisionFactor(_terrainTypeByCellXY[x][y + 1]) < terrVisionFactor) return true;
+                    if (x < _game.TerrainWeatherMapColumnCount - 1 && y < _game.TerrainWeatherMapRowCount - 1 &&
                         GetVisionFactor(_terrainTypeByCellXY[x + 1][y + 1]) < terrVisionFactor) return true;
 
-                    if (x > 0 && y < _game.TerrainWeatherMapRowCount && GetVisionFactor(_terrainTypeByCellXY[x - 1][y + 1]) < terrVisionFactor) return true;
-                    if (x < _game.TerrainWeatherMapColumnCount && y > 0 && GetVisionFactor(_terrainTypeByCellXY[x + 1][y - 1]) < terrVisionFactor) return true;
+                    if (x > 0 && y < _game.TerrainWeatherMapRowCount - 1 && GetVisionFactor(_terrainTypeByCellXY[x - 1][y + 1]) < terrVisionFactor) return true;
+                    if (x < _game.TerrainWeatherMapColumnCount - 1 && y > 0 && GetVisionFactor(_terrainTypeByCellXY[x + 1][y - 1]) < terrVisionFactor) return true;
 
                     break;
             }
