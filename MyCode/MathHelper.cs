@@ -22,6 +22,19 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
             return rotate < 0 ? angle : -angle;
         }
 
+        public static double GetVectorAngle(Point p)
+        {
+            if (Math.Abs(p.X) < Tolerance)
+            {
+                if (p.Y > 0) return Math.PI / 2;
+                return -Math.PI / 2;
+            }
+            var angle = Math.Atan(p.Y / p.X);
+            if (p.X < 0 && p.Y < 0) angle -= Math.PI;
+            else if (p.X < 0 && p.Y > 0) angle += Math.PI;
+            return angle;
+        }
+
 
         /// <summary>
         /// </summary>
