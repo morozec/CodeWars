@@ -56,6 +56,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const int WeakAviationHelicoptersCount = 50;
         private const double CloseToRectangleBorderDist = 8d;
 
+        private const double CellSize = 32d;
 
         private bool _isFirstNuclearStrike = true;
 
@@ -216,6 +217,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private WeatherType[][] _weatherTypeByCellXY;
         private World _world;
 
+
+        private double[][] _groundPotentialField;
         
 
         /// <summary>
@@ -284,11 +287,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         }
                     }
                 }
-                else
-                {
-                    var enemyGroups = GetEnemyVehicleGroups();
-                    SetFacilitiesProduction(enemyGroups);
-                }
+
+                if (ExecuteDelayedMove()) return;
+
+                var enemyGroups = GetEnemyVehicleGroups();
+                SetFacilitiesProduction(enemyGroups);
 
                 if (ExecuteDelayedMove()) return;
 
@@ -1000,7 +1003,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private void SetFacilitiesProduction(IList<GroupContainer> enemyGroups)
         {
-            var myFacilities = _world.Facilities.Where(f => f.OwnerPlayerId == _me.Id && f.ProductionProgress == 0);
+            var myFacilities = _world.Facilities.Where(f =>
+                f.Type == FacilityType.VehicleFactory && f.OwnerPlayerId == _me.Id && f.ProductionProgress == 0);
             if (!myFacilities.Any()) return;
             var orderedFacilities = myFacilities.OrderByDescending(f =>
             {
@@ -1467,36 +1471,40 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var strikingVehicle = GetNuclearStrikeVehicle(targetPoint, myVehicles);
             _nuclearVehicleId = strikingVehicle.Id;
 
-            var groupId = strikingVehicle.Groups.Single();
-
-            if (_sandvichActions[groupId] == SandvichAction.Rotating || _sandvichActions[groupId] == SandvichAction.Rotate90)
+            var isUncompressing = false;
+            var groupId = strikingVehicle.Groups.SingleOrDefault();
+            if (groupId != 0)
             {
-                _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
-            }
-
-            var isUncompressing = _sandvichActions[groupId] == SandvichAction.Uncompress;
-            var isCompressing = _sandvichActions[groupId] == SandvichAction.Compressing2;
-
-            if (!isUncompressing && !isCompressing)
-            {
-                if (_selectedGroupId != groupId)
+                if (_sandvichActions[groupId] == SandvichAction.Rotating ||
+                    _sandvichActions[groupId] == SandvichAction.Rotate90)
                 {
-                    _importantDelayedMoves.Enqueue(move =>
-                    {
-                        move.Action = ActionType.ClearAndSelect;
-                        move.Group = groupId;
-                    });
-                    _selectedGroupId = groupId;
+                    _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
                 }
 
-                _importantDelayedMoves.Enqueue(move =>
-                {
-                    move.Action = ActionType.Move;
-                    move.X = 0;
-                    move.Y = 0;
-                });
+                isUncompressing = _sandvichActions[groupId] == SandvichAction.Uncompress;
+                var isCompressing = _sandvichActions[groupId] == SandvichAction.Compressing2;
 
-                _sandvichActions[groupId] = SandvichAction.NuclearStrike;
+                if (!isUncompressing && !isCompressing)
+                {
+                    if (_selectedGroupId != groupId)
+                    {
+                        _importantDelayedMoves.Enqueue(move =>
+                        {
+                            move.Action = ActionType.ClearAndSelect;
+                            move.Group = groupId;
+                        });
+                        _selectedGroupId = groupId;
+                    }
+
+                    _importantDelayedMoves.Enqueue(move =>
+                    {
+                        move.Action = ActionType.Move;
+                        move.X = 0;
+                        move.Y = 0;
+                    });
+
+                    _sandvichActions[groupId] = SandvichAction.NuclearStrike;
+                }
             }
 
             _importantDelayedMoves.Enqueue(move =>
@@ -2076,11 +2084,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
 
             var orderedVehicles = myVehicles
-                .Where(mv => (mv.Groups.Contains(1)
-                    ? group1.Count < SmallGroupVehiclesCount
-                    : group2.Count < SmallGroupVehiclesCount) || !IsCloseToGroupBorder(new Point(mv.X, mv.Y),
-                          mv.Groups.Contains(1) ? group1Rectangle : group2Rectangle,
-                          nuclearStrikePoint))
+                .Where(mv =>
+                {
+                    if (!mv.Groups.Any()) return true;
+                    var group = mv.Groups.Contains(1) ? group1 : group2;
+                    if (group.Count < SmallGroupVehiclesCount) return true;
+
+                    var groupRectangle = mv.Groups.Contains(1) ? group1Rectangle : group2Rectangle;
+                    return !IsCloseToGroupBorder(new Point(mv.X, mv.Y), groupRectangle, nuclearStrikePoint);
+                })
                 .OrderByDescending(v => v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y))
                 .ToList();
 
@@ -2334,30 +2346,29 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 _terrainTypeByCellXY = world.TerrainByCellXY;
                 _weatherTypeByCellXY = world.WeatherByCellXY;
                 _aStar = new AStar(world);
-
-                //создаем группы
-                //var vehicleTypes = Enum.GetValues(typeof(VehicleType)).Cast<VehicleType>();
-                //foreach (var vehicleType in vehicleTypes)
+                //_groundPotentialField = new double[game.TerrainWeatherMapColumnCount][];
+                //for (var i = 0; i < game.TerrainWeatherMapColumnCount; ++i)
                 //{
-
-                //    _groupIndexes.Add(vehicleType, _groupIndex);
-                //    _reversedGroupIndexes.Add(_groupIndex, vehicleType);
-                //    _groupIndex++;
-
-                //    _delayedMoves.Enqueue(move =>
-                //    {
-                //        move.Action = ActionType.ClearAndSelect;
-                //        move.Right = _world.Width;
-                //        move.Bottom = _world.Height;
-                //        move.VehicleType = vehicleType;
-                //    });
-
-                //    _delayedMoves.Enqueue(move =>
-                //    {
-                //        move.Action = ActionType.Assign;
-                //        move.Group = _groupIndexes[vehicleType];
-                //    });
+                //    _groundPotentialField[i] = new double[game.TerrainWeatherMapColumnCount];
                 //}
+            }
+        }
+
+        private void InitFicilitiesField()
+        {
+            var notMyFacilities = _world.Facilities.Where(f => f.CapturePoints < _game.FacilityCaptureScore);
+            foreach (var f in notMyFacilities)
+            {
+                var fPoint = GetFacilityCenterPoint(f);
+                for (var i = 0; i < _game.TerrainWeatherMapColumnCount; ++i)
+                {
+                    for (var j = 0; j < _game.TerrainWeatherMapColumnCount; ++j)
+                    {
+                        var mapPoint = new Point(CellSize * i + CellSize / 2, CellSize * j + CellSize/2);
+                        var dist = mapPoint.GetDistance(fPoint);
+
+                    }
+                }
             }
         }
 
