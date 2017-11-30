@@ -58,6 +58,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private const double CellSize = 32d;
         private const double EnemyVehicleDeltaShootingDist = 200d;
+        private const double CloseBorderDist = 50;
+
+       
+        private IDictionary<int, IList<Vehicle>> _groups = new Dictionary<int, IList<Vehicle>>();
+        private int _lastGroupIndex = -1;
 
         private bool _isFirstNuclearStrike = true;
 
@@ -975,7 +980,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var centerPoint = GetVehiclesCenter(vehicles);
 
             var resFunction = new Point(0d, 0d);
-            var facilityFunction = GetAttractiveFunction(facilityPoint, 0.5, centerPoint.X, centerPoint.Y);
+            var facilityFunction = GetAttractiveFunction(facilityPoint, 1d, centerPoint.X, centerPoint.Y);
             resFunction = new Point(resFunction.X + facilityFunction.X, resFunction.Y + facilityFunction.Y);
             //var enemyVehicles = GetVehicles(Ownership.ENEMY);
             //foreach (var enemy in enemyVehicles)
@@ -984,7 +989,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             //    resFunction = new Point(resFunction.X + enemyFunction.X, resFunction.Y + enemyFunction.Y);
                 
             //}
-            resFunction = new Point(-resFunction.X, -resFunction.Y);
 
             if (Math.Abs(resFunction.X) < Tolerance && Math.Abs(resFunction.Y) < Tolerance) return; //уже в точке
             var angle = MathHelper.GetVectorAngle(resFunction);
@@ -1020,23 +1024,36 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             });
         }
 
-        private void MoveToSomewhere(IList<Vehicle> vehicles, int groupId, Point destPoint, GroupContainer targetGroup = null)
+        private void MoveToSomewhere(IList<Vehicle> vehicles, int groupId, Point destPoint, IList<GroupContainer> enemyGroups, GroupContainer targetGroup = null)
         {
             var centerPoint = GetVehiclesCenter(vehicles);
 
             var resFunction = new Point(0d, 0d);
-            var attractiveFunction = GetAttractiveFunction(destPoint, 0.5, centerPoint.X, centerPoint.Y);
+            var attractiveFunction = GetAttractiveFunction(destPoint, 1d, centerPoint.X, centerPoint.Y);
             resFunction = new Point(resFunction.X + attractiveFunction.X, resFunction.Y + attractiveFunction.Y);
-
-            var enemyVehicles = GetVehicles(Ownership.ENEMY);
-            foreach (var enemy in enemyVehicles)
+            
+            
+            foreach (var group in enemyGroups)
             {
-                if (targetGroup != null && targetGroup.Vehicles.Contains(enemy)) continue;
-                var enemyFunction = GetEnemyVehicleRepulsiveFunction(enemy, 5E6, vehicles, groupId == 1);
+                if (targetGroup != null && Equals(group, targetGroup)) continue;
+                var advantage = GetAdvantage(vehicles, group);
+                if (advantage > 0) continue;
+                var enemyFunction = GetEnemyGroupRepulsiveFunction(group, 1d, vehicles);
                 resFunction = new Point(resFunction.X + enemyFunction.X, resFunction.Y + enemyFunction.Y);
-
             }
-            resFunction = new Point(-resFunction.X, -resFunction.Y);
+            var borderFunction = GetBorderRepulsiveFunction(vehicles);
+            resFunction = new Point(resFunction.X + borderFunction.X, resFunction.Y + borderFunction.Y);
+             
+            foreach (var key in _groups.Keys)
+            {
+                if (key == groupId) continue;
+                var allyFunction = GetAllyGroupRepulsiveFunction(vehicles, _groups[key], 1d);
+                resFunction = new Point(resFunction.X + allyFunction.X, resFunction.Y + allyFunction.Y);
+            }
+            var vehicles0 =
+                _vehicleById.Values.Where(x => x.PlayerId == _me.Id && !x.Groups.Any()).ToList();
+            var allyNoGroupsfunction = GetAllyNoGroupRepulsiveFunction(vehicles, vehicles0, 1d);
+            resFunction = new Point(resFunction.X + allyNoGroupsfunction.X, resFunction.Y + allyNoGroupsfunction.Y);
 
             if (Math.Abs(resFunction.X) < Tolerance && Math.Abs(resFunction.Y) < Tolerance) return; //уже в точке
             var angle = MathHelper.GetVectorAngle(resFunction);
@@ -1044,7 +1061,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var isStatic = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
                            Math.Abs(angle - _currentMovingAngle[groupId]) < Tolerance; //угол тот же
 
-            Debug.line(centerPoint.X, centerPoint.Y, centerPoint.X + resFunction.X, centerPoint.Y + resFunction.Y, 0x000000);
+
+            var destPointDist = centerPoint.GetDistance(destPoint);
+            var resVector = new Vector(new Point(0d, 0d), resFunction);
+            var coeff = destPointDist / resVector.Length;
+            resVector.Mult(coeff);
+
+            Debug.line(centerPoint.X, centerPoint.Y, centerPoint.X + resVector.V.X, centerPoint.Y + resVector.V.Y, 0x000000);
 
             if (isStatic) return;
 
@@ -1065,8 +1088,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             _delayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.Move;
-                move.X = resFunction.X;
-                move.Y = resFunction.Y;
+                move.X = resVector.V.X;
+                move.Y = resVector.V.Y;
                 move.MaxSpeed = speed;
                 _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
                 _currentMoveEnemyPoint[groupId] = new Point(destPoint.X, destPoint.Y);
@@ -1535,21 +1558,25 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private double GetAdvantage(IList<Vehicle> myVehicles, GroupContainer enemyGroup)
         {
-            var mySum = 0d;
+            var mySumDamage = 0d;
             foreach (var myV in myVehicles)
             {
-                var sum = enemyGroup.Vehicles.Sum(enemyV => GetDamage(myV.Type, enemyV.Type));
-                mySum += sum / enemyGroup.Vehicles.Count;
+                var damage = enemyGroup.Vehicles.Sum(enemyV => GetDamage(myV.Type, enemyV.Type));
+                mySumDamage += damage / enemyGroup.Vehicles.Count;
             }
+            var mySumDurability = myVehicles.Sum(v => v.Durability);
 
-            var enemySum = 0d;
+            var enemySumDamage = 0d;
             foreach (var enemyV in enemyGroup.Vehicles)
             {
-                var sum = myVehicles.Sum(myV => GetDamage(enemyV.Type, myV.Type));
-                enemySum += sum / myVehicles.Count;
+                var damage = myVehicles.Sum(myV => GetDamage(enemyV.Type, myV.Type));
+                enemySumDamage += damage / myVehicles.Count;
             }
+            var enemySumDurability = enemyGroup.Vehicles.Sum(v => v.Durability);
 
-            return mySum - enemySum;
+            var myPower = mySumDamage / enemySumDurability;
+            var enemyPower = enemySumDamage / mySumDurability;
+            return myPower - enemyPower;
         }
 
 
@@ -1996,25 +2023,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             if (groupId == 2)
             {
-                var maxAdvange = -double.MaxValue;
-                GroupContainer targetGroup = null;
-                foreach (var g in enemyGroups)
-                {
-                    var advantage = GetAdvantage(vehicles, g);
-                    if (advantage > 0 && advantage > maxAdvange)
-                    {
-                        maxAdvange = advantage;
-                        targetGroup = g;
-                    }
-                }
+                var targetGroup = GetNearestAdvantageEnemyGroup(enemyGroups, vehicles);
 
                 if (targetGroup != null)
                 {
-                    MoveToSomewhere(vehicles, groupId, targetGroup.Center, targetGroup);
-                }
-                else
-                {
-                    MoveToSomewhere(vehicles, groupId, new Point(1000, 1000));
+                    MoveToSomewhere(vehicles, groupId, targetGroup.Center, enemyGroups, targetGroup);
                 }
 
                 //MoveToSomewhere(vehicles, groupId, new Point(1000, 1000));
@@ -2113,6 +2126,31 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             return maxValueGc;
         }
 
+        private GroupContainer GetNearestAdvantageEnemyGroup(IList<GroupContainer> enemyGroups, IList<Vehicle> myVehicles)
+        {
+            var hasBigGroups = enemyGroups.Any(g => g.Vehicles.Count >= ConsiderGroupVehiclesCount);
+            var center = GetVehiclesCenter(myVehicles);
+
+            GroupContainer nearestGroup = null;
+            var minDist = double.MaxValue;
+            foreach (var eg in enemyGroups)
+            {
+                if (hasBigGroups && eg.Vehicles.Count < ConsiderGroupVehiclesCount) continue;
+                var advantage = GetAdvantage(myVehicles, eg);
+                if (advantage < 0) continue;
+
+                var dist = eg.Center.GetDistance(center.X, center.Y);
+                if (dist < minDist)
+                {
+                    minDist = dist;
+                    nearestGroup = eg;
+                }
+            }
+
+            return nearestGroup;
+        }
+
+
         private GroupContainer GetNearestEnemyGroup(IList<GroupContainer> enemyGroups, double centerX, double centerY)
         {
             var hasBigGroups = enemyGroups.Any(g => g.Vehicles.Count >= ConsiderGroupVehiclesCount);
@@ -2122,7 +2160,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             foreach (var eg in enemyGroups)
             {
                 if (hasBigGroups && eg.Vehicles.Count < ConsiderGroupVehiclesCount) continue;
-
+                
                 var dist = eg.Center.GetDistance(centerX, centerY);
                 if (dist < minDist)
                 {
@@ -2561,7 +2599,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private Point GetAttractiveFunction(Point destPoint, double coeff, double x, double y)
         {
-            return new Point(2 * coeff * (x - destPoint.X), 2 * coeff * (y - destPoint.Y));
+            var dist = destPoint.GetDistance(x, y);
+            return new Point(- coeff * (x - destPoint.X)/dist, - coeff * (y - destPoint.Y)/dist);
         }
 
         private Point GetEnemyVehicleRepulsiveFunction(Vehicle enemyVehicle, double coeff, IList<Vehicle> vehicles, bool isGroundAttak)
@@ -2570,9 +2609,143 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var centerPoint = GetVehiclesCenter(vehicles);
             var dist = centerPoint.GetDistance(enemyVehicle.X, enemyVehicle.Y);
             if (dist > radius) return new Point(0d, 0d);
-            var x = -2 * coeff * (centerPoint.X - enemyVehicle.X) * (1 / dist - 1 / radius) / Math.Pow(dist, 3d);
-            var y = -2 * coeff * (centerPoint.Y - enemyVehicle.Y) * (1 / dist - 1 / radius) / Math.Pow(dist, 3d);
+            var x = coeff * (centerPoint.X - enemyVehicle.X) * (1 / dist - 1 / radius) / Math.Pow(dist, 3d);
+            var y = coeff * (centerPoint.Y - enemyVehicle.Y) * (1 / dist - 1 / radius) / Math.Pow(dist, 3d);
             return new Point(x, y);
+        }
+
+        private Point GetEnemyGroupRepulsiveFunction(GroupContainer groupContainer, double coeff,
+            IList<Vehicle> vehicles)
+        {
+            var enemyRectangle =
+                MathHelper.GetJarvisRectangle(groupContainer.Vehicles.Select(v => new Point(v.X, v.Y)).ToList());
+            var myRectangle =
+                MathHelper.GetJarvisRectangle(vehicles.Select(v => new Point(v.X, v.Y)).ToList());
+            var myCenter = GetVehiclesCenter(vehicles);
+
+            var enemyCp = MathHelper.GetNearestRectangleCrossPoint(myCenter, enemyRectangle, groupContainer.Center);
+            var myCp = MathHelper.GetNearestRectangleCrossPoint(groupContainer.Center, myRectangle, myCenter);
+
+            var crossPointsDist = enemyCp.GetDistance(myCp);
+            if (crossPointsDist > EnemyVehicleDeltaShootingDist) return new Point(0d, 0d);
+
+            var radius = groupContainer.Center.GetDistance(enemyCp) + EnemyVehicleDeltaShootingDist;
+
+            Debug.circle(groupContainer.Center.X, groupContainer.Center.Y, radius, 0xFF0000);
+
+            var myCenterDist = myCenter.GetDistance(groupContainer.Center);
+            double x, y;
+            if (myCenterDist < radius / 2)
+            {
+                x = coeff * (myCenter.X - groupContainer.Center.X) / myCenterDist;
+                y = coeff * (myCenter.Y - groupContainer.Center.Y) / myCenterDist;
+            }
+            else
+            {
+                x = 2 * coeff * (myCenter.X - groupContainer.Center.X) * (1 / myCenterDist - 1 / radius);
+                y = 2 * coeff * (myCenter.Y - groupContainer.Center.Y) * (1 / myCenterDist - 1 / radius);
+            }
+            
+            return new Point(x, y);
+        }
+
+        private bool IsGroundGroup(IList<Vehicle> vehicles)
+        {
+            return vehicles.Any(v =>
+                v.Type == VehicleType.Arrv || v.Type == VehicleType.Ifv || v.Type == VehicleType.Tank);
+        }
+
+        private bool IsAirGroup(IList<Vehicle> vehicles)
+        {
+            return vehicles.Any(v =>
+                v.Type == VehicleType.Helicopter || v.Type == VehicleType.Fighter);
+        }
+
+        private Point GetAllyGroupRepulsiveFunction(IList<Vehicle> thisVehicles, IList<Vehicle> otherVehicles, double coeff)
+        {
+            var isThisGround = IsGroundGroup(thisVehicles);
+            var isThisAir = IsAirGroup(thisVehicles);
+            var isOtherGround = IsGroundGroup(otherVehicles);
+            var isOtherAir = IsAirGroup(otherVehicles);
+
+            if (isThisGround && !isOtherGround || isThisAir && !isOtherAir || isOtherGround && !isThisGround ||
+                isOtherAir && !isThisAir) return new Point(0d, 0d);
+
+            var myCenter = GetVehiclesCenter(thisVehicles);
+            var myRadius = GetSandvichRadius(thisVehicles);
+            var otherCenter = GetVehiclesCenter(otherVehicles);
+            var otherRadius = GetSandvichRadius(otherVehicles);
+
+            var centersDist = myCenter.GetDistance(otherCenter);
+            if (centersDist > myRadius + otherRadius + EnemyVehicleDeltaShootingDist) return new Point(0d, 0d);
+            
+            double x, y;
+            if (centersDist < myRadius + otherRadius)
+            {
+                x = coeff * (myCenter.X - otherCenter.X) / centersDist;
+                y = coeff * (myCenter.Y - otherCenter.Y) / centersDist;
+            }
+            else
+            {
+                x = 2 * coeff * (myCenter.X - otherCenter.X) * (1 / centersDist - 1 / (myRadius + otherRadius + EnemyVehicleDeltaShootingDist));
+                y = 2 * coeff * (myCenter.Y - otherCenter.Y) * (1 / centersDist - 1 / (myRadius + otherRadius + EnemyVehicleDeltaShootingDist));
+            }
+
+            return new Point(x, y);
+        }
+
+
+        private Point GetAllyNoGroupRepulsiveFunction(IList<Vehicle> thisVehicles, IList<Vehicle> otherVehicles, double coeff)
+        {
+            var isThisGround = IsGroundGroup(thisVehicles);
+            var isThisAir = IsAirGroup(thisVehicles);
+            var myCenter = GetVehiclesCenter(thisVehicles);
+            var myRadius = GetSandvichRadius(thisVehicles);
+
+            var resPoint = new Point(0d, 0d);
+
+            foreach (var v in otherVehicles)
+            {
+                var isGroundVehicle = v.Type == VehicleType.Arrv || v.Type == VehicleType.Ifv ||
+                                      v.Type == VehicleType.Tank;
+                if (isThisGround && !isGroundVehicle) continue; 
+                if (isThisAir && isGroundVehicle) continue; 
+
+                var centersDist = myCenter.GetDistance(v.X, v.Y);
+                if (centersDist > myRadius + EnemyVehicleDeltaShootingDist) continue;
+                
+                double x, y;
+                if (centersDist < myRadius)
+                {
+                    x = coeff * (myCenter.X - v.X) / centersDist;
+                    y = coeff * (myCenter.Y - v.Y) / centersDist;
+                }
+                else
+                {
+                    x = 2 * coeff * (myCenter.X - v.X) * (1 / centersDist - 1 / (myRadius + EnemyVehicleDeltaShootingDist));
+                    y = 2 * coeff * (myCenter.Y - v.Y) * (1 / centersDist - 1 / (myRadius + EnemyVehicleDeltaShootingDist));
+                }
+
+                resPoint = new Point(resPoint.X + x, resPoint.Y + y);
+            }
+
+            return resPoint;
+        }
+
+
+        private Point GetBorderRepulsiveFunction(IList<Vehicle> vehicles)
+        {
+            var resPoint = new Point(0d, 0d);
+
+            var center = GetVehiclesCenter(vehicles);
+            var radius = GetSandvichRadius(vehicles);
+
+            if (center.X - radius < CloseBorderDist) resPoint = new Point(resPoint.X + 1d, resPoint.Y);
+            if (center.Y - radius < CloseBorderDist) resPoint = new Point(resPoint.X, resPoint.Y + 1d);
+            if (center.X + radius > _world.Width - CloseBorderDist) resPoint = new Point(resPoint.X - 1d, resPoint.Y);
+            if (center.Y + radius > _world.Height - CloseBorderDist) resPoint = new Point(resPoint.X, resPoint.Y - 1d);
+
+            return resPoint;
         }
 
         /// <summary>
@@ -2622,6 +2795,17 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 }
             }
 
+            _groups = new Dictionary<int, IList<Vehicle>>();
+            for (var i = 1; i <= _lastGroupIndex; ++i)
+            {
+                _groups.Add(i, GetVehicles(i, Ownership.ALLY));
+            }
+
+        }
+
+        private void CreateNewGroups()
+        {
+            
         }
 
         /// <summary>
@@ -2683,6 +2867,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 move.Action = ActionType.Assign;
                 move.Group = 2;
+                _lastGroupIndex = 2;
             });
         }
 
@@ -2717,6 +2902,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 move.Action = ActionType.Assign;
                 move.Group = 1;
+                _lastGroupIndex = 1;
             });
         }
 
