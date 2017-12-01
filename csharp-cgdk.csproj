@@ -92,6 +92,7 @@
     <Compile Include="MyCode\ASquare.cs" />
     <Compile Include="MyCode\AStar.cs" />
     <Compile Include="MyCode\Calculator.cs" />
+    <Compile Include="MyCode\Circle.cs" />
     <Compile Include="MyCode\Debug.cs" />
     <Compile Include="MyCode\ExpansionMatrixConteiner.cs" />
     <Compile Include="MyCode\GroupContainer.cs" />

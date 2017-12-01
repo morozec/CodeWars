@@ -133,6 +133,35 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
                 ((p1.X * p2.Y - p1.Y*p2.X)*(p3.Y - p4.Y) - (p1.Y - p2.Y)*(p3.X*p4.Y-p3.Y*p4.X))/((p1.X-p2.X)*(p3.Y - p4.Y)-(p1.Y-p2.Y)*(p3.X-p4.X))
                 );
         }
+
+        public static Point GetVectorCircleCrossPoint(Vector v, Circle circle)
+        {
+            var A = v.P1.Y - v.P2.Y;
+            var B = v.P2.X - v.P1.X;
+            var C = v.P1.X * v.P2.Y - v.P2.X * v.P1.Y;
+
+            var k = -A / B;
+            var b = -C / B;
+
+            var d1 = Math.Pow(k * (b - circle.Y) - circle.X, 2) -
+                     (1 + k * k) * (circle.X * circle.X + Math.Pow(b - circle.Y, 2) - circle.R * circle.R);
+            if (d1 < 0) return null;
+
+            var x1 = -k * (b - circle.Y) + circle.X + Math.Sqrt(d1);
+            var y1 = k * x1 + b;
+            var p1 = new Point(x1, y1);
+
+            var x2 = -k * (b - circle.Y) + circle.X - Math.Sqrt(d1);
+            var y2 = k * x2 + b;
+            var p2 = new Point(x2, y2);
+
+            if (!circle.IsInside(v.P2.X, v.P2.Y))
+            {
+                return p1.GetDistance(v.P2) < p2.GetDistance(v.P2) ? p1 : p2;
+            }
+
+            return p1.GetDistance(v.P2) < p1.GetDistance(v.P1) ? p1 : p2;
+        }
         
 
         public static Rectangle GetJarvisRectangle(IList<Point> a)
