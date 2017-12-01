@@ -61,7 +61,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const double CloseBorderDist = 50;
 
 
-        private const int SquardCount = 33;
+        private const int SquardCount = 11;
        
         private IDictionary<int, IList<Vehicle>> _groups = new Dictionary<int, IList<Vehicle>>();
         private int _lastGroupIndex = -1;
@@ -174,11 +174,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {1, SandvichAction.AStarMove },
             {2, SandvichAction.AStarMove },
         };
-        //private readonly IDictionary<int, bool> _isGroupCompressed = new Dictionary<int, bool>()
-        //{
-        //    {1, false },
-        //    {2, false },
-        //};
 
         private readonly IDictionary<int, double> _groupEndMovementTime = new Dictionary<int, double>()
         {
@@ -275,30 +270,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     _delayedMoves.Clear();
                     _isEnemyNuclearStrikeConsidered = true;
 
-                    if (_selectedGroupId == 1 || _selectedGroupId == -1)
+                    if (_groups.ContainsKey(_selectedGroupId) && NeedNuclearUncompress(_groups[_selectedGroupId]))
                     {
-                        var vehicles1 = GetVehicles(1, Ownership.ALLY);
-                        if (vehicles1.Any() && NeedNuclearUncompress(vehicles1))
-                        {
-                            Uncompress(1);
-                        }
-                        var vehicles2 = GetVehicles(2, Ownership.ALLY);
-                        if (vehicles2.Any() && NeedNuclearUncompress(vehicles2))
-                        {
-                            Uncompress(2);
-                        }
+                        Uncompress(_selectedGroupId);
                     }
-                    else if (_selectedGroupId == 2)
+                    foreach (var key in _groups.Keys)
                     {
-                        var vehicles2 = GetVehicles(2, Ownership.ALLY);
-                        if (vehicles2.Any() && NeedNuclearUncompress(vehicles2))
+                        if (key == _selectedGroupId) continue;
+                        if (NeedNuclearUncompress(_groups[key]))
                         {
-                            Uncompress(2);
-                        }
-                        var vehicles1 = GetVehicles(1, Ownership.ALLY);
-                        if (vehicles1.Any() && NeedNuclearUncompress(vehicles1))
-                        {
-                            Uncompress(1);
+                            Uncompress(key);
                         }
                     }
                 }
@@ -314,17 +295,49 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                 if (ExecuteDelayedMove()) return;
 
-                if (_selectedGroupId == 1 || _selectedGroupId == -1)
+                if (_groups.ContainsKey(_selectedGroupId))
                 {
-                    SandvichMove(1, IsGroundAStarMoveFinished, GroundShift, GroundCompress);
+                    IsAStarMoveFinished isAStarMoveFinished = null;
+                    Shift shift = null;
+                    Compress compress = null;
+                    if (_selectedGroupId == 1)
+                    {
+                        isAStarMoveFinished = IsGroundAStarMoveFinished;
+                        shift = GroundShift;
+                        compress = GroundCompress;
+                    }
+                    else if (_selectedGroupId == 2)
+                    {
+                        isAStarMoveFinished = IsAirAStarMoveFinished;
+                        shift = AirShift;
+                        compress = AirCompress;
+                    }
+                    SandvichMove(_selectedGroupId, isAStarMoveFinished, shift, compress);
                     if (ExecuteDelayedMove()) return;
-                    SandvichMove(2, IsAirAStarMoveFinished, AirShift, AirCompress);
                 }
-                else if (_selectedGroupId == 2)
+
+
+                foreach (var key in _groups.Keys)
                 {
-                    SandvichMove(2, IsAirAStarMoveFinished, AirShift, AirCompress);
-                    if (ExecuteDelayedMove())  return;
-                    SandvichMove(1, IsGroundAStarMoveFinished, GroundShift, GroundCompress);
+                    if (key == _selectedGroupId) continue;
+                    IsAStarMoveFinished isAStarMoveFinished = null;
+                    Shift shift = null;
+                    Compress compress = null;
+                    if (key == 1)
+                    {
+                        isAStarMoveFinished = IsGroundAStarMoveFinished;
+                        shift = GroundShift;
+                        compress = GroundCompress;
+                    }
+                    else if (key == 2)
+                    {
+                        isAStarMoveFinished = IsAirAStarMoveFinished;
+                        shift = AirShift;
+                        compress = AirCompress;
+                    }
+
+                    SandvichMove(key, isAStarMoveFinished, shift, compress);
+                    if (ExecuteDelayedMove()) return;
                 }
             }
 
@@ -1492,74 +1505,72 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         {
             var vehicles = GetVehicles(groupId, Ownership.ALLY);
             var enemyWeight = enemyGroup.Vehicles.Aggregate(0d, (current, v) => current + v.Durability);
-            switch (groupId)
+            if (groupId % 2 == 1)
             {
-                case 1:
-                    var myWeight = vehicles.Aggregate(0d, (current, v) => current + v.Durability);
-                    var g2 = GetVehicles(2, Ownership.ALLY);
-                    if (g2.Any())
+
+                var myWeight = vehicles.Aggregate(0d, (current, v) => current + v.Durability);
+                var g2 = GetVehicles(2, Ownership.ALLY);
+                if (g2.Any())
+                {
+                    var centerPoint = GetVehiclesCenter(g2);
+                    var g2NearestEnemy = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
+
+                    if (centerPoint.GetDistance(g2NearestEnemy.Center) < CloseFriendDistance &&
+                        g2NearestEnemy.Center.GetDistance(enemyGroup.Center) < Tolerance)
                     {
-                        var centerPoint = GetVehiclesCenter(g2);
-                        var g2NearestEnemy = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
-
-                        if (centerPoint.GetDistance(g2NearestEnemy.Center) < CloseFriendDistance &&
-                            g2NearestEnemy.Center.GetDistance(enemyGroup.Center) < Tolerance)
-                        {
-                            myWeight = g2.Aggregate(myWeight, (current, v) => current + v.Durability);
-                        }
+                        myWeight = g2.Aggregate(myWeight, (current, v) => current + v.Durability);
                     }
+                }
 
+                return myWeight - enemyWeight >= _game.TankDurability * vehiclesCountAdvantage ||
+                       myWeight * 1d / enemyWeight >= vehiclesCoeffAdvantage;
+            }
+            else
+            {
+                var myWeight = vehicles.Aggregate(0d, (current, v) => current + v.Durability);
+
+                var g1 = GetVehicles(1, Ownership.ALLY);
+                var hasCloseG1 = false;
+                if (g1.Any())
+                {
+                    var centerPoint = GetVehiclesCenter(g1);
+                    var g1NearestEnemy = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
+
+                    if (centerPoint.GetDistance(g1NearestEnemy.Center) < CloseFriendDistance &&
+                        g1NearestEnemy.Center.GetDistance(enemyGroup.Center) < Tolerance)
+                    {
+                        hasCloseG1 = true;
+                    }
+                }
+
+                if (hasCloseG1)
+                {
+                    myWeight = g1.Aggregate(myWeight, (current, v) => current + v.Durability);
                     return myWeight - enemyWeight >= _game.TankDurability * vehiclesCountAdvantage ||
                            myWeight * 1d / enemyWeight >= vehiclesCoeffAdvantage;
-                case 2:
+                }
 
-                    myWeight = vehicles.Aggregate(0d, (current, v) => current + v.Durability);
-
-                    var g1 = GetVehicles(1, Ownership.ALLY);
-                    var hasCloseG1 = false;
-                    if (g1.Any())
+                var otherEnemyWeight = 0d;
+                foreach (var v in enemyGroup.Vehicles)
+                {
+                    switch (v.Type)
                     {
-                        var centerPoint = GetVehiclesCenter(g1);
-                        var g1NearestEnemy = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
-
-                        if (centerPoint.GetDistance(g1NearestEnemy.Center) < CloseFriendDistance &&
-                            g1NearestEnemy.Center.GetDistance(enemyGroup.Center) < Tolerance)
-                        {
-                            hasCloseG1 = true;
-                        }
+                        case VehicleType.Fighter:
+                            otherEnemyWeight += 1 * v.Durability;
+                            break;
+                        case VehicleType.Helicopter:
+                            otherEnemyWeight += 1 * v.Durability;
+                            break;
+                        case VehicleType.Tank:
+                            otherEnemyWeight += 1 * v.Durability;
+                            break;
+                        case VehicleType.Ifv:
+                            otherEnemyWeight += 3 * v.Durability;
+                            break;
                     }
+                }
 
-                    if (hasCloseG1)
-                    {
-                        myWeight = g1.Aggregate(myWeight, (current, v) => current + v.Durability);
-                        return myWeight - enemyWeight >= _game.TankDurability * vehiclesCountAdvantage ||
-                               myWeight * 1d / enemyWeight >= vehiclesCoeffAdvantage;
-                    }
-
-                    var otherEnemyWeight = 0d;
-                    foreach (var v in enemyGroup.Vehicles)
-                    {
-                        switch (v.Type)
-                        {
-                            case VehicleType.Fighter:
-                                otherEnemyWeight += 1 * v.Durability;
-                                break;
-                            case VehicleType.Helicopter:
-                                otherEnemyWeight += 1 * v.Durability;
-                                break;
-                            case VehicleType.Tank:
-                                otherEnemyWeight += 1 * v.Durability;
-                                break;
-                            case VehicleType.Ifv:
-                                otherEnemyWeight += 3 * v.Durability;
-                                break;
-                        }
-                    }
-
-                    return myWeight >= otherEnemyWeight;
-
-                default:
-                    throw new Exception("Unknown group id");
+                return myWeight >= otherEnemyWeight;
             }
         }
 
@@ -1865,18 +1876,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private double GetGroupMaxSpeed(int groupId)
         {
-            //var vehicles = GetVehicles(groupId, Ownership.ALLY);
-            //return vehicles.Select(v => GetActualMaxSpeed(v)).Min();
-
-            switch (groupId)
+            if (groupId % 2 == 1)
             {
-                case 1:
-                    return _game.TankSpeed * _game.SwampTerrainSpeedFactor;
-                case 2:
-                    return _game.HelicopterSpeed * _game.RainWeatherSpeedFactor;
-                default:
-                    throw new Exception("Unkonw group id");
+                return _game.TankSpeed * _game.SwampTerrainSpeedFactor;
             }
+            return _game.HelicopterSpeed * _game.RainWeatherSpeedFactor;
         }
 
         private bool NeedNuclearUncompress(IList<Vehicle> vehicles)
@@ -2028,7 +2032,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             var hasGroundVehicle = vehicles.Any(v => v.Type != VehicleType.Helicopter && v.Type != VehicleType.Fighter);
 
-            if (groupId == 2)
+            if (groupId % 2 == 0)
             {
                 var targetGroup = GetNearestAdvantageEnemyGroup(enemyGroups, vehicles);
 
@@ -2859,6 +2863,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     move.Action = ActionType.Assign;
                     move.Group = index;
                     _lastGroupIndex = Math.Max(_lastGroupIndex, index);
+
+                    _sandvichActions.Add(index, SandvichAction.MovingToEnemy);
+                    _groupEndMovementTime.Add(index, 0d);
+                    _groupStartUncompressTick.Add(index, -1);
+                    _currentGroupAngle.Add(index, Math.PI / 2d);
+                    _tmpGroupAngle.Add(index, 0d);
+                    _currentAngularSpeed.Add(index, 0d);
+                    _currentMoveEnemyPoint.Add(index, new Point(0d, 0d));
+                    _currentMovingAngle.Add(index, 0d);
                 });
 
             }
