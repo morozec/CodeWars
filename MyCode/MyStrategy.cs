@@ -60,6 +60,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const double EnemyVehicleDeltaShootingDist = 200d;
         private const double CloseBorderDist = 50;
 
+
+        private const int SquardCount = 33;
        
         private IDictionary<int, IList<Vehicle>> _groups = new Dictionary<int, IList<Vehicle>>();
         private int _lastGroupIndex = -1;
@@ -229,8 +231,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private WeatherType[][] _weatherTypeByCellXY;
         private World _world;
 
-
+        private IList<Vehicle> _enemyVehicles;
         private double[][] _groundPotentialField;
+
         
 
         /// <summary>
@@ -302,7 +305,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                 if (ExecuteDelayedMove()) return;
 
-                var enemyGroups = GetEnemyVehicleGroups();
+                CreateNewGroups();
+
+                if (ExecuteDelayedMove()) return;
+
+                var enemyGroups = GetVehicleGroups(_enemyVehicles);
                 SetFacilitiesProduction(enemyGroups);
 
                 if (ExecuteDelayedMove()) return;
@@ -882,7 +889,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             var centerPoint = GetVehiclesCenter(vehicles);
 
-            var enemyGroups = GetEnemyVehicleGroups();
+            var enemyGroups = GetVehicleGroups(_enemyVehicles);
             var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
 
             //var rectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
@@ -1129,7 +1136,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         {
             var centerPoint = GetVehiclesCenter(vehicles);
 
-            var enemyGroups = GetEnemyVehicleGroups();
+            var enemyGroups = GetVehicleGroups(_enemyVehicles);
             var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
             
             var hasAdvantege = HasAdvantage(groupId, nearestGroup, enemyGroups, WeakVehiclesCountAdvantage, WeakVehiclesCoeffAdvantage);
@@ -1309,7 +1316,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             var centerPoint = GetVehiclesCenter(vehicles);
 
-            var enemyGroups = GetEnemyVehicleGroups();
+            var enemyGroups = GetVehicleGroups(_enemyVehicles);
             var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
 
             var currentDistanceToEnemyCenter = centerPoint.GetDistance(nearestGroup.Center);
@@ -1443,7 +1450,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         {
             var centerPoint = GetVehiclesCenter(vehicles);
 
-            var enemyGroups = GetEnemyVehicleGroups();
+            var enemyGroups = GetVehicleGroups(_enemyVehicles);
             var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
 
             var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
@@ -1656,7 +1663,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private bool MakeNuclearStrike()
         {
-            var enemyGroups = GetEnemyVehicleGroups();
+            var enemyGroups = GetVehicleGroups(_enemyVehicles);
             var targetPoint = GetNuclearStrikeEnemyPoint(enemyGroups);
             var myVehicles = GetVehicles(Ownership.ALLY);
 
@@ -1990,7 +1997,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private void DoMilitaryAction(IList<Vehicle> vehicles, int groupId)
         {
             var centerPoint = GetVehiclesCenter(vehicles);
-            var enemyGroups = GetEnemyVehicleGroups();
+            var enemyGroups = GetVehicleGroups(_enemyVehicles);
             var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
             var angle = MathHelper.GetAnlge(
                 new Vector(centerPoint,
@@ -2034,7 +2041,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
             else if (hasGroundVehicle && isFacilityCloser && isFarFromEnemy)
             {
-                MoveToFacility(vehicles, groupId, nearestFacility);
+                MoveToSomewhere(vehicles, groupId, GetFacilityCenterPoint(nearestFacility), enemyGroups);
             }
             else if (!isSmallEnemyGroup && Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle && isFarFromBorder)
             {
@@ -2052,15 +2059,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         }
        
 
-        private IList<GroupContainer> GetEnemyVehicleGroups()
+        private IList<GroupContainer> GetVehicleGroups(IList<Vehicle> vehicles)
         {
             IList<GroupContainer> groupContainers = new List<GroupContainer>();
-            var enemyVehicles = GetVehicles(Ownership.ENEMY);
 
-            var counter = 0;
-            foreach (var v in enemyVehicles)
+            foreach (var v in vehicles)
             {
-                counter++;
                 var okGroupContainers = new List<GroupContainer>();
                 foreach (var gc in groupContainers)
                 {
@@ -2798,14 +2802,67 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             _groups = new Dictionary<int, IList<Vehicle>>();
             for (var i = 1; i <= _lastGroupIndex; ++i)
             {
-                _groups.Add(i, GetVehicles(i, Ownership.ALLY));
+                var vehicles = GetVehicles(i, Ownership.ALLY);
+                if (vehicles.Any())
+                    _groups.Add(i, vehicles);
             }
+
+            _enemyVehicles = GetVehicles(Ownership.ENEMY);
 
         }
 
         private void CreateNewGroups()
         {
+            if (_lastGroupIndex < 2) return;
+
+            var vehicles0 =
+                _vehicleById.Values.Where(x => x.PlayerId == _me.Id && !x.Groups.Any()).ToList();
+
+            var groupContainers = GetVehicleGroups(vehicles0);
             
+            foreach (var gc in groupContainers)
+            {
+                if (gc.Vehicles.Count < SquardCount) continue;
+                var groundCount = gc.Vehicles.Count(v =>
+                    v.Type == VehicleType.Arrv || v.Type == VehicleType.Ifv || v.Type == VehicleType.Tank);
+                var airCount =
+                    gc.Vehicles.Count(v => v.Type == VehicleType.Helicopter || v.Type == VehicleType.Fighter);
+                var isGround = groundCount > airCount;
+
+                int index;
+                if (isGround)
+                {
+                    index = _groups.Keys.Where(k => k % 2 == 1).Max() + 2;
+                }
+                else
+                {
+                    index = _groups.Keys.Where(k => k % 2 == 0).Max() + 2;
+                }
+
+                _importantDelayedMoves.Enqueue(move =>
+                {
+                    var left = gc.Vehicles.Select(v => v.X).Min();
+                    var right = gc.Vehicles.Select(v => v.X).Max();
+                    var top = gc.Vehicles.Select(v => v.Y).Min();
+                    var bottom = gc.Vehicles.Select(v => v.Y).Max();
+
+                    move.Action = ActionType.ClearAndSelect;
+                    move.Left = left - Tolerance;
+                    move.Right = right + Tolerance;
+                    move.Top = top - Tolerance;
+                    move.Bottom = bottom + Tolerance;
+                });
+                _selectedGroupId = index;
+
+                _importantDelayedMoves.Enqueue(move =>
+                {
+                    move.Action = ActionType.Assign;
+                    move.Group = index;
+                    _lastGroupIndex = Math.Max(_lastGroupIndex, index);
+                });
+
+            }
+
         }
 
         /// <summary>
@@ -2902,7 +2959,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 move.Action = ActionType.Assign;
                 move.Group = 1;
-                _lastGroupIndex = 1;
+                _lastGroupIndex = Math.Max(_lastGroupIndex, 1);
             });
         }
 
