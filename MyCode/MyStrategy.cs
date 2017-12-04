@@ -1130,7 +1130,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             //TODO: кривой критерий в isStatic
             var isStatic = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
-                           (targetPoint.GetDistance(_currentMoveEnemyPoint[groupId]) > Tolerance //еще не долетели до точки
+                           (centerPoint.GetDistance(_currentMoveEnemyPoint[groupId]) > Tolerance //еще не долетели до точки
                            && !hasNegativeCharge && Math.Abs(angle - _currentMovingAngle[groupId]) < MaxAngle/2); //угол тот же
             if (isStatic) return;
 
@@ -2052,7 +2052,10 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         _isRotating[groupId] = false;
                         if (_groups.ContainsKey(groupId) && _groups.ContainsKey(_apolloSoyuzIndexes[groupId]))
                         {
-                            ApolloSoyuzMove(groupId, _apolloSoyuzIndexes[groupId]);
+                            if (_world.TickIndex > _groupEndMovementTime[_apolloSoyuzIndexes[groupId]])
+                            {
+                                ApolloSoyuzMove(groupId, _apolloSoyuzIndexes[groupId]);
+                            }
                         }
                         else
                         {
@@ -2081,7 +2084,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         var isJointFinished =
                             center1.GetDistance(center2) - (center1.GetDistance(cp1) + center2.GetDistance(cp2)) <
                             2 * Tolerance;
-                        if (isJointFinished)
+                        if (isJointFinished || _world.TickIndex > _groupEndMovementTime[groupId] ||
+                            vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                         {
                             ApolloSoyuzJoin(groupId, _apolloSoyuzIndexes[groupId]);
                         }
@@ -2163,35 +2167,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var centerPoint = GetVehiclesCenter(vehicles);
             var enemyGroups = GetVehicleGroups(_enemyVehicles);
             var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
-            var angle = MathHelper.GetAnlge(
+            var nearestGroupAngle = MathHelper.GetAnlge(
                 new Vector(centerPoint,
                     new Point(centerPoint.X + 100, centerPoint.Y)),
                 new Vector(centerPoint, nearestGroup.Center));
-
-            //var isSmallEnemyGroup = HasAdvantage(groupId,
-            //                            nearestGroup,
-            //                            enemyGroups,
-            //                            StrongVehiclesCountAdvantage,
-            //                            StrongVehiclesCoeffAdvantage) && nearestGroup.Vehicles.Count <
-            //                        SmallGroupVehiclesCount;
-            var isFarFromBorder = IsFarFromBorderPoint(vehicles, GetVehiclesCenter(vehicles));
-
-            var nearestFacility = GetNearestFacility(centerPoint);
-
-            
-            //var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
-            //var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
-            //var myCp = MathHelper.GetNearestRectangleCrossPoint(nearestGroup.Center, myRectangle, centerPoint);
-            
-            //var requiredDistToEnemyCenter = centerPoint.GetDistance(myCp) + nearestGroup.Center.GetDistance(enemyCp) + ShootingDistance;
-            //var isFarFromEnemy = currentDistanceToEnemyCenter > requiredDistToEnemyCenter;
-
-            var isFacilityCloser = nearestFacility != null &&
-                centerPoint.GetDistance(nearestFacility.Left + _game.FacilityWidth / 2d,
-                    nearestFacility.Top + _game.FacilityHeight / 2d) < centerPoint.GetDistance(nearestGroup.Center);
-
-            var hasGroundVehicle = vehicles.Any(v => v.Type != VehicleType.Helicopter && v.Type != VehicleType.Fighter);
-
+           
             if (groupId % 2 == 0)
             {
                 var targetGroup = GetNearestAdvantageEnemyGroup(enemyGroups, groupId);
@@ -2227,7 +2207,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 {
                     Compress2(centerPoint.X, centerPoint.Y, PrepareCompressinFactor, 100d, groupId);
                 }
-                else if (needConnect)
+                else if (!_apolloSoyuzIndexes.ContainsKey(groupId) && !_apolloSoyuzIndexes.ContainsKey(nearestFriendKey) && needConnect)
                 {
                     ApolloSoyuzRotate(groupId, nearestFriendKey);
                 }
@@ -2242,14 +2222,20 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     var radius = targetGroup.Center.GetDistance(enemyCp) + EnemyVehicleDeltaShootingDist;
                     var isSmallEnemyGroup = targetGroup.Vehicles.Count < SmallGroupVehiclesCount;
                     if (currentDistanceToEnemyCenter <= radius && !isSmallEnemyGroup &&
-                        Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle)
+                        Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle) > MaxAngle) //TODO: вращаемся к ближайшему???
                     {
                         RotateToEnemy(vehicles, groupId);
                     }
                     else
                     {
-                        var attractiveFunction = GetAttractiveFunction(targetGroup.Center, 1d, centerPoint.X, centerPoint.Y);
-                        MoveToSomewhere(vehicles, groupId, targetGroup.Center, attractiveFunction, enemyGroups, targetGroup);
+                        var attractiveFunction =
+                            GetAttractiveFunction(targetGroup.Center, 1d, centerPoint.X, centerPoint.Y);
+                        MoveToSomewhere(vehicles,
+                            groupId,
+                            targetGroup.Center,
+                            attractiveFunction,
+                            enemyGroups,
+                            targetGroup);
                     }
                 }
                 else
@@ -2262,7 +2248,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     var radius = nearestGroup.Center.GetDistance(enemyCp) + EnemyVehicleDeltaShootingDist;
 
                     if (currentDistanceToEnemyCenter <= radius &&
-                        Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle)
+                        Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle) > MaxAngle)
                     {
                         RotateToEnemy(vehicles, groupId);
                     }
@@ -2274,29 +2260,164 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                             centerPoint.X,
                             centerPoint.Y);
                         var circle = new Circle(nearestGroup.Center.X, nearestGroup.Center.Y, radius);
-                        MoveToSomewhere(vehicles, groupId, nearestGroup.Center, attractiveFunction, enemyGroups, nearestGroup, circle);
+                        MoveToSomewhere(vehicles,
+                            groupId,
+                            nearestGroup.Center,
+                            attractiveFunction,
+                            enemyGroups,
+                            nearestGroup,
+                            circle);
                     }
                 }
                 //MoveToSomewhere(vehicles, groupId, new Point(1000, 1000));
             }
-            //else if (hasGroundVehicle && isFacilityCloser && isFarFromEnemy)
-            //{
-            //    var facilityCenter = GetFacilityCenterPoint(nearestFacility);
-            //    var attractiveFunction = GetAttractiveFunction(facilityCenter,
-            //        1d,
-            //        centerPoint.X,
-            //        centerPoint.Y);
-            //    MoveToSomewhere(vehicles, groupId, facilityCenter, attractiveFunction,  enemyGroups);
-            //}
+            else
+            {
+                var targetGroup = GetNearestAdvantageEnemyGroup(enemyGroups, groupId);
+                int nearestFriendKey = -1;
+                var minFriendDist = double.MaxValue;
+                foreach (var key in _groups.Keys.Where(k => k != groupId))
+                {
 
-            //else if (!isSmallEnemyGroup && Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle && isFarFromBorder)
-            //{
-            //    RotateToEnemy(vehicles, groupId);
-            //}
-            //else
-            //{
-            //    MoveToEnemy(vehicles, groupId);
-            //}
+                    var isThisGround = IsGroundGroup(vehicles);
+                    var isThisAir = IsAirGroup(vehicles);
+                    var isOtherGround = IsGroundGroup(_groups[key]);
+                    var isOtherAir = IsAirGroup(_groups[key]);
+
+                    if (isThisGround && !isOtherGround || isThisAir && !isOtherAir || isOtherGround && !isThisGround ||
+                        isOtherAir && !isThisAir) continue;
+
+                    var dist = centerPoint.GetDistance(GetVehiclesCenter(_groups[key]));
+                    if (dist < minFriendDist)
+                    {
+                        minFriendDist = dist;
+                        nearestFriendKey = key;
+                    }
+                }
+
+                var nearestGroupDist = centerPoint.GetDistance(nearestGroup.Center);
+                var needConnect = minFriendDist < nearestGroupDist && minFriendDist < GetSandvichRadius(vehicles) +
+                                  GetSandvichRadius(_groups[nearestFriendKey]) + EnemyVehicleDeltaShootingDist;
+
+                var needCompress =
+                    vehicles.All(v => v.GetDistanceTo(centerPoint.X, centerPoint.Y) > NeedCompressionRadius);
+
+                var nearestFacility = GetNearestFacility(centerPoint);
+
+                var isFacilityCloser = nearestFacility != null &&
+                                       centerPoint.GetDistance(nearestFacility.Left + _game.FacilityWidth / 2d,
+                                           nearestFacility.Top + _game.FacilityHeight / 2d) < centerPoint.GetDistance(nearestGroup.Center);
+
+                var hasGroundVehicle = vehicles.Any(v => v.Type != VehicleType.Helicopter && v.Type != VehicleType.Fighter);
+                
+                if (needCompress)
+                {
+                    Compress2(centerPoint.X, centerPoint.Y, PrepareCompressinFactor, 100d, groupId);
+                }
+                else if (needConnect)
+                {
+                    ApolloSoyuzRotate(groupId, nearestFriendKey);
+                }
+                else if (hasGroundVehicle && isFacilityCloser)
+                {
+                    var facilityCenter = GetFacilityCenterPoint(nearestFacility);
+                    var attractiveFunction = GetAttractiveFunction(facilityCenter,
+                        1d,
+                        centerPoint.X,
+                        centerPoint.Y);
+                    MoveToSomewhere(vehicles, groupId, facilityCenter, attractiveFunction, enemyGroups);
+                }
+
+                else if (targetGroup != null)
+                {
+                    var currentDistanceToEnemyCenter = centerPoint.GetDistance(targetGroup.Center);
+                    var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(targetGroup.Vehicles));
+                    var enemyCp = targetGroup.Vehicles.Count == 1
+                        ? new Point(targetGroup.Center)
+                        : MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, targetGroup.Center);
+                    var radius = targetGroup.Center.GetDistance(enemyCp) + EnemyVehicleDeltaShootingDist;
+                    var isSmallEnemyGroup = targetGroup.Vehicles.Count < SmallGroupVehiclesCount;
+                    if (currentDistanceToEnemyCenter <= radius && !isSmallEnemyGroup &&
+                        Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle) > MaxAngle) //TODO: вращаемся к ближайшему???
+                    {
+                        RotateToEnemy(vehicles, groupId);
+                    }
+                    else
+                    {
+                        var attractiveFunction =
+                            GetAttractiveFunction(targetGroup.Center, 1d, centerPoint.X, centerPoint.Y);
+                        MoveToSomewhere(vehicles,
+                            groupId,
+                            targetGroup.Center,
+                            attractiveFunction,
+                            enemyGroups,
+                            targetGroup);
+                    }
+                }
+                else
+                {
+                    var currentDistanceToEnemyCenter = centerPoint.GetDistance(nearestGroup.Center);
+                    var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
+                    var enemyCp = nearestGroup.Vehicles.Count == 1
+                        ? new Point(nearestGroup.Center)
+                        : MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
+                    var radius = nearestGroup.Center.GetDistance(enemyCp) + EnemyVehicleDeltaShootingDist;
+
+                    if (currentDistanceToEnemyCenter <= radius &&
+                        Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle) > MaxAngle)
+                    {
+                        RotateToEnemy(vehicles, groupId);
+                    }
+                    else
+                    {
+                        var attractiveFunction = GetAttractiveRadiusFunction(nearestGroup.Center,
+                            1d,
+                            radius,
+                            centerPoint.X,
+                            centerPoint.Y);
+                        var circle = new Circle(nearestGroup.Center.X, nearestGroup.Center.Y, radius);
+                        MoveToSomewhere(vehicles,
+                            groupId,
+                            nearestGroup.Center,
+                            attractiveFunction,
+                            enemyGroups,
+                            nearestGroup,
+                            circle);
+                    }
+                }
+
+                //var isFarFromBorder = IsFarFromBorderPoint(vehicles, GetVehiclesCenter(vehicles));
+
+                //var nearestFacility = GetNearestFacility(centerPoint);
+
+                //var isFacilityCloser = nearestFacility != null &&
+                //                       centerPoint.GetDistance(nearestFacility.Left + _game.FacilityWidth / 2d,
+                //                           nearestFacility.Top + _game.FacilityHeight / 2d) < centerPoint.GetDistance(nearestGroup.Center);
+
+                //var hasGroundVehicle = vehicles.Any(v => v.Type != VehicleType.Helicopter && v.Type != VehicleType.Fighter);
+
+                //if (hasGroundVehicle && isFacilityCloser && isFarFromEnemy)
+                //{
+                //    var facilityCenter = GetFacilityCenterPoint(nearestFacility);
+                //    var attractiveFunction = GetAttractiveFunction(facilityCenter,
+                //        1d,
+                //        centerPoint.X,
+                //        centerPoint.Y);
+                //    MoveToSomewhere(vehicles, groupId, facilityCenter, attractiveFunction, enemyGroups);
+                //}
+
+                //else if (!isSmallEnemyGroup && Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle) > MaxAngle && isFarFromBorder)
+                //{
+                //    RotateToEnemy(vehicles, groupId);
+                //}
+                //else
+                //{
+                //    MoveToEnemy(vehicles, groupId);
+                //}
+
+            }
+
+            
         }
 
 
@@ -2438,6 +2559,18 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             var maxIndex = Math.Max(groupId1, groupId2);
             var minIndex = Math.Min(groupId1, groupId2);
+
+            _sandvichActions.Remove(maxIndex);
+            _groupEndMovementTime.Remove(maxIndex);
+            _groupStartUncompressTick.Remove(maxIndex);
+            _currentGroupAngle.Remove(maxIndex);
+            _tmpGroupAngle.Remove(maxIndex);
+            _currentAngularSpeed.Remove(maxIndex);
+            _currentMoveEnemyPoint.Remove(maxIndex);
+            _currentMovingAngle.Remove(maxIndex); 
+
+
+
 
             if (_selectedGroupId != maxIndex)
             {
