@@ -24,7 +24,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         }
 
         private const double Tolerance = 1E-3;
-        private const int MoveToEnemyTicks = 6;
 
         private const double ShootingDistance = 15d;
         private const double CloseFriendDistance = 100d;
@@ -228,6 +227,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private IList<Vehicle> _enemyVehicles;
         private double[][] _groundPotentialField;
 
+        private int _moveEnemyTicks = -1;
+        private IDictionary<int, int> _apolloSoyuzIndexes = new Dictionary<int, int>();
         
 
         /// <summary>
@@ -1034,7 +1035,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.X = resFunction.X;
                 move.Y = resFunction.Y;
                 move.MaxSpeed = speed;
-                _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
+                _groupEndMovementTime[groupId] = _world.TickIndex + _moveEnemyTicks;
                 _currentMoveEnemyPoint[groupId] = new Point(facilityPoint.X, facilityPoint.Y);
                 _currentMovingAngle[groupId] = angle;
             });
@@ -1047,7 +1048,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             var resFunction = new Point(0d, 0d);
             resFunction = new Point(resFunction.X + attractiveFunction.X, resFunction.Y + attractiveFunction.Y);
-
+            
             foreach (var group in enemyGroups)
             {
                 if (targetGroup != null && Equals(group, targetGroup)) continue;
@@ -1064,21 +1065,22 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var allyNoGroupsfunction = GetAllyNoGroupRepulsiveFunction(vehicles, vehicles0, 1d);
             resFunction = new Point(resFunction.X + allyNoGroupsfunction.X, resFunction.Y + allyNoGroupsfunction.Y);
 
-            var isNoForce = Math.Abs(resFunction.X) < Tolerance && Math.Abs(resFunction.Y) < Tolerance;
-            if (!isNoForce)
-            {
+            //var isNoForce = Math.Abs(resFunction.X) < Tolerance && Math.Abs(resFunction.Y) < Tolerance;
+            //if (!isNoForce)
+            //{
                 foreach (var key in _groups.Keys)
                 {
                     if (key == groupId) continue;
                     var allyFunction = GetAllyGroupRepulsiveFunction(vehicles, _groups[key], 1d);
                     resFunction = new Point(resFunction.X + allyFunction.X, resFunction.Y + allyFunction.Y);
                 }
-            }
+            //}
           
 
             if (Math.Abs(resFunction.X) < Tolerance && Math.Abs(resFunction.Y) < Tolerance) return; //уже в точке
-            
-            
+
+            var hasNegativeCharge = Math.Abs(resFunction.X - attractiveFunction.X) > Tolerance || Math.Abs(resFunction.Y - attractiveFunction.Y) > Tolerance;
+
             var resVector = new Vector(new Point(centerPoint.X, centerPoint.Y),
                 new Point(centerPoint.X + resFunction.X, centerPoint.Y + resFunction.Y));
 
@@ -1124,9 +1126,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 0x000000);
 
             var angle = MathHelper.GetVectorAngle(resFunction);
+
+            //TODO: кривой критерий в isStatic
             var isStatic = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
-                           targetPoint.GetDistance(_currentMoveEnemyPoint[groupId]) < Tolerance; //точка та же
-                            //Math.Abs(angle - _currentMovingAngle[groupId]) < Tolerance; //угол тот же
+                           (targetPoint.GetDistance(_currentMoveEnemyPoint[groupId]) > Tolerance //еще не долетели до точки
+                           && !hasNegativeCharge && Math.Abs(angle - _currentMovingAngle[groupId]) < MaxAngle/2); //угол тот же
             if (isStatic) return;
 
             _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
@@ -1149,8 +1153,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.X = targetPoint.X - centerPoint.X;
                 move.Y = targetPoint.Y - centerPoint.Y;
                 move.MaxSpeed = speed;
-                _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
+                _groupEndMovementTime[groupId] = _world.TickIndex + _moveEnemyTicks;
                 _currentMoveEnemyPoint[groupId] = new Point(targetPoint.X, targetPoint.Y);
+                
                 _currentMovingAngle[groupId] = angle;
             });
         }
@@ -1239,7 +1244,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     move.X = x;
                     move.Y = y;
                     move.MaxSpeed = speed;
-                    _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
+                    _groupEndMovementTime[groupId] = _world.TickIndex + _moveEnemyTicks;
                     _currentMoveEnemyPoint[groupId] = new Point(nearestGroup.Center.X, nearestGroup.Center.Y);
                 });
 
@@ -1357,7 +1362,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.X = targetX - centerPoint.X;
                 move.Y = targetY - centerPoint.Y;
                 move.MaxSpeed = speed;
-                _groupEndMovementTime[groupId] = _world.TickIndex + MoveToEnemyTicks;
+                _groupEndMovementTime[groupId] = _world.TickIndex + _moveEnemyTicks;
                 _currentMoveEnemyPoint[groupId] = new Point(targetX, targetY);
             });
             
@@ -2035,6 +2040,73 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     }
 
                     break;
+                case SandvichAction.ApolloSoyuzRotate:
+                    if (_world.TickIndex > _groupEndMovementTime[groupId] ||
+                        vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
+                    {
+                        _isRotating[groupId] = false;
+                        if (_groups.ContainsKey(groupId) && _groups.ContainsKey(_apolloSoyuzIndexes[groupId]))
+                        {
+                            ApolloSoyuzMove(groupId, _apolloSoyuzIndexes[groupId]);
+                        }
+                        else
+                        {
+                            DoMilitaryAction(vehicles, groupId);
+                        }
+                    }
+                    break;
+                case SandvichAction.ApolloSoyuzMove:
+                    if (!_groups.ContainsKey(_apolloSoyuzIndexes[groupId]))
+                    {
+                        DoMilitaryAction(vehicles, groupId);
+                    }
+                    else
+                    {
+                        var group1 = _groups[groupId];
+                        var rect1 = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(group1));
+                        var center1 = GetVehiclesCenter(group1);
+
+                        var group2 = _groups[_apolloSoyuzIndexes[groupId]];
+                        var rect2 = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(group2));
+                        var center2 = GetVehiclesCenter(group2);
+
+                        var cp2 = MathHelper.GetNearestRectangleCrossPoint(center1, rect2, center2);
+                        var cp1 = MathHelper.GetNearestRectangleCrossPoint(center2, rect1, center1);
+
+                        var isJointFinished =
+                            center1.GetDistance(center2) - (center1.GetDistance(cp1) + center2.GetDistance(cp2)) <
+                            2 * Tolerance;
+                        if (isJointFinished)
+                        {
+                            ApolloSoyuzJoin(groupId, _apolloSoyuzIndexes[groupId]);
+                        }
+                    }
+
+                    //if (_world.TickIndex > _groupEndMovementTime[groupId] ||
+                    //    vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex) ||
+                    //    !_groups.ContainsKey(_apolloSoyuzIndexes[groupId]))
+                    //{
+
+
+                    //    if (_groups.ContainsKey(groupId) && _groups.ContainsKey(_apolloSoyuzIndexes[groupId]))
+                    //    {
+                            
+                    //    }
+                    //    else
+                    //    {
+                    //        DoMilitaryAction(vehicles, groupId);
+                    //    }
+                    //}
+                    break;
+                case SandvichAction.ApolloSoyuzJoin:
+                    if (_apolloSoyuzIndexes.ContainsKey(groupId))
+                    {
+                        if (_apolloSoyuzIndexes.ContainsKey(_apolloSoyuzIndexes[groupId]))
+                            _apolloSoyuzIndexes.Remove(_apolloSoyuzIndexes[groupId]);
+                        _apolloSoyuzIndexes.Remove(groupId);
+                    }
+                    DoMilitaryAction(vehicles, groupId);
+                    break;
                 case SandvichAction.MovingToEnemy:
                 {
                     if (_world.TickIndex > _groupEndMovementTime[groupId])
@@ -2118,8 +2190,37 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             if (groupId % 2 == 0)
             {
                 var targetGroup = GetNearestAdvantageEnemyGroup(enemyGroups, groupId);
+                int nearestFriendKey = -1;
+                var minFriendDist = double.MaxValue;
+                foreach (var key in _groups.Keys.Where(k => k != groupId))
+                {
 
-                if (targetGroup != null)
+                    var isThisGround = IsGroundGroup(vehicles);
+                    var isThisAir = IsAirGroup(vehicles);
+                    var isOtherGround = IsGroundGroup(_groups[key]);
+                    var isOtherAir = IsAirGroup(_groups[key]);
+
+                    if (isThisGround && !isOtherGround || isThisAir && !isOtherAir || isOtherGround && !isThisGround ||
+                        isOtherAir && !isThisAir) continue;
+
+                    var dist = centerPoint.GetDistance(GetVehiclesCenter(_groups[key]));
+                    if (dist < minFriendDist)
+                    {
+                        minFriendDist = dist;
+                        nearestFriendKey = key;
+                    }
+                }
+
+                var nearestGroupDist = centerPoint.GetDistance(nearestGroup.Center);
+                var needConnect = minFriendDist < nearestGroupDist && minFriendDist < GetSandvichRadius(vehicles) +
+                                  GetSandvichRadius(_groups[nearestFriendKey]) + EnemyVehicleDeltaShootingDist;
+
+                if (needConnect)
+                {
+                    ApolloSoyuzRotate(groupId, nearestFriendKey);
+                }
+
+                else if (targetGroup != null)
                 {
                     var currentDistanceToEnemyCenter = centerPoint.GetDistance(targetGroup.Center);
                     var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(targetGroup.Vehicles));
@@ -2184,6 +2285,224 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             //{
             //    MoveToEnemy(vehicles, groupId);
             //}
+        }
+
+
+        private void ApolloSoyuzRotate(int groupId1, int groupId2)
+        {
+            var vehicles1 = _groups[groupId1];
+            var vehicles2 = _groups[groupId2];
+
+            _sandvichActions[groupId1] = SandvichAction.ApolloSoyuzRotate;
+            _sandvichActions[groupId2] = SandvichAction.ApolloSoyuzRotate;
+
+            _apolloSoyuzIndexes.Add(groupId1, groupId2);
+            _apolloSoyuzIndexes.Add(groupId2, groupId1);
+
+            if (_selectedGroupId == groupId2)
+            {
+                RotateToPoint(groupId2, GetVehiclesCenter(vehicles1));
+                RotateToPoint(groupId1, GetVehiclesCenter(vehicles2));
+            }
+            else
+            {
+                RotateToPoint(groupId1, GetVehiclesCenter(vehicles2));
+                RotateToPoint(groupId2, GetVehiclesCenter(vehicles1));
+            }
+        }
+
+        private void ApolloSoyuzMove(int groupId1, int groupId2)
+        {
+            var vehicles1 = _groups[groupId1];
+            var vehicles2 = _groups[groupId2];
+            var vehicles1Center = GetVehiclesCenter(vehicles1);
+            var vehicles2Center = GetVehiclesCenter(vehicles2);
+            var dist = vehicles1Center.GetDistance(vehicles2Center);
+
+            _sandvichActions[groupId1] = SandvichAction.ApolloSoyuzMove;
+            _sandvichActions[groupId2] = SandvichAction.ApolloSoyuzMove;
+
+            if (_selectedGroupId == groupId2)
+            {
+                if (_selectedGroupId != groupId2)
+                {
+                    _delayedMoves.Enqueue(move =>
+                    {
+                        move.Action = ActionType.ClearAndSelect;
+                        move.Group = groupId2;
+                    });
+                    _selectedGroupId = groupId2;
+                }
+
+                var speed2 = GetGroupLineMaxSpeed(vehicles2, vehicles1Center);
+
+                _delayedMoves.Enqueue(move =>
+                {
+                    move.Action = ActionType.Move;
+                    move.X = vehicles1Center.X - vehicles2Center.X;
+                    move.Y = vehicles1Center.Y - vehicles2Center.Y;
+                    move.MaxSpeed = speed2;
+                    _groupEndMovementTime[groupId2] = _world.TickIndex + dist / speed2;
+                    _currentMoveEnemyPoint[groupId2] = new Point(vehicles1Center.X, vehicles1Center.Y);
+                });
+
+                if (_selectedGroupId != groupId1)
+                {
+                    _delayedMoves.Enqueue(move =>
+                    {
+                        move.Action = ActionType.ClearAndSelect;
+                        move.Group = groupId1;
+                    });
+                    _selectedGroupId = groupId1;
+                }
+
+                var speed1 = GetGroupLineMaxSpeed(vehicles1, vehicles2Center);
+
+                _delayedMoves.Enqueue(move =>
+                {
+                    move.Action = ActionType.Move;
+                    move.X = vehicles2Center.X - vehicles1Center.X;
+                    move.Y = vehicles2Center.Y - vehicles1Center.Y;
+                    move.MaxSpeed = speed1;
+                    _groupEndMovementTime[groupId1] = _world.TickIndex + dist / speed1;
+                    _currentMoveEnemyPoint[groupId1] = new Point(vehicles2Center.X, vehicles2Center.Y);
+                });
+
+            }
+            else
+            {
+                if (_selectedGroupId != groupId1)
+                {
+                    _delayedMoves.Enqueue(move =>
+                    {
+                        move.Action = ActionType.ClearAndSelect;
+                        move.Group = groupId1;
+                    });
+                    _selectedGroupId = groupId1;
+                }
+
+                var speed1 = GetGroupLineMaxSpeed(vehicles1, vehicles2Center);
+
+                _delayedMoves.Enqueue(move =>
+                {
+                    move.Action = ActionType.Move;
+                    move.X = vehicles2Center.X - vehicles1Center.X;
+                    move.Y = vehicles2Center.Y - vehicles1Center.Y;
+                    move.MaxSpeed = speed1;
+                    _groupEndMovementTime[groupId1] = _world.TickIndex + dist / speed1;
+                    _currentMoveEnemyPoint[groupId1] = new Point(vehicles2Center.X, vehicles2Center.Y);
+                });
+
+
+                if (_selectedGroupId != groupId2)
+                {
+                    _delayedMoves.Enqueue(move =>
+                    {
+                        move.Action = ActionType.ClearAndSelect;
+                        move.Group = groupId2;
+                    });
+                    _selectedGroupId = groupId2;
+                }
+
+                var speed2 = GetGroupLineMaxSpeed(vehicles2, vehicles1Center);
+
+                _delayedMoves.Enqueue(move =>
+                {
+                    move.Action = ActionType.Move;
+                    move.X = vehicles1Center.X - vehicles2Center.X;
+                    move.Y = vehicles1Center.Y - vehicles2Center.Y;
+                    move.MaxSpeed = speed2;
+                    _groupEndMovementTime[groupId2] = _world.TickIndex + dist / speed2;
+                    _currentMoveEnemyPoint[groupId2] = new Point(vehicles1Center.X, vehicles1Center.Y);
+                });
+            }
+
+        }
+
+        private void ApolloSoyuzJoin(int groupId1, int groupId2)
+        {
+            _sandvichActions[groupId1] = SandvichAction.ApolloSoyuzJoin;
+            _sandvichActions[groupId2] = SandvichAction.ApolloSoyuzJoin;
+
+            var maxIndex = Math.Max(groupId1, groupId2);
+            var minIndex = Math.Min(groupId1, groupId2);
+
+            if (_selectedGroupId != maxIndex)
+            {
+                _importantDelayedMoves.Enqueue(move =>
+                {
+                    move.Action = ActionType.ClearAndSelect;
+                    move.Group = maxIndex;
+                });
+                _selectedGroupId = maxIndex;
+            }
+
+            _importantDelayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.Dismiss;
+                move.Group = maxIndex;
+            });
+
+            _importantDelayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.Assign;
+                move.Group = minIndex;
+            });
+            _selectedGroupId = -1;
+        }
+
+
+        private void RotateToPoint(int groupId, Point targetPoint)
+        {
+            var vehicles = _groups[groupId];
+            var centerPoint = GetVehiclesCenter(vehicles);
+
+            var newAngle = MathHelper.GetAnlge(
+                new Vector(centerPoint,
+                    new Point(centerPoint.X + 100, centerPoint.Y)),
+                new Vector(centerPoint, targetPoint));
+
+            var turnAngle = newAngle - _currentGroupAngle[groupId];
+
+            if (turnAngle > Math.PI) turnAngle -= 2 * Math.PI;
+            else if (turnAngle < -Math.PI) turnAngle += 2 * Math.PI;
+
+            if (turnAngle > Math.PI / 2) turnAngle -= Math.PI;
+            else if (turnAngle < -Math.PI / 2) turnAngle += Math.PI;
+
+            var radius = vehicles.Max(v => v.GetDistanceTo(centerPoint.X, centerPoint.Y));
+            var speed = GetGroupRotationMaxSpeed(vehicles);
+            var angularSpeed = speed / radius;
+
+            var turnTime = Math.Abs(turnAngle) / angularSpeed;
+
+            if (_selectedGroupId != groupId)
+            {
+                _delayedMoves.Enqueue(move =>
+                {
+                    move.Action = ActionType.ClearAndSelect;
+                    move.Group = groupId;
+                });
+                _selectedGroupId = groupId;
+            }
+
+            var currentAngle = _currentGroupAngle[groupId];
+
+            _delayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.Rotate;
+                move.X = centerPoint.X;
+                move.Y = centerPoint.Y;
+                move.Angle = turnAngle;
+                _groupEndMovementTime[groupId] = _world.TickIndex + turnTime;
+                move.MaxAngularSpeed = angularSpeed;
+
+
+                _currentAngularSpeed[groupId] = turnAngle > 0 ? angularSpeed : -angularSpeed;
+                _isRotating[groupId] = true;
+                _tmpGroupAngle[groupId] = currentAngle;
+                _currentGroupAngle[groupId] = newAngle;
+            });
         }
         
 
@@ -3024,6 +3343,24 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
 
             _enemyVehicles = GetVehicles(Ownership.ENEMY);
+            _moveEnemyTicks = GetMoveEnemyTicks();
+
+        }
+
+        private int GetMoveEnemyTicks()
+        {
+            var myControlCenterCount =
+                _world.Facilities.Count(f => f.Type == FacilityType.ControlCenter && f.OwnerPlayerId == _me.Id);
+            var actionsCount = _game.BaseActionCount +
+                               myControlCenterCount * _game.AdditionalActionCountPerControlCenter;
+
+            var myGroupsCount = _groups.Count;
+            if (myGroupsCount == 1) return 5;
+
+            var ticksPer60 = 60 / actionsCount;
+            var tickPer60For2Actions = ticksPer60 * 2;
+            var tickForAllGroups = tickPer60For2Actions * myGroupsCount;
+            return tickForAllGroups + myGroupsCount;
 
         }
 
@@ -3293,7 +3630,10 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             MovingToEnemy,
             NuclearStrike,
             Uncompress,
-            Rotate90
+            Rotate90,
+            ApolloSoyuzRotate,
+            ApolloSoyuzMove,
+            ApolloSoyuzJoin,
         }
 
         #region GetVehicles
