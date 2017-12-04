@@ -1174,10 +1174,14 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 return fcp.GetDistance(ng.Center);
             });
 
+            var enemyVehicles = GetVehicles(Ownership.ENEMY);
+            var airCount = enemyVehicles.Count(v => v.Type == VehicleType.Fighter || v.Type == VehicleType.Helicopter);
+            var groundCount = enemyVehicles.Count - airCount;
+
             _delayedMoves.Enqueue(move =>
             {
                 move.Action = ActionType.SetupVehicleProduction;
-                move.VehicleType = VehicleType.Helicopter;
+                move.VehicleType = airCount > groundCount ? VehicleType.Fighter : VehicleType.Helicopter;
                 move.FacilityId = orderedFacilities.First().Id;
             });
 
