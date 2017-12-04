@@ -1995,13 +1995,42 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     }
                     break;
                 case SandvichAction.Rotating:
+                    
                     if (_world.TickIndex > _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
                         _isRotating[groupId] = false;
-
                         DoMilitaryAction(vehicles, groupId);
                     }
+                    else 
+                    {
+                        var center = GetVehiclesCenter(vehicles);
+                        var enemyGroups = GetVehicleGroups(_enemyVehicles);
+                        var nearestGroup = GetNearestEnemyGroup(enemyGroups, center.X, center.Y);
+
+                        //var rectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
+                        var newAngle = MathHelper.GetAnlge(
+                            new Vector(center,
+                                new Point(center.X + 100, center.Y)),
+                            new Vector(center, nearestGroup.Center));
+
+                        var turnAngle = newAngle - _tmpGroupAngle[groupId];
+
+                        if (turnAngle > Math.PI) turnAngle -= 2 * Math.PI;
+                        else if (turnAngle < -Math.PI) turnAngle += 2 * Math.PI;
+
+                        if (turnAngle > Math.PI / 2) turnAngle -= Math.PI;
+                        else if (turnAngle < -Math.PI / 2) turnAngle += Math.PI;
+
+                        var isSmallAngle = Math.Abs(turnAngle) < MaxAngle / 2;
+                        if (isSmallAngle)
+                        {
+                            _isRotating[groupId] = false;
+                            _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
+                            DoMilitaryAction(vehicles, groupId);
+                        }
+                    }
+
                     break;
                 case SandvichAction.MovingToEnemy:
                 {
