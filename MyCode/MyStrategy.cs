@@ -1628,20 +1628,22 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private double GetAdvantage(IList<Vehicle> myVehicles, GroupContainer enemyGroup)
         {
             var mySumDamage = 0d;
+            var mySumDurability = 0d;
             foreach (var myV in myVehicles)
             {
                 var damage = enemyGroup.Vehicles.Sum(enemyV => GetDamage(myV.Type, enemyV.Type));
+                if (Math.Abs(damage) > Tolerance) mySumDurability += myV.Durability;
                 mySumDamage += damage / enemyGroup.Vehicles.Count;
             }
-            var mySumDurability = myVehicles.Sum(v => v.Durability);
 
             var enemySumDamage = 0d;
+            var enemySumDurability = 0d;
             foreach (var enemyV in enemyGroup.Vehicles)
             {
                 var damage = myVehicles.Sum(myV => GetDamage(enemyV.Type, myV.Type));
+                if (Math.Abs(damage) > Tolerance) enemySumDurability += enemyV.Durability;
                 enemySumDamage += damage / myVehicles.Count;
             }
-            var enemySumDurability = enemyGroup.Vehicles.Sum(v => v.Durability);
 
             var myPower = mySumDamage / enemySumDurability;
             var enemyPower = enemySumDamage / mySumDurability;
@@ -2022,8 +2024,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         if (turnAngle > Math.PI / 2) turnAngle -= Math.PI;
                         else if (turnAngle < -Math.PI / 2) turnAngle += Math.PI;
 
+                        var needStop = turnAngle * _currentAngularSpeed[groupId] < 0;
                         var isSmallAngle = Math.Abs(turnAngle) < MaxAngle / 2;
-                        if (isSmallAngle)
+                        if (needStop || isSmallAngle)
                         {
                             _isRotating[groupId] = false;
                             _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
