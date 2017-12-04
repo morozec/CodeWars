@@ -58,7 +58,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private const double CellSize = 32d;
         private const double EnemyVehicleDeltaShootingDist = 100d;
-        private const double CloseBorderDist = 50;
+        private const double CloseBorderDist = 0d;
         private const double OrbitalWidth = 25d;
 
         private const int SquardCount = 33;
@@ -255,11 +255,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 if (me.RemainingActionCooldownTicks > 0) return;
 
-                if (!_isMyNuclearStrikeConsidered && _me.RemainingNuclearStrikeCooldownTicks == 0 && !_importantDelayedMoves.Any() && MakeNuclearStrike())
-                {
-                    _delayedMoves.Clear();
-                    _isMyNuclearStrikeConsidered = true;
-                }
+                //if (!_isMyNuclearStrikeConsidered && _me.RemainingNuclearStrikeCooldownTicks == 0 && !_importantDelayedMoves.Any() && MakeNuclearStrike())
+                //{
+                //    _delayedMoves.Clear();
+                //    _isMyNuclearStrikeConsidered = true;
+                //}
                 else if (!_isEnemyNuclearStrikeConsidered && _enemy.NextNuclearStrikeTickIndex > -1 &&
                          !_importantDelayedMoves.Any())
                 {
@@ -916,7 +916,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             else if (turnAngle < -Math.PI/2) turnAngle += Math.PI;
 
             var radius = vehicles.Max(v => v.GetDistanceTo(centerPoint.X, centerPoint.Y));
-            var speed = GetGroupMaxSpeed(groupId);
+            var speed = GetGroupRotationMaxSpeed(vehicles);
             var angularSpeed = speed/radius;
 
             var turnTime = Math.Abs(turnAngle)/angularSpeed;
@@ -1059,16 +1059,22 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var borderFunction = GetBorderRepulsiveFunction(vehicles);
             resFunction = new Point(resFunction.X + borderFunction.X, resFunction.Y + borderFunction.Y);
 
-            foreach (var key in _groups.Keys)
-            {
-                if (key == groupId) continue;
-                var allyFunction = GetAllyGroupRepulsiveFunction(vehicles, _groups[key], 1d);
-                resFunction = new Point(resFunction.X + allyFunction.X, resFunction.Y + allyFunction.Y);
-            }
             var vehicles0 =
                 _vehicleById.Values.Where(x => x.PlayerId == _me.Id && !x.Groups.Any()).ToList();
             var allyNoGroupsfunction = GetAllyNoGroupRepulsiveFunction(vehicles, vehicles0, 1d);
             resFunction = new Point(resFunction.X + allyNoGroupsfunction.X, resFunction.Y + allyNoGroupsfunction.Y);
+
+            var isNoForce = Math.Abs(resFunction.X) < Tolerance && Math.Abs(resFunction.Y) < Tolerance;
+            if (!isNoForce)
+            {
+                foreach (var key in _groups.Keys)
+                {
+                    if (key == groupId) continue;
+                    var allyFunction = GetAllyGroupRepulsiveFunction(vehicles, _groups[key], 1d);
+                    resFunction = new Point(resFunction.X + allyFunction.X, resFunction.Y + allyFunction.Y);
+                }
+            }
+          
 
             if (Math.Abs(resFunction.X) < Tolerance && Math.Abs(resFunction.Y) < Tolerance) return; //уже в точке
             
@@ -1079,7 +1085,29 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             Point targetPoint = null;
             if (circle != null)
             {
-                targetPoint = MathHelper.GetVectorCircleCrossPoint(resVector, circle);
+                if (Math.Abs(resVector.V.X) < Tolerance)
+                {
+                    var sqrt = circle.R * circle.R - Math.Pow(resVector.P1.X - circle.X, 2);
+                    if (sqrt > 0)
+                    {
+                        var y1 = circle.Y + sqrt;
+                        var y2 = circle.Y - sqrt;
+                        var p1 = new Point(resVector.P1.X, y1);
+                        var p2 = new Point(resVector.P1.X, y2);
+                        if (!circle.IsInside(resVector.P2.X, resVector.P2.Y))
+                        {
+                            targetPoint = p1.GetDistance(resVector.P2) < p2.GetDistance(resVector.P2) ? p1 : p2;
+                        }
+                        else
+                        {
+                            targetPoint = p1.GetDistance(resVector.P2) < p1.GetDistance(resVector.P1) ? p1 : p2;
+                        }
+                    }
+                }
+                else
+                {
+                    targetPoint = MathHelper.GetVectorCircleCrossPoint(resVector, circle);
+                }
             }
             if (targetPoint == null)
             {
@@ -1097,8 +1125,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             var angle = MathHelper.GetVectorAngle(resFunction);
             var isStatic = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
-                           //targetPoint.GetDistance(_currentMoveEnemyPoint[groupId]) < Tolerance; //точка та же
-                            Math.Abs(angle - _currentMovingAngle[groupId]) < Tolerance; //угол тот же
+                           targetPoint.GetDistance(_currentMoveEnemyPoint[groupId]) < Tolerance; //точка та же
+                            //Math.Abs(angle - _currentMovingAngle[groupId]) < Tolerance; //угол тот же
             if (isStatic) return;
 
             _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
@@ -1167,8 +1195,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
             var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
-            var myCp = MathHelper.GetNearestRectangleCrossPoint(nearestGroup.Center, myRectangle, centerPoint);
-            var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
+            var myCp = vehicles.Count == 1
+                ? new Point(centerPoint)
+                : MathHelper.GetNearestRectangleCrossPoint(nearestGroup.Center, myRectangle, centerPoint);
+            var enemyCp = nearestGroup.Vehicles.Count == 1
+                ? new Point(nearestGroup.Center)
+                : MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
             var requiredDistToEnemyCenter = centerPoint.GetDistance(myCp) + nearestGroup.Center.GetDistance(enemyCp) + ShootingDistance;
             var isFarFromEnemy = currentDistanceToEnemyCenter > requiredDistToEnemyCenter;
 
@@ -1346,8 +1378,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
             var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
-            var myCp = MathHelper.GetNearestRectangleCrossPoint(nearestGroup.Center, myRectangle, centerPoint);
-            var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
+            var myCp = vehicles.Count == 1
+                ? new Point(centerPoint)
+                : MathHelper.GetNearestRectangleCrossPoint(nearestGroup.Center, myRectangle, centerPoint);
+            var enemyCp = nearestGroup.Vehicles.Count == 1
+                ? new Point(nearestGroup.Center)
+                : MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
 
             Point enemyTargetRadiusPoint = null;
             var enemyTargetRadiusPointDistToMe = double.MaxValue;
@@ -1481,10 +1517,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var vector = new Vector(new Point(nearestGroup.Center), new Point(centerPoint));
             var radius = vector.Length;
             vector.Turn(angle);
-            var enemyCp = MathHelper.GetNearestRectangleCrossPoint(vector.P2, enemyRectangle, vector.P1);
+
+            var enemyCp = nearestGroup.Vehicles.Count == 1
+                ? new Point(nearestGroup.Center)
+                : MathHelper.GetNearestRectangleCrossPoint(vector.P2, enemyRectangle, vector.P1);
             
             var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
-            var myCp = MathHelper.GetNearestRectangleCrossPoint(nearestGroup.Center, myRectangle, centerPoint);
+            var myCp = vehicles.Count == 1
+                ? new Point(centerPoint)
+                : MathHelper.GetNearestRectangleCrossPoint(nearestGroup.Center, myRectangle, centerPoint);
             var myDist = myCp.GetDistance(centerPoint) + ShootingDistance;
 
             var OCp = new Vector(vector.P1, enemyCp); 
@@ -2029,11 +2070,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var nearestFacility = GetNearestFacility(centerPoint);
 
             
-            var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
-            var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
-            var myCp = MathHelper.GetNearestRectangleCrossPoint(nearestGroup.Center, myRectangle, centerPoint);
-            var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
-            var requiredDistToEnemyCenter = centerPoint.GetDistance(myCp) + nearestGroup.Center.GetDistance(enemyCp) + ShootingDistance;
+            //var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
+            //var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
+            //var myCp = MathHelper.GetNearestRectangleCrossPoint(nearestGroup.Center, myRectangle, centerPoint);
+            
+            //var requiredDistToEnemyCenter = centerPoint.GetDistance(myCp) + nearestGroup.Center.GetDistance(enemyCp) + ShootingDistance;
             //var isFarFromEnemy = currentDistanceToEnemyCenter > requiredDistToEnemyCenter;
 
             var isFacilityCloser = nearestFacility != null &&
@@ -2044,11 +2085,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             if (groupId % 2 == 0)
             {
-                var targetGroup = GetMostAdvantageEnemyGroup(enemyGroups, vehicles);
+                var targetGroup = GetNearestAdvantageEnemyGroup(enemyGroups, groupId);
 
                 if (targetGroup != null)
                 {
                     var currentDistanceToEnemyCenter = centerPoint.GetDistance(targetGroup.Center);
+                    var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(targetGroup.Vehicles));
+                    var enemyCp = targetGroup.Vehicles.Count == 1
+                        ? new Point(targetGroup.Center)
+                        : MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, targetGroup.Center);
                     var radius = targetGroup.Center.GetDistance(enemyCp) + EnemyVehicleDeltaShootingDist;
                     var isSmallEnemyGroup = targetGroup.Vehicles.Count < SmallGroupVehiclesCount;
                     if (currentDistanceToEnemyCenter <= radius && !isSmallEnemyGroup &&
@@ -2065,9 +2110,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 else
                 {
                     var currentDistanceToEnemyCenter = centerPoint.GetDistance(nearestGroup.Center);
+                    var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
+                    var enemyCp = nearestGroup.Vehicles.Count == 1
+                        ? new Point(nearestGroup.Center)
+                        : MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
                     var radius = nearestGroup.Center.GetDistance(enemyCp) + EnemyVehicleDeltaShootingDist;
-
-                    
 
                     if (currentDistanceToEnemyCenter <= radius &&
                         Math.Abs(_currentGroupAngle[groupId] - angle) > MaxAngle)
@@ -2179,9 +2226,10 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             return maxValueGc;
         }
 
-        private GroupContainer GetNearestAdvantageEnemyGroup(IList<GroupContainer> enemyGroups, IList<Vehicle> myVehicles)
+        private GroupContainer GetNearestAdvantageEnemyGroup(IList<GroupContainer> enemyGroups, int groupId)
         {
             var hasBigGroups = enemyGroups.Any(g => g.Vehicles.Count >= ConsiderGroupVehiclesCount);
+            var myVehicles = _groups[groupId];
             var center = GetVehiclesCenter(myVehicles);
 
             GroupContainer nearestGroup = null;
@@ -2189,7 +2237,21 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             foreach (var eg in enemyGroups)
             {
                 if (hasBigGroups && eg.Vehicles.Count < ConsiderGroupVehiclesCount) continue;
-                var advantage = GetAdvantage(myVehicles, eg);
+                var egRadius = GetSandvichRadius(eg.Vehicles);
+
+                var allVehicles = new List<Vehicle>(myVehicles);
+                foreach (var key in _groups.Keys.Where(k => k != groupId))
+                {
+                    var currCenter = GetVehiclesCenter(_groups[key]);
+                    var currNearestGroup = GetNearestEnemyGroup(enemyGroups, center.X, center.Y);
+                    var currRadius = egRadius + EnemyVehicleDeltaShootingDist;
+                    if (Equals(currNearestGroup, eg) && currCenter.GetDistance(eg.Center) < currRadius)
+                    {
+                        allVehicles.AddRange(_groups[key]);
+                    }
+                }
+
+                var advantage = GetAdvantage(allVehicles, eg);
                 if (advantage < 0) continue;
 
                 var dist = eg.Center.GetDistance(center.X, center.Y);
@@ -2604,6 +2666,31 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             return minSpeed;
         }
 
+        private double GetGroupRotationMaxSpeed(IList<Vehicle> vehicles)
+        {
+            var center = GetVehiclesCenter(vehicles);
+            var radius = vehicles.Max(v => v.GetDistanceTo(center.X, center.Y));
+
+            var startX = Math.Max(MathHelper.GetSquareIndex(center.X - radius), 0);
+            var endX = Math.Min( MathHelper.GetSquareIndex(center.X + radius), _game.TerrainWeatherMapColumnCount - 1);
+            var startY = Math.Max(MathHelper.GetSquareIndex(center.Y - radius), 0);
+            var endY = Math.Min(MathHelper.GetSquareIndex(center.Y + radius), _game.TerrainWeatherMapRowCount - 1);
+
+            var minSpeed = double.MaxValue;
+            foreach (var v in vehicles)
+            {
+                for (var i = startX; i <= endX; ++i)
+                {
+                    for (var j = startY; j <= endY; ++j)
+                    {
+                        var speed = GetActualMaxSpeed(v, i, j);
+                        if (speed < minSpeed) minSpeed = speed;
+                    }
+                }
+            }
+            return minSpeed;
+        }
+
         private double GetActualMaxSpeed(Vehicle vehicle, int x, int y)
         {
             var maxSpeed = vehicle.MaxSpeed;
@@ -2680,6 +2767,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             double resX, resY;
             if (dist < radius / 2)
             {
+                //TODO: деление на 0, если находимся в цетре круга
                 resX = coeff * (x - destPoint.X) / dist;
                 resY = coeff * (y - destPoint.Y) / dist;
             }
@@ -2695,6 +2783,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private Point GetAttractiveFunction(Point destPoint, double coeff, double x, double y)
         {
             var dist = destPoint.GetDistance(x, y);
+            if (Math.Abs(dist) < Tolerance) return new Point(0d, 0d);
             return new Point(- coeff * (x - destPoint.X)/dist, - coeff * (y - destPoint.Y)/dist);
         }
 
@@ -2718,7 +2807,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             //    MathHelper.GetJarvisRectangle(vehicles.Select(v => new Point(v.X, v.Y)).ToList());
             var myCenter = GetVehiclesCenter(vehicles);
 
-            var enemyCp = MathHelper.GetNearestRectangleCrossPoint(myCenter, enemyRectangle, groupContainer.Center);
+            var enemyCp = groupContainer.Vehicles.Count == 1
+                ? new Point(groupContainer.Center)
+                : MathHelper.GetNearestRectangleCrossPoint(myCenter, enemyRectangle, groupContainer.Center);
             //var myCp = MathHelper.GetNearestRectangleCrossPoint(groupContainer.Center, myRectangle, myCenter);
 
             //var crossPointsDist = enemyCp.GetDistance(myCp);

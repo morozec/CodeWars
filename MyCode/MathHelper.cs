@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Com.CodeGame.CodeRacing2015.DevKit.CSharpCgdk;
 using Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.Model;
 
 namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
@@ -82,7 +83,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
                 }
             }
 
-            //Иногда получается null при вызове из метода IsCliseToBorder
+            //Иногда получается null при вызове из метода IsCloseToBorder
             //if (minCp == null) throw new Exception("No cross point");
 
             return minCp;
@@ -147,13 +148,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
                      (1 + k * k) * (circle.X * circle.X + Math.Pow(b - circle.Y, 2) - circle.R * circle.R);
             if (d1 < 0) return null;
 
-            var x1 = -k * (b - circle.Y) + circle.X + Math.Sqrt(d1);
+            var x1 = (-k * (b - circle.Y) + circle.X + Math.Sqrt(d1))/(1+k*k);
             var y1 = k * x1 + b;
             var p1 = new Point(x1, y1);
 
-            var x2 = -k * (b - circle.Y) + circle.X - Math.Sqrt(d1);
+            var x2 = (-k * (b - circle.Y) + circle.X - Math.Sqrt(d1))/(1+k*k);
             var y2 = k * x2 + b;
             var p2 = new Point(x2, y2);
+
+            Debug.circleFill(p1.X, p1.Y, 3d, 0xFF0000);
+            Debug.circleFill(p2.X, p2.Y, 3d, 0x0000FF);
 
             if (!circle.IsInside(v.P2.X, v.P2.Y))
             {
