@@ -61,6 +61,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const double OrbitalWidth = 25d;
 
         private const int SquardCount = 33;
+        private const double NeedCompressionRadius = 7d;
        
         private IDictionary<int, IList<Vehicle>> _groups = new Dictionary<int, IList<Vehicle>>();
         private int _lastGroupIndex = -1;
@@ -2215,7 +2216,14 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var needConnect = minFriendDist < nearestGroupDist && minFriendDist < GetSandvichRadius(vehicles) +
                                   GetSandvichRadius(_groups[nearestFriendKey]) + EnemyVehicleDeltaShootingDist;
 
-                if (needConnect)
+                var needCompress =
+                    vehicles.All(v => v.GetDistanceTo(centerPoint.X, centerPoint.Y) > NeedCompressionRadius);
+
+                if (needCompress)
+                {
+                    Compress2(centerPoint.X, centerPoint.Y, PrepareCompressinFactor, 100d, groupId);
+                }
+                else if (needConnect)
                 {
                     ApolloSoyuzRotate(groupId, nearestFriendKey);
                 }
