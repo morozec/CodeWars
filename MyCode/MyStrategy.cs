@@ -3603,11 +3603,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 int index;
                 if (isGround)
                 {
-                    index = _groups.Keys.Where(k => k % 2 == 1).Max() + 2;
+                    var groundKeys = _groups.Keys.Where(k => k % 2 == 1).ToList();
+                    index = groundKeys.Any() ? groundKeys.Max() + 2 : 1;
                 }
                 else
                 {
-                    index = _groups.Keys.Where(k => k % 2 == 0).Max() + 2;
+                    var airKeys = _groups.Keys.Where(k => k % 2 == 0).ToList();
+                    index = airKeys.Any() ? airKeys.Max() + 2 : 2;
                 }
 
 
