@@ -230,7 +230,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private int _moveEnemyTicks = -1;
         private IDictionary<int, int> _apolloSoyuzIndexes = new Dictionary<int, int>();
-        
+        private int _movingNuclearGroupId = -1;
 
         /// <summary>
         ///     Основной метод стратегии, осуществляющий управление армией. Вызывается каждый тик.
@@ -257,11 +257,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 if (me.RemainingActionCooldownTicks > 0) return;
 
-                //if (!_isMyNuclearStrikeConsidered && _me.RemainingNuclearStrikeCooldownTicks == 0 && !_importantDelayedMoves.Any() && MakeNuclearStrike())
-                //{
-                //    _delayedMoves.Clear();
-                //    _isMyNuclearStrikeConsidered = true;
-                //}
+                if (!_isMyNuclearStrikeConsidered && _me.RemainingNuclearStrikeCooldownTicks == 0 && !_importantDelayedMoves.Any() && MakeNuclearStrike())
+                {
+                    _delayedMoves.Clear();
+                    _isMyNuclearStrikeConsidered = true;
+                }
                 else if (!_isEnemyNuclearStrikeConsidered && _enemy.NextNuclearStrikeTickIndex > -1 &&
                          !_importantDelayedMoves.Any())
                 {
@@ -1733,70 +1733,154 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         }
 
 
+        private int GetNuclearStrikeMoveToEnemyGroupId(IList<GroupContainer> enemyGroups)
+        {
+            var maxDamage = 0d;
+            var maxDamageDistance = double.MaxValue;
+            var maxDamageKey = -1;
+            foreach (var key in _groups.Keys)
+            {
+                var center = GetVehiclesCenter(_groups[key]);
+                var nearestGroup = GetNearestEnemyGroup(enemyGroups, center.X, center.Y);
+                var dist = center.GetDistance(nearestGroup.Center);
+                if (dist - GetSandvichRadius(_groups[key]) -
+                    GetSandvichRadius(nearestGroup.Vehicles) > EnemyVehicleDeltaShootingDist) continue;
 
+                var enemyCenter = GetVehiclesCenter(nearestGroup.Vehicles);
+                var damage = GetGroupNuclearDamage(nearestGroup.Vehicles, enemyCenter.X, enemyCenter.Y);
 
+                if (Math.Abs(damage - maxDamage) < Tolerance)
+                {
+                    
+                    if (dist < maxDamageDistance)
+                    {
+                        maxDamage = damage;
+                        maxDamageDistance = dist;
+                        maxDamageKey = key;
+                    }
+                }
+
+               else if (damage > maxDamage)
+                {
+                    maxDamage = damage;
+                    maxDamageDistance = dist;
+                    maxDamageKey = key;
+                }
+
+            }
+            return maxDamageKey;
+        }
+
+       
         private bool MakeNuclearStrike()
         {
             var enemyGroups = GetVehicleGroups(_enemyVehicles);
             var targetPoint = GetNuclearStrikeEnemyPoint(enemyGroups);
             var myVehicles = GetVehicles(Ownership.ALLY);
 
-            if (targetPoint == null) return false;
-
-            var strikingVehicle = GetNuclearStrikeVehicle(targetPoint, myVehicles);
-            _nuclearVehicleId = strikingVehicle.Id;
-
-            var isUncompressing = false;
-            var groupId = strikingVehicle.Groups.SingleOrDefault();
-            if (groupId != 0)
+            if (targetPoint == null)
             {
-                if (_sandvichActions[groupId] == SandvichAction.Rotating ||
-                    _sandvichActions[groupId] == SandvichAction.Rotate90)
+                if (_movingNuclearGroupId != -1) return false;
+
+                var movingGroupId = GetNuclearStrikeMoveToEnemyGroupId(enemyGroups);
+                if (movingGroupId == -1) return false;
+
+                var isUncompressing = _sandvichActions[movingGroupId] == SandvichAction.Uncompress;
+                var isCompressing = _sandvichActions[movingGroupId] == SandvichAction.Compressing2;
+
+                if (isCompressing || isUncompressing) return false;
+
+                if (_sandvichActions[movingGroupId] == SandvichAction.Rotating ||
+                    _sandvichActions[movingGroupId] == SandvichAction.Rotate90)
                 {
-                    _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
+                    _currentGroupAngle[movingGroupId] = _tmpGroupAngle[movingGroupId];
                 }
 
-                isUncompressing = _sandvichActions[groupId] == SandvichAction.Uncompress;
-                var isCompressing = _sandvichActions[groupId] == SandvichAction.Compressing2;
-
-                if (!isUncompressing && !isCompressing)
+                if (_selectedGroupId != movingGroupId)
                 {
-                    if (_selectedGroupId != groupId)
-                    {
-                        _importantDelayedMoves.Enqueue(move =>
-                        {
-                            move.Action = ActionType.ClearAndSelect;
-                            move.Group = groupId;
-                        });
-                        _selectedGroupId = groupId;
-                    }
-
                     _importantDelayedMoves.Enqueue(move =>
                     {
-                        move.Action = ActionType.Move;
-                        move.X = 0;
-                        move.Y = 0;
+                        move.Action = ActionType.ClearAndSelect;
+                        move.Group = movingGroupId;
                     });
-
-                    _sandvichActions[groupId] = SandvichAction.NuclearStrike;
+                    _selectedGroupId = movingGroupId;
                 }
+
+                var center = GetVehiclesCenter(_groups[movingGroupId]);
+                var nearestGroup = GetNearestEnemyGroup(enemyGroups, center.X, center.Y);
+                var speed = GetGroupLineMaxSpeed(_groups[movingGroupId], nearestGroup.Center);
+
+                _importantDelayedMoves.Enqueue(move =>
+                {
+                    move.Action = ActionType.Move;
+                    move.X = nearestGroup.Center.X - center.X;
+                    move.Y = nearestGroup.Center.Y - center.Y;
+                    move.MaxSpeed = speed;
+                });
+
+                _sandvichActions[movingGroupId] = SandvichAction.NuclearStrikeMove;
+                _movingNuclearGroupId = movingGroupId;
+                return false;
             }
-
-            _importantDelayedMoves.Enqueue(move =>
+            else
             {
-                move.Action = ActionType.TacticalNuclearStrike;
-                move.X = targetPoint.X;
-                move.Y = targetPoint.Y;
-                move.VehicleId = strikingVehicle.Id;
-                _isMyNuclearStrikeConsidered = false;
-                _isFirstNuclearStrike = false;
-                if (!isUncompressing)
-                    _groupEndMovementTime[groupId] = _world.TickIndex + _game.TacticalNuclearStrikeDelay;
-            });
-           
+                var strikingVehicle = GetNuclearStrikeVehicle(targetPoint, myVehicles);
+                _nuclearVehicleId = strikingVehicle.Id;
 
-            return true;
+                var isUncompressing = false;
+                var groupId = strikingVehicle.Groups.SingleOrDefault();
+                if (groupId != 0)
+                {
+                    if (_sandvichActions[groupId] == SandvichAction.Rotating ||
+                        _sandvichActions[groupId] == SandvichAction.Rotate90)
+                    {
+                        _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
+                    }
+
+                    isUncompressing = _sandvichActions[groupId] == SandvichAction.Uncompress;
+                    var isCompressing = _sandvichActions[groupId] == SandvichAction.Compressing2;
+
+                    if (!isUncompressing && !isCompressing)
+                    {
+                        if (_selectedGroupId != groupId)
+                        {
+                            _importantDelayedMoves.Enqueue(move =>
+                            {
+                                move.Action = ActionType.ClearAndSelect;
+                                move.Group = groupId;
+                            });
+                            _selectedGroupId = groupId;
+                        }
+
+                        _importantDelayedMoves.Enqueue(move =>
+                        {
+                            move.Action = ActionType.Move;
+                            move.X = 0;
+                            move.Y = 0;
+                        });
+
+                        _sandvichActions[groupId] = SandvichAction.NuclearStrike;
+                    }
+                }
+
+                _importantDelayedMoves.Enqueue(move =>
+                {
+                    move.Action = ActionType.TacticalNuclearStrike;
+                    move.X = targetPoint.X;
+                    move.Y = targetPoint.Y;
+                    move.VehicleId = strikingVehicle.Id;
+                    _isMyNuclearStrikeConsidered = false;
+                    _isFirstNuclearStrike = false;
+                    _movingNuclearGroupId = -1;
+                    if (!isUncompressing)
+                        _groupEndMovementTime[groupId] = _world.TickIndex + _game.TacticalNuclearStrikeDelay;
+                });
+
+
+                return true;
+            }
         }
+     
 
         private void Uncompress(int groupId)
         {
@@ -2158,7 +2242,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         DoMilitaryAction(vehicles, groupId);
                     }
                     break;
-
+                case SandvichAction.NuclearStrikeMove:
+                    if (_movingNuclearGroupId != groupId) //удар нанесла другая группа
+                    {
+                        DoMilitaryAction(vehicles, groupId);
+                    }
+                    
+                    break;
             }
         }
 
@@ -2179,7 +2269,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var minFriendDist = double.MaxValue;
                 foreach (var key in _groups.Keys.Where(k => k != groupId))
                 {
-
+                    if (_sandvichActions[key] != SandvichAction.MovingToEnemy && _sandvichActions[key] != SandvichAction.Rotating) continue;
+                    
                     var isThisGround = IsGroundGroup(vehicles);
                     var isThisAir = IsAirGroup(vehicles);
                     var isOtherGround = IsGroundGroup(_groups[key]);
@@ -2568,9 +2659,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             _currentAngularSpeed.Remove(maxIndex);
             _currentMoveEnemyPoint.Remove(maxIndex);
             _currentMovingAngle.Remove(maxIndex); 
-
-
-
+            
 
             if (_selectedGroupId != maxIndex)
             {
@@ -3486,6 +3575,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 if (vehicles.Any())
                     _groups.Add(i, vehicles);
             }
+            if (_movingNuclearGroupId != -1 && !_groups.ContainsKey(_movingNuclearGroupId)) _movingNuclearGroupId = -1;
 
             _enemyVehicles = GetVehicles(Ownership.ENEMY);
             _moveEnemyTicks = GetMoveEnemyTicks();
@@ -3774,6 +3864,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             Rotating,
             MovingToEnemy,
             NuclearStrike,
+            NuclearStrikeMove,
             Uncompress,
             Rotate90,
             ApolloSoyuzRotate,
