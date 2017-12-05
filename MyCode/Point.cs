@@ -23,6 +23,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
             Y = p.Y;
         }
 
+        public double GetSquareDistance(Point p)
+        {
+            return GetSquareDistance(p.X, p.Y);
+        }
+
+        public double GetSquareDistance(double x, double y)
+        {
+            return (X - x) * (X - x) + (Y - y) * (Y - y);
+        }
+
         public double GetDistance(Point p)
         {
             return GetDistance(p.X, p.Y);

@@ -380,11 +380,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
                     {
                         new PointVehilceTypeContainer(0, VehicleType.Arrv,
-                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetDistance(_groundKeyPoints[0])),
+                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetSquareDistance(_groundKeyPoints[0])),
                         new PointVehilceTypeContainer(1, VehicleType.Ifv,
-                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetDistance(_groundKeyPoints[1])),
+                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetSquareDistance(_groundKeyPoints[1])),
                         new PointVehilceTypeContainer(2, VehicleType.Tank,
-                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetDistance(_groundKeyPoints[2])),
+                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetSquareDistance(_groundKeyPoints[2])),
                     },
                 },
                 new VariantContainer()
@@ -392,11 +392,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
                     {
                         new PointVehilceTypeContainer(0, VehicleType.Arrv,
-                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetDistance(_groundKeyPoints[0])),
+                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetSquareDistance(_groundKeyPoints[0])),
                         new PointVehilceTypeContainer(1, VehicleType.Tank,
-                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetDistance(_groundKeyPoints[1])),
+                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetSquareDistance(_groundKeyPoints[1])),
                         new PointVehilceTypeContainer(2, VehicleType.Ifv,
-                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetDistance(_groundKeyPoints[2])),
+                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetSquareDistance(_groundKeyPoints[2])),
                     },
                 },
                 new VariantContainer()
@@ -404,11 +404,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
                     {
                         new PointVehilceTypeContainer(0, VehicleType.Ifv,
-                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetDistance(_groundKeyPoints[0])),
+                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetSquareDistance(_groundKeyPoints[0])),
                         new PointVehilceTypeContainer(1, VehicleType.Arrv,
-                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetDistance(_groundKeyPoints[1])),
+                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetSquareDistance(_groundKeyPoints[1])),
                         new PointVehilceTypeContainer(2, VehicleType.Tank,
-                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetDistance(_groundKeyPoints[2])),
+                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetSquareDistance(_groundKeyPoints[2])),
                     },
                 },
                 new VariantContainer()
@@ -416,11 +416,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
                     {
                         new PointVehilceTypeContainer(0, VehicleType.Ifv,
-                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetDistance(_groundKeyPoints[0])),
+                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetSquareDistance(_groundKeyPoints[0])),
                         new PointVehilceTypeContainer(1, VehicleType.Tank,
-                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetDistance(_groundKeyPoints[1])),
+                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetSquareDistance(_groundKeyPoints[1])),
                         new PointVehilceTypeContainer(2, VehicleType.Arrv,
-                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetDistance(_groundKeyPoints[2])),
+                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetSquareDistance(_groundKeyPoints[2])),
                     },
                 },
                 new VariantContainer()
@@ -428,11 +428,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
                     {
                         new PointVehilceTypeContainer(0, VehicleType.Tank,
-                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetDistance(_groundKeyPoints[0])),
+                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetSquareDistance(_groundKeyPoints[0])),
                         new PointVehilceTypeContainer(1, VehicleType.Ifv,
-                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetDistance(_groundKeyPoints[1])),
+                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetSquareDistance(_groundKeyPoints[1])),
                         new PointVehilceTypeContainer(2, VehicleType.Arrv,
-                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetDistance(_groundKeyPoints[2])),
+                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetSquareDistance(_groundKeyPoints[2])),
                     },
                 },
                 new VariantContainer()
@@ -440,11 +440,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     PointVehilceTypeContainers = new List<PointVehilceTypeContainer>()
                     {
                         new PointVehilceTypeContainer(0, VehicleType.Tank,
-                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetDistance(_groundKeyPoints[0])),
+                            GetVehiclesCenter(vehicles[VehicleType.Tank]).GetSquareDistance(_groundKeyPoints[0])),
                         new PointVehilceTypeContainer(1, VehicleType.Arrv,
-                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetDistance(_groundKeyPoints[1])),
+                            GetVehiclesCenter(vehicles[VehicleType.Arrv]).GetSquareDistance(_groundKeyPoints[1])),
                         new PointVehilceTypeContainer(2, VehicleType.Ifv,
-                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetDistance(_groundKeyPoints[2])),
+                            GetVehiclesCenter(vehicles[VehicleType.Ifv]).GetSquareDistance(_groundKeyPoints[2])),
                     },
                 },
             };
@@ -490,7 +490,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 var currentType = _groundPointsVehicleTypes[pointIndex];
                 var currentVehicles = GetVehicles(Ownership.ALLY, currentType);
-                if (Math.Abs(GetVehiclesCenter(currentVehicles).GetDistance(_groundKeyPoints[pointIndex])) > Tolerance)
+                if (Math.Abs(GetVehiclesCenter(currentVehicles).GetSquareDistance(_groundKeyPoints[pointIndex])) > Tolerance)
                 {
                     GroundMakeMoveToKeyPoint(currentType, currentVehicles, pointIndex);
                     needMove = true;
@@ -514,23 +514,23 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             var fCenter = GetVehiclesCenter(vehicles[VehicleType.Fighter]);
             var hCenter = GetVehiclesCenter(vehicles[VehicleType.Helicopter]);
-            if (hCenter.GetDistance(45, 119) < Tolerance && (fCenter.GetDistance(45, 45) < Tolerance || fCenter.GetDistance(45, 193) < Tolerance))
+            if (hCenter.GetSquareDistance(45, 119) < Tolerance && (fCenter.GetSquareDistance(45, 45) < Tolerance || fCenter.GetSquareDistance(45, 193) < Tolerance))
             {
                 _airPointsVehicleTypes.Add(0, VehicleType.Helicopter);
                 _airPointsVehicleTypes.Add(1, VehicleType.Fighter);
             }
-            else if (fCenter.GetDistance(45, 119) < Tolerance &&
-                     (hCenter.GetDistance(45, 45) < Tolerance || hCenter.GetDistance(45, 193) < Tolerance))
+            else if (fCenter.GetSquareDistance(45, 119) < Tolerance &&
+                     (hCenter.GetSquareDistance(45, 45) < Tolerance || hCenter.GetSquareDistance(45, 193) < Tolerance))
             {
                 _airPointsVehicleTypes.Add(0, VehicleType.Fighter);
                 _airPointsVehicleTypes.Add(1, VehicleType.Helicopter);
             }
-            else if (hCenter.GetDistance(45, 119) < Tolerance && fCenter.GetDistance(119, 119) < Tolerance)
+            else if (hCenter.GetSquareDistance(45, 119) < Tolerance && fCenter.GetSquareDistance(119, 119) < Tolerance)
             {
                 _airPointsVehicleTypes.Add(0, VehicleType.Helicopter);
                 _airPointsVehicleTypes.Add(1, VehicleType.Fighter);
             }
-            else if (fCenter.GetDistance(45, 119) < Tolerance && hCenter.GetDistance(119, 119) < Tolerance)
+            else if (fCenter.GetSquareDistance(45, 119) < Tolerance && hCenter.GetSquareDistance(119, 119) < Tolerance)
             {
                 _airPointsVehicleTypes.Add(0, VehicleType.Fighter);
                 _airPointsVehicleTypes.Add(1, VehicleType.Helicopter);
@@ -545,10 +545,10 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         {
                             new PointVehilceTypeContainer(0,
                                 VehicleType.Fighter,
-                                GetVehiclesCenter(vehicles[VehicleType.Fighter]).GetDistance(_airKeyPoints[0])),
+                                GetVehiclesCenter(vehicles[VehicleType.Fighter]).GetSquareDistance(_airKeyPoints[0])),
                             new PointVehilceTypeContainer(1,
                                 VehicleType.Helicopter,
-                                GetVehiclesCenter(vehicles[VehicleType.Helicopter]).GetDistance(_airKeyPoints[1])),
+                                GetVehiclesCenter(vehicles[VehicleType.Helicopter]).GetSquareDistance(_airKeyPoints[1])),
                         },
                     },
                     new VariantContainer()
@@ -557,10 +557,10 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         {
                             new PointVehilceTypeContainer(0,
                                 VehicleType.Helicopter,
-                                GetVehiclesCenter(vehicles[VehicleType.Helicopter]).GetDistance(_airKeyPoints[0])),
+                                GetVehiclesCenter(vehicles[VehicleType.Helicopter]).GetSquareDistance(_airKeyPoints[0])),
                             new PointVehilceTypeContainer(1,
                                 VehicleType.Fighter,
-                                GetVehiclesCenter(vehicles[VehicleType.Fighter]).GetDistance(_airKeyPoints[1])),
+                                GetVehiclesCenter(vehicles[VehicleType.Fighter]).GetSquareDistance(_airKeyPoints[1])),
                         },
                     },
                 };
@@ -579,7 +579,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 var currentType = _airPointsVehicleTypes[pointIndex];
                 var currentVehicles = GetVehicles(Ownership.ALLY, currentType);
-                if (Math.Abs(GetVehiclesCenter(currentVehicles).GetDistance(_airKeyPoints[pointIndex])) > Tolerance)
+                if (Math.Abs(GetVehiclesCenter(currentVehicles).GetSquareDistance(_airKeyPoints[pointIndex])) > Tolerance)
                 {
                     AirMakeMoveToKeyPoint(currentType, currentVehicles, pointIndex);
                     needMove = true;
@@ -614,7 +614,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             var destX = (_groundAStarPathes[vehicleType][1] as ASquare).CenterX;
             var destY = (_groundAStarPathes[vehicleType][1] as ASquare).CenterY;
-            var dist = GetVehiclesCenter(vehicles).GetDistance(destX, destY);
+            var dist = Math.Sqrt(GetVehiclesCenter(vehicles).GetSquareDistance(destX, destY));
 
             var endPoint = new Point(destX, destY);
             var speed = GetGroupLineMaxSpeed(vehicles, endPoint);
@@ -653,7 +653,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             var destX = (_airAStarPathes[vehicleType][1] as ASquare).CenterX;
             var destY = (_airAStarPathes[vehicleType][1] as ASquare).CenterY;
-            var dist = GetVehiclesCenter(vehicles).GetDistance(destX, destY);
+            var dist = Math.Sqrt(GetVehiclesCenter(vehicles).GetSquareDistance(destX, destY));
 
             var endPoint = new Point(destX, destY);
             var speed = GetGroupLineMaxSpeed(vehicles, endPoint);
@@ -1117,11 +1117,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         var p2 = new Point(resVector.P1.X, y2);
                         if (!circle.IsInside(resVector.P2.X, resVector.P2.Y))
                         {
-                            targetPoint = p1.GetDistance(resVector.P2) < p2.GetDistance(resVector.P2) ? p1 : p2;
+                            targetPoint = p1.GetSquareDistance(resVector.P2) < p2.GetSquareDistance(resVector.P2) ? p1 : p2;
                         }
                         else
                         {
-                            targetPoint = p1.GetDistance(resVector.P2) < p1.GetDistance(resVector.P1) ? p1 : p2;
+                            targetPoint = p1.GetSquareDistance(resVector.P2) < p1.GetSquareDistance(resVector.P1) ? p1 : p2;
                         }
                     }
                 }
@@ -1132,7 +1132,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
             if (targetPoint == null)
             {
-                var destPointDist = centerPoint.GetDistance(destPoint);
+                var destPointDist = Math.Sqrt(centerPoint.GetSquareDistance(destPoint));
                 var coeff = destPointDist / resVector.Length;
                 resVector.Mult(coeff);
                 targetPoint = new Point(centerPoint.X + resVector.V.X, centerPoint.Y + resVector.V.Y);
@@ -1148,7 +1148,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             //TODO: кривой критерий в isStatic
             var isStatic = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
-                           (centerPoint.GetDistance(_currentMoveEnemyPoint[groupId]) > Tolerance //еще не долетели до точки
+                           (centerPoint.GetSquareDistance(_currentMoveEnemyPoint[groupId]) > Tolerance //еще не долетели до точки
                            && !hasNegativeCharge && Math.Abs(angle - _currentMovingAngle[groupId]) < MaxAngle/2); //угол тот же
             if (isStatic) return;
 
@@ -1189,7 +1189,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 var fcp = GetFacilityCenterPoint(f);
                 var ng =  GetNearestEnemyGroup(enemyGroups, fcp.X, fcp.Y);
-                return fcp.GetDistance(ng.Center);
+                return fcp.GetSquareDistance(ng.Center);
             });
 
             var enemyVehicles = GetVehicles(Ownership.ENEMY);
@@ -1209,406 +1209,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         {
             return new Point(facility.Left + _game.FacilityWidth / 2d, facility.Top + _game.FacilityHeight / 2d);
         }
-        
-
-        private void MoveToEnemy(IList<Vehicle> vehicles, int groupId)
-        {
-            var centerPoint = GetVehiclesCenter(vehicles);
-
-            var enemyGroups = GetVehicleGroups(_enemyVehicles);
-            var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y, vehicles);
-            
-            var hasAdvantege = HasAdvantage(groupId, nearestGroup, enemyGroups, WeakVehiclesCountAdvantage, WeakVehiclesCoeffAdvantage);
-            var currentDistanceToEnemyCenter = centerPoint.GetDistance(nearestGroup.Center);
-
-            var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
-            var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
-            var myCp = vehicles.Count == 1
-                ? new Point(centerPoint)
-                : MathHelper.GetNearestRectangleCrossPoint(nearestGroup.Center, myRectangle, centerPoint);
-            var enemyCp = nearestGroup.Vehicles.Count == 1
-                ? new Point(nearestGroup.Center)
-                : MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
-            var requiredDistToEnemyCenter = centerPoint.GetDistance(myCp) + nearestGroup.Center.GetDistance(enemyCp) + ShootingDistance;
-            var isFarFromEnemy = currentDistanceToEnemyCenter > requiredDistToEnemyCenter;
-
-            Point endPoint;
-            double speed;
-
-            if (hasAdvantege)
-            {
-                var isAdvantageStaticEnemy = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
-                                    _currentMoveEnemyPoint[groupId]
-                                        .GetDistance(nearestGroup.Center.X, nearestGroup.Center.Y) <=
-                                    MoveEnemyPointTolerance;
-                _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
-
-                if (isAdvantageStaticEnemy) return;
-
-                if (_selectedGroupId != groupId)
-                {
-                    _delayedMoves.Enqueue(move =>
-                    {
-                        move.Action = ActionType.ClearAndSelect;
-                        move.Group = groupId;
-                    });
-                    _selectedGroupId = groupId;
-                }
-
-                var x = nearestGroup.Center.X - centerPoint.X;
-                var y = nearestGroup.Center.Y - centerPoint.Y;
-
-                endPoint = new Point(nearestGroup.Center.X, nearestGroup.Center.Y);
-                speed = GetGroupLineMaxSpeed(vehicles, endPoint);
-
-                _delayedMoves.Enqueue(move =>
-                {
-                    move.Action = ActionType.Move;
-                    move.X = x;
-                    move.Y = y;
-                    move.MaxSpeed = speed;
-                    _groupEndMovementTime[groupId] = _world.TickIndex + _moveEnemyTicks;
-                    _currentMoveEnemyPoint[groupId] = new Point(nearestGroup.Center.X, nearestGroup.Center.Y);
-                });
-
-                return;
-            }
-
-
-
-
-            if (groupId == 2)
-            {
-                var enemyTargetRadiusPoint = GetEnemyTargetRadiusPoint(vehicles);
-                if (enemyTargetRadiusPoint != null)
-                {
-                    var currVector = new Vector(nearestGroup.Center, enemyCp);
-                    var newVector = new Vector(nearestGroup.Center, enemyTargetRadiusPoint);
-
-                    var rotationAngle = MathHelper.GetAnlge(currVector, newVector);
-                    Rotate90(vehicles, groupId, rotationAngle, nearestGroup.Center);
-                    return;
-                }
-            }
-
-            double targetX;
-            double targetY;
-
-            if (isFarFromEnemy)
-            {
-                targetX = nearestGroup.Center.X;
-                targetY = nearestGroup.Center.Y;
-            }
-            else
-            {
-                if (groupId == 2)
-                {
-                    if (IsBalancedRectange(enemyRectangle, nearestGroup.Center))
-                    {
-                        var group1Vehicles = GetVehicles(1, Ownership.ALLY);
-                        if (group1Vehicles.Any())
-                        {
-                            var group1Vector = new Vector(new Point(nearestGroup.Center),
-                                GetVehiclesCenter(group1Vehicles));
-                            var group2Vector = new Vector(new Point(nearestGroup.Center), centerPoint);
-
-                            var rotationAngle = MathHelper.GetAnlge(group2Vector, group1Vector);
-                            if (Math.Abs(rotationAngle) > Tolerance)
-                            {
-                                Rotate90(vehicles, groupId, rotationAngle, nearestGroup.Center);
-                                return;
-                            }
-                        }
-
-                        targetX = nearestGroup.Center.X -
-                                  requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
-                        targetY = nearestGroup.Center.Y -
-                                  requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
-
-                    }
-                    else
-                    {
-                        if (vehicles.Count >= GoToEnemyCpCount)
-                        {
-                            targetX = enemyCp.X;
-                            targetY = enemyCp.Y;
-                        }
-                        else
-                        {
-                            targetX = nearestGroup.Center.X -
-                                      requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
-                            targetY = nearestGroup.Center.Y -
-                                      requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
-                        }
-                    }
-
-                }
-                else
-                {
-                    targetX = nearestGroup.Center.X - requiredDistToEnemyCenter * Math.Cos(_currentGroupAngle[groupId]);
-                    targetY = nearestGroup.Center.Y - requiredDistToEnemyCenter * Math.Sin(_currentGroupAngle[groupId]);
-                }
-            }
-
-            var isFarFromBorder = IsFarFromBorderPoint(vehicles, new Point(targetX, targetY));
-            if (!isFarFromBorder)
-            {
-                targetX = enemyCp.X;
-                targetY = enemyCp.Y;
-            }
-
-
-            var isStaticEnemy = _sandvichActions[groupId] == SandvichAction.MovingToEnemy &&
-                                _currentMoveEnemyPoint[groupId].GetDistance(targetX, targetY) <=
-                                MoveEnemyPointTolerance;
-
-            _sandvichActions[groupId] = SandvichAction.MovingToEnemy;
-
-            if (isStaticEnemy) return; //TODO: возможно, всегда стоит двигаться вблизи врага
-
-            if (_selectedGroupId != groupId)
-            {
-                _delayedMoves.Enqueue(move =>
-                {
-                    move.Action = ActionType.ClearAndSelect;
-                    move.Group = groupId;
-                });
-                _selectedGroupId = groupId;
-            }
-
-            endPoint = new Point(targetX, targetY);
-            speed = GetGroupLineMaxSpeed(vehicles, endPoint);
-
-            _delayedMoves.Enqueue(move =>
-            {
-                move.Action = ActionType.Move;
-                move.X = targetX - centerPoint.X;
-                move.Y = targetY - centerPoint.Y;
-                move.MaxSpeed = speed;
-                _groupEndMovementTime[groupId] = _world.TickIndex + _moveEnemyTicks;
-                _currentMoveEnemyPoint[groupId] = new Point(targetX, targetY);
-            });
-            
-
-        }
-
-
-
-        private Point GetEnemyTargetRadiusPoint(IList<Vehicle> vehicles)
-        {
-
-            var centerPoint = GetVehiclesCenter(vehicles);
-
-            var enemyGroups = GetVehicleGroups(_enemyVehicles);
-            var nearestGroup = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y, vehicles);
-
-            var currentDistanceToEnemyCenter = centerPoint.GetDistance(nearestGroup.Center);
-
-            var myRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
-            var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
-            var myCp = vehicles.Count == 1
-                ? new Point(centerPoint)
-                : MathHelper.GetNearestRectangleCrossPoint(nearestGroup.Center, myRectangle, centerPoint);
-            var enemyCp = nearestGroup.Vehicles.Count == 1
-                ? new Point(nearestGroup.Center)
-                : MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, nearestGroup.Center);
-
-            Point enemyTargetRadiusPoint = null;
-            var enemyTargetRadiusPointDistToMe = double.MaxValue;
-
-            var currentEnemyCenterDist = nearestGroup.Center.GetDistance(enemyCp);
-            for (var i = 0; i < enemyRectangle.Points.Count; ++i)
-            {
-                var point = enemyRectangle.Points[i];
-
-                var radius = nearestGroup.Center.GetDistance(point);
-                var distToMe = point.GetDistance(centerPoint);
-
-                if (currentDistanceToEnemyCenter - radius - centerPoint.GetDistance(myCp) < ShootingDistance &&
-                    radius - currentEnemyCenterDist > MoreSideDist &&
-                    distToMe < enemyTargetRadiusPointDistToMe)
-                {
-
-                    var turnVector = new Vector(new Point(nearestGroup.Center), new Point(point));
-                    turnVector.Mult(centerPoint.GetDistance(nearestGroup.Center) / turnVector.Length);
-
-                    var currVector = new Vector(new Point(nearestGroup.Center), new Point(centerPoint));
-                    var angle = MathHelper.GetAnlge(currVector, turnVector);
-                    var dAnlge = angle / 10d;
-
-                    var isFarFromBorder = true;
-                    for (var j = 0; j < 10; ++j)
-                    {
-                        currVector.Turn(dAnlge);
-                        if (!IsFarFromBorderPoint(vehicles, currVector.P2))
-                        {
-                            isFarFromBorder = false;
-                            break;
-                        }
-                    }
-
-                    if (!isFarFromBorder) continue;
-
-                    enemyTargetRadiusPoint = point;
-                    enemyTargetRadiusPointDistToMe = distToMe;
-                }
-            }
-
-            return enemyTargetRadiusPoint;
-        }
-
-        //private void PrepareToRotate90(IList<Vehicle> vehicles, int groupId)
-        //{
-        //    _sandvichActions[groupId] = SandvichAction.PrepareToRotate90;
-
-        //    var centerPoint = GetVehiclesCenter(vehicles);
-
-        //    if (_isGroupCompressed.Keys.Any(key => !_isGroupCompressed[key]) || _selectedGroupId != groupId)
-        //    {
-        //        _delayedMoves.Enqueue(move =>
-        //        {
-        //            move.Action = ActionType.ClearAndSelect;
-        //            move.Group = groupId;
-        //        });
-        //        _selectedGroupId = groupId;
-        //    }
-
-        //    var time = centerPoint.GetDistance(_rotationContainer.PrepareRotationPoint) / GetMaxSpeed(groupId);
-
-        //    _delayedMoves.Enqueue(move =>
-        //    {
-        //        move.Action = ActionType.Move;
-        //        move.X = _rotationContainer.PrepareRotationPoint.X - centerPoint.X;
-        //        move.Y = _rotationContainer.PrepareRotationPoint.Y - centerPoint.Y;
-        //        move.MaxSpeed = GetMaxSpeed(groupId);
-        //        _groupEndMovementTime[groupId] = _world.TickIndex + time;
-        //    });
-            
-        //}
-
-        private void Rotate90(IList<Vehicle> vehicles, int groupId, double rotationAngle, Point rotationCenter)
-        {
-            _sandvichActions[groupId] = SandvichAction.Rotate90;
-            var newAngle = _currentGroupAngle[groupId] + rotationAngle;
-
-            if (newAngle > Math.PI) newAngle -= 2 * Math.PI;
-            else if (newAngle < -Math.PI) newAngle += 2 * Math.PI;
-
-            var radius =
-                vehicles.Max(
-                    v =>
-                        v.GetDistanceTo(rotationCenter.X,
-                            rotationCenter.Y));
-            var speed = GetGroupMaxSpeed(groupId);
-            var angularSpeed = speed / radius;
-
-            var turnTime = Math.Abs(rotationAngle) / angularSpeed;
-
-            if (_selectedGroupId != groupId)
-            {
-                _delayedMoves.Enqueue(move =>
-                {
-                    move.Action = ActionType.ClearAndSelect;
-                    move.Group = groupId;
-                });
-                _selectedGroupId = groupId;
-            }
-            var currentAngle = _currentGroupAngle[groupId];
-            _delayedMoves.Enqueue(move =>
-            {
-                move.Action = ActionType.Rotate;
-                move.X = rotationCenter.X;
-                move.Y = rotationCenter.Y;
-                move.Angle = rotationAngle;
-                _groupEndMovementTime[groupId] = _world.TickIndex + turnTime;
-                move.MaxAngularSpeed = angularSpeed;
-
-                _currentAngularSpeed[groupId] = rotationAngle > 0 ? angularSpeed : -angularSpeed;
-                _isRotating[groupId] = true;
-
-                _tmpGroupAngle[groupId] = currentAngle;
-                _currentGroupAngle[groupId] = newAngle;
-                
-            });
-        }
-
-
-        
-
-        private bool HasAdvantage(int groupId, GroupContainer enemyGroup, IList<GroupContainer> enemyGroups,
-            double vehiclesCountAdvantage, double vehiclesCoeffAdvantage)
-        {
-            var vehicles = GetVehicles(groupId, Ownership.ALLY);
-            var enemyWeight = enemyGroup.Vehicles.Aggregate(0d, (current, v) => current + v.Durability);
-            if (groupId % 2 == 1)
-            {
-
-                var myWeight = vehicles.Aggregate(0d, (current, v) => current + v.Durability);
-                var g2 = GetVehicles(2, Ownership.ALLY);
-                if (g2.Any())
-                {
-                    var centerPoint = GetVehiclesCenter(g2);
-                    var g2NearestEnemy = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
-
-                    if (centerPoint.GetDistance(g2NearestEnemy.Center) < CloseFriendDistance &&
-                        g2NearestEnemy.Center.GetDistance(enemyGroup.Center) < Tolerance)
-                    {
-                        myWeight = g2.Aggregate(myWeight, (current, v) => current + v.Durability);
-                    }
-                }
-
-                return myWeight - enemyWeight >= _game.TankDurability * vehiclesCountAdvantage ||
-                       myWeight * 1d / enemyWeight >= vehiclesCoeffAdvantage;
-            }
-            else
-            {
-                var myWeight = vehicles.Aggregate(0d, (current, v) => current + v.Durability);
-
-                var g1 = GetVehicles(1, Ownership.ALLY);
-                var hasCloseG1 = false;
-                if (g1.Any())
-                {
-                    var centerPoint = GetVehiclesCenter(g1);
-                    var g1NearestEnemy = GetNearestEnemyGroup(enemyGroups, centerPoint.X, centerPoint.Y);
-
-                    if (centerPoint.GetDistance(g1NearestEnemy.Center) < CloseFriendDistance &&
-                        g1NearestEnemy.Center.GetDistance(enemyGroup.Center) < Tolerance)
-                    {
-                        hasCloseG1 = true;
-                    }
-                }
-
-                if (hasCloseG1)
-                {
-                    myWeight = g1.Aggregate(myWeight, (current, v) => current + v.Durability);
-                    return myWeight - enemyWeight >= _game.TankDurability * vehiclesCountAdvantage ||
-                           myWeight * 1d / enemyWeight >= vehiclesCoeffAdvantage;
-                }
-
-                var otherEnemyWeight = 0d;
-                foreach (var v in enemyGroup.Vehicles)
-                {
-                    switch (v.Type)
-                    {
-                        case VehicleType.Fighter:
-                            otherEnemyWeight += 1 * v.Durability;
-                            break;
-                        case VehicleType.Helicopter:
-                            otherEnemyWeight += 1 * v.Durability;
-                            break;
-                        case VehicleType.Tank:
-                            otherEnemyWeight += 1 * v.Durability;
-                            break;
-                        case VehicleType.Ifv:
-                            otherEnemyWeight += 3 * v.Durability;
-                            break;
-                    }
-                }
-
-                return myWeight >= otherEnemyWeight;
-            }
-        }
-
+       
         private double GetAdvantage(IList<Vehicle> myVehicles, GroupContainer enemyGroup)
         {
             var mySumDamage = 0d;
@@ -1717,7 +1318,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 var center = GetVehiclesCenter(_groups[key]);
                 var nearestGroup = GetNearestEnemyGroup(enemyGroups, center.X, center.Y);
-                var dist = center.GetDistance(nearestGroup.Center);
+                var dist = Math.Sqrt(center.GetSquareDistance(nearestGroup.Center));
                 if (dist - GetSandvichRadius(_groups[key]) -
                     GetSandvichRadius(nearestGroup.Vehicles) > EnemyVehicleDeltaShootingDist) continue;
 
@@ -1765,8 +1366,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                 if (isCompressing || isUncompressing) return false;
 
-                if (_sandvichActions[movingGroupId] == SandvichAction.Rotating ||
-                    _sandvichActions[movingGroupId] == SandvichAction.Rotate90)
+                if (_sandvichActions[movingGroupId] == SandvichAction.Rotating)
                 {
                     _currentGroupAngle[movingGroupId] = _tmpGroupAngle[movingGroupId];
                 }
@@ -1806,8 +1406,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var groupId = strikingVehicle.Groups.SingleOrDefault();
                 if (groupId != 0)
                 {
-                    if (_sandvichActions[groupId] == SandvichAction.Rotating ||
-                        _sandvichActions[groupId] == SandvichAction.Rotate90)
+                    if (_sandvichActions[groupId] == SandvichAction.Rotating)
                     {
                         _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
                     }
@@ -1861,7 +1460,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private void Uncompress(int groupId)
         {
-            if (_sandvichActions[groupId] == SandvichAction.Rotating || _sandvichActions[groupId] == SandvichAction.Rotate90)
+            if (_sandvichActions[groupId] == SandvichAction.Rotating)
             {
                 _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
             }
@@ -1929,7 +1528,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                     var destX = (_groundAStarPathes[vehicleType][_groundPathIndexes[vehicleType]] as ASquare).CenterX;
                     var destY = (_groundAStarPathes[vehicleType][_groundPathIndexes[vehicleType]] as ASquare).CenterY;
-                    var dist = GetVehiclesCenter(currVehicles).GetDistance(destX, destY);
+                    var dist = Math.Sqrt(GetVehiclesCenter(currVehicles).GetSquareDistance(destX, destY));
 
                     _importantDelayedMoves.Enqueue(move =>
                     {
@@ -1981,7 +1580,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                     var destX = (_airAStarPathes[vehicleType][_airPathIndexes[vehicleType]] as ASquare).CenterX;
                     var destY = (_airAStarPathes[vehicleType][_airPathIndexes[vehicleType]] as ASquare).CenterY;
-                    var dist = GetVehiclesCenter(currVehicles).GetDistance(destX, destY);
+                    var dist = Math.Sqrt(GetVehiclesCenter(currVehicles).GetSquareDistance(destX, destY));
 
                     _importantDelayedMoves.Enqueue(move =>
                     {
@@ -2194,22 +1793,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                             NuclearCompressionFactor,
                             _world.TickIndex - _groupStartUncompressTick[groupId],
                             groupId);
-                    }
-                    break;
-                case SandvichAction.Rotate90:
-                    var enemyTargetRadiusPoint = GetEnemyTargetRadiusPoint(vehicles);
-                    if (enemyTargetRadiusPoint == null) //Достигли точки, с которой можно переть на врага
-                    {
-                        _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
-                        _isRotating[groupId] = false;
-                        MoveToEnemy(vehicles, groupId);
-                    }
-
-                    else if (_world.TickIndex > _groupEndMovementTime[groupId] ||
-                        vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
-                    {
-                        _isRotating[groupId] = false;
-                        MoveToEnemy(vehicles, groupId);
                     }
                     break;
 
@@ -2790,7 +2373,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var advantage = GetAdvantage(allVehicles, eg);
                 if (advantage < 0) continue;
 
-                var dist = eg.Center.GetDistance(center.X, center.Y);
+                var dist = eg.Center.GetSquareDistance(center.X, center.Y);
                 if (dist < minDist)
                 {
                     minDist = dist;
@@ -2838,7 +2421,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                 if (hasBigGroups && eg.Vehicles.Count < ConsiderGroupVehiclesCount && !hasMyNearVehicles) continue;
                 
-                var dist = eg.Center.GetDistance(centerX, centerY);
+                var dist = eg.Center.GetSquareDistance(centerX, centerY);
                 if (dist < minDist)
                 {
                     minDist = dist;
@@ -2855,7 +2438,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             Facility targetFacility = null;
             foreach (var facility in _world.Facilities.Where(f => f.CapturePoints < _game.MaxFacilityCapturePoints))
             {
-                var dist = groupCenter.GetDistance(facility.Left + _game.FacilityWidth / 2d,
+                var dist = groupCenter.GetSquareDistance(facility.Left + _game.FacilityWidth / 2d,
                     facility.Top + _game.FacilityHeight / 2d);
                 if (dist < minDist)
                 {
@@ -3033,7 +2616,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var cp = MathHelper.GetNearestRectangleCrossPoint(sourcePoint,
                 vehicleRectangle,
                 vehiclePoint);
-            return cp == null || vehiclePoint.GetDistance(cp) <= CloseToRectangleBorderDist;
+            return cp == null || vehiclePoint.GetSquareDistance(cp) <= CloseToRectangleBorderDist * CloseToRectangleBorderDist;
         }
 
         private bool HasWorseNearSquares(Vehicle vehicle)
@@ -3825,7 +3408,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             NuclearStrike,
             NuclearStrikeMove,
             Uncompress,
-            Rotate90,
             ApolloSoyuzRotate,
             ApolloSoyuzMove,
             ApolloSoyuzJoin,
