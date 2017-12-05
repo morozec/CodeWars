@@ -243,6 +243,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         /// <param name="move"></param>
         public void Move(Player me, World world, Game game, Move move)
         {
+            if (game.IsFogOfWarEnabled) return;
+
             if (!world.Facilities.Any())
             {
                 if (_myStrategyNoBuildings == null)
@@ -1702,6 +1704,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private int GetNuclearStrikeMoveToEnemyGroupId(IList<GroupContainer> enemyGroups)
         {
+
             var maxDamage = 0d;
             var maxDamageDistance = double.MaxValue;
             var maxDamageKey = -1;
