@@ -953,11 +953,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
             //Debug.circleFill(myCp.X, myCp.Y, 4, 0x00FF00);
             //Debug.circleFill(enemyCp.X, enemyCp.Y, 4, 0xFF0000);
 
-            if (_vehicleById.ContainsKey(_nuclearVehicleId) && _me.NextNuclearStrikeTickIndex > -1)
-            {
-                var nuclearVehilce = _vehicleById[_nuclearVehicleId];
-                Debug.circleFill(nuclearVehilce.X, nuclearVehilce.Y, 2, 0x00000);
-            }
+            //if (_vehicleById.ContainsKey(_nuclearVehicleId) && _me.NextNuclearStrikeTickIndex > -1)
+            //{
+            //    var nuclearVehilce = _vehicleById[_nuclearVehicleId];
+            //    Debug.circleFill(nuclearVehilce.X, nuclearVehilce.Y, 2, 0x00000);
+            //}
 
 
         }

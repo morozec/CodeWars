@@ -244,6 +244,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         public void Move(Player me, World world, Game game, Move move)
         {
             if (game.IsFogOfWarEnabled) return;
+            
 
             if (!world.Facilities.Any())
             {
@@ -259,7 +260,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             InitializeStrategy(world, game);
             InitializeTick(me, world, game, move);
-            
+
+            if (_nuclearVehicleId != -1 && !_vehicleById.ContainsKey(_nuclearVehicleId))
+            {
+
+            }
 
             if (_world.TickIndex == 0)
             {
@@ -996,11 +1001,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             //Debug.circleFill(myCp.X, myCp.Y, 4, 0x00FF00);
             //Debug.circleFill(enemyCp.X, enemyCp.Y, 4, 0xFF0000);
 
-            if (_vehicleById.ContainsKey(_nuclearVehicleId) && _me.NextNuclearStrikeTickIndex > -1)
-            {
-                var nuclearVehilce = _vehicleById[_nuclearVehicleId];
-                Debug.circleFill(nuclearVehilce.X, nuclearVehilce.Y, 2, 0x00000);
-            }
+            //if (_vehicleById.ContainsKey(_nuclearVehicleId) && _me.NextNuclearStrikeTickIndex > -1)
+            //{
+            //    var nuclearVehilce = _vehicleById[_nuclearVehicleId];
+            //    Debug.circleFill(nuclearVehilce.X, nuclearVehilce.Y, 2, 0x00000);
+            //}
             
 
         }
@@ -1133,11 +1138,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 targetPoint = new Point(centerPoint.X + resVector.V.X, centerPoint.Y + resVector.V.Y);
             }
 
-            Debug.line(centerPoint.X,
-                centerPoint.Y,
-                targetPoint.X,
-                targetPoint.Y,
-                0x000000);
+            //Debug.line(centerPoint.X,
+            //    centerPoint.Y,
+            //    targetPoint.X,
+            //    targetPoint.Y,
+            //    0x000000);
 
             var angle = MathHelper.GetVectorAngle(resFunction);
 
@@ -3352,7 +3357,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             //var crossPointsDist = enemyCp.GetDistance(myCp);
             var myCenterDist = myCenter.GetDistance(groupContainer.Center);
             var radius = groupContainer.Center.GetDistance(enemyCp) + EnemyVehicleDeltaShootingDist;
-            Debug.circle(groupContainer.Center.X, groupContainer.Center.Y, radius, 0xFF0000);
+            //Debug.circle(groupContainer.Center.X, groupContainer.Center.Y, radius, 0xFF0000);
 
             if (myCenterDist > radius) return new Point(0d, 0d);
 
@@ -3402,7 +3407,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var centersDist = myCenter.GetDistance(otherCenter);
             if (centersDist > myRadius + otherRadius + EnemyVehicleDeltaShootingDist) return new Point(0d, 0d);
 
-            Debug.circle(myCenter.X, myCenter.Y, myRadius + otherRadius + EnemyVehicleDeltaShootingDist, 0x00FF00);
+            //Debug.circle(myCenter.X, myCenter.Y, myRadius + otherRadius + EnemyVehicleDeltaShootingDist, 0x00FF00);
 
             double x, y;
             if (centersDist < myRadius + otherRadius)

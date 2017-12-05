@@ -156,8 +156,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
             var y2 = k * x2 + b;
             var p2 = new Point(x2, y2);
 
-            Debug.circleFill(p1.X, p1.Y, 3d, 0xFF0000);
-            Debug.circleFill(p2.X, p2.Y, 3d, 0x0000FF);
+            //Debug.circleFill(p1.X, p1.Y, 3d, 0xFF0000);
+            //Debug.circleFill(p2.X, p2.Y, 3d, 0x0000FF);
 
             if (!circle.IsInside(v.P2.X, v.P2.Y))
             {
