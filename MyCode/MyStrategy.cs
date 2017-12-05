@@ -2552,7 +2552,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 var groupIndex = v.Groups.FirstOrDefault();
                 var runAwayTimeCurr = runAwayTime;
-                if (_sandvichActions[groupIndex] == SandvichAction.Compressing2)
+                if (groupIndex > 0 && _sandvichActions[groupIndex] == SandvichAction.Compressing2)
                 {
                     runAwayTimeCurr = Math.Max(runAwayTime, (int)_groupEndMovementTime[groupIndex] - _world.TickIndex);
                 }
@@ -2572,7 +2572,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 var groupIndex = v.Groups.FirstOrDefault();
                 var runAwayTimeCurr = runAwayTime;
-                if (_sandvichActions[groupIndex] == SandvichAction.Compressing2)
+                if (groupIndex > 0 && _sandvichActions[groupIndex] == SandvichAction.Compressing2)
                 {
                     runAwayTimeCurr = Math.Max(runAwayTime, (int)_groupEndMovementTime[groupIndex] - _world.TickIndex);
                 }
@@ -2590,7 +2590,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 var groupIndex = v.Groups.FirstOrDefault();
                 var runAwayTimeCurr = runAwayTime;
-                if (_sandvichActions[groupIndex] == SandvichAction.Compressing2)
+                if (groupIndex > 0 && _sandvichActions[groupIndex] == SandvichAction.Compressing2)
                 {
                     runAwayTimeCurr = Math.Max(runAwayTime, (int)_groupEndMovementTime[groupIndex] - _world.TickIndex);
                 }
