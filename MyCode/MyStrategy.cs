@@ -2522,7 +2522,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private Vehicle GetNuclearStrikeVehicle(Point nuclearStrikePoint, IList<Vehicle> myVehicles)
         {
-
             int runAwayTime;
             if (_enemy.NextNuclearStrikeTickIndex > -1)
             {
@@ -2535,57 +2534,71 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     : _game.TacticalNuclearStrikeDelay - _enemy.RemainingNuclearStrikeCooldownTicks;
             }
 
-           
-
-            var group1 = GetVehicles(1, Ownership.ALLY);
-            Rectangle group1Rectangle = null;
-            if (group1.Any())
-            {
-                group1Rectangle = MathHelper.GetJarvisRectangle(group1.Select(v => new Point(v.X, v.Y)).ToList());
-            }
-
-            var group2 = GetVehicles(2, Ownership.ALLY);
-            Rectangle group2Rectangle = null;
-            if (group2.Any())
-            {
-                group2Rectangle = MathHelper.GetJarvisRectangle(group2.Select(v => new Point(v.X, v.Y)).ToList());
-            }
-
-
             var orderedVehicles = myVehicles
                 .Where(mv =>
                 {
                     if (!mv.Groups.Any()) return true;
-                    var group = mv.Groups.Contains(1) ? group1 : group2;
+                    var groupIndex = mv.Groups.FirstOrDefault();
+                    var group = _groups[groupIndex];
                     if (group.Count < SmallGroupVehiclesCount) return true;
 
-                    var groupRectangle = mv.Groups.Contains(1) ? group1Rectangle : group2Rectangle;
+                    var groupRectangle = MathHelper.GetJarvisRectangle(group.Select(v => new Point(v.X, v.Y)).ToList());
                     return !IsCloseToGroupBorder(new Point(mv.X, mv.Y), groupRectangle, nuclearStrikePoint);
                 })
                 .OrderByDescending(v => v.GetSquaredDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y))
                 .ToList();
 
-            var vehicle = orderedVehicles.FirstOrDefault(v => 
-                //!IsCloseToGroupBorder(new Point(v.X, v.Y), v.Groups.Contains(1) ? group1Rectangle : group2Rectangle, nuclearStrikePoint) &&
-                v.Durability >= v.MaxDurability * HpNuclerStrikeCoeff && GetActualVisualRange(v) >=
-                v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
-                GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) * runAwayTime &&
-                (runAwayTime == 0 || !HasWorseNearSquares(v)));
+            var vehicle = orderedVehicles.FirstOrDefault(v =>
+            {
+                var groupIndex = v.Groups.FirstOrDefault();
+                var runAwayTimeCurr = runAwayTime;
+                if (_sandvichActions[groupIndex] == SandvichAction.Compressing2)
+                {
+                    runAwayTimeCurr = Math.Max(runAwayTime, (int)_groupEndMovementTime[groupIndex] - _world.TickIndex);
+                }
+
+                
+                return
+                    v.Durability >= v.MaxDurability * HpNuclerStrikeCoeff && GetActualVisualRange(v) >=
+                    v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
+                    GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) *
+                    runAwayTimeCurr &&
+                    (runAwayTimeCurr == 0 || !HasWorseNearSquares(v));
+            });
 
             if (vehicle != null) return vehicle;
 
             vehicle = orderedVehicles.FirstOrDefault(v =>
-                //!IsCloseToGroupBorder(new Point(v.X, v.Y), v.Groups.Contains(1) ? group1Rectangle : group2Rectangle, nuclearStrikePoint) &&
-                GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
-                GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) * runAwayTime &&
-                (runAwayTime == 0 || !HasWorseNearSquares(v)));
+            {
+                var groupIndex = v.Groups.FirstOrDefault();
+                var runAwayTimeCurr = runAwayTime;
+                if (_sandvichActions[groupIndex] == SandvichAction.Compressing2)
+                {
+                    runAwayTimeCurr = Math.Max(runAwayTime, (int)_groupEndMovementTime[groupIndex] - _world.TickIndex);
+                }
+
+                return
+                    GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
+                    GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) *
+                    runAwayTimeCurr &&
+                    (runAwayTimeCurr == 0 || !HasWorseNearSquares(v));
+            });
 
             if (vehicle != null) return vehicle;
 
             vehicle = orderedVehicles.FirstOrDefault(v =>
-                //!IsCloseToGroupBorder(new Point(v.X, v.Y), v.Groups.Contains(1) ? group1Rectangle : group2Rectangle, nuclearStrikePoint) &&
-                GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
-                GetActualMaxSpeed(v, (int)Math.Truncate(v.X / 32d), (int)Math.Truncate(v.Y / 32d)) * runAwayTime);
+            {
+                var groupIndex = v.Groups.FirstOrDefault();
+                var runAwayTimeCurr = runAwayTime;
+                if (_sandvichActions[groupIndex] == SandvichAction.Compressing2)
+                {
+                    runAwayTimeCurr = Math.Max(runAwayTime, (int)_groupEndMovementTime[groupIndex] - _world.TickIndex);
+                }
+
+                return
+                    GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
+                    GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) * runAwayTimeCurr;
+            });
 
             return vehicle;
         }
