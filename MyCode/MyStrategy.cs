@@ -1196,9 +1196,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 return fcp.GetSquareDistance(ng.Center);
             });
 
-            var enemyVehicles = GetVehicles(Ownership.ENEMY);
-            var airCount = enemyVehicles.Count(v => v.Type == VehicleType.Fighter || v.Type == VehicleType.Helicopter);
-            var groundCount = enemyVehicles.Count - airCount;
+            var airCount = _enemyVehicles.Count(v => v.IsAerial);
+            var groundCount = _enemyVehicles.Count - airCount;
 
             _delayedMoves.Enqueue(move =>
             {
@@ -1354,8 +1353,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
        
         private bool MakeNuclearStrike()
         {
-            var targetPoint = GetNuclearStrikeEnemyPoint(_enemyVehiclesGroups);
             var myVehicles = GetVehicles(Ownership.ALLY);
+            var targetPoint = GetNuclearStrikeEnemyPoint(_enemyVehiclesGroups, myVehicles);
+            
 
             if (targetPoint == null)
             {
@@ -2449,17 +2449,14 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             return sumDamage;
         }
 
-        private Point GetNuclearStrikeEnemyPoint(IList<GroupContainer> enemyGroups)
+        private Point GetNuclearStrikeEnemyPoint(IList<GroupContainer> enemyGroups, IList<Vehicle> myVehicles)
         {
             Point targetPoint = null;
             var maxDiffDamage = 0d;
-            var myVehicles = GetVehicles(Ownership.ALLY);
 
             if (enemyGroups.All(g =>
                 myVehicles.All(mv => mv.GetSquaredDistanceTo(g.Center.X, g.Center.Y) > GetActualVisualRange(mv) * GetActualVisualRange(mv))))
                 return null;
-
-            var enemyVehicles = GetVehicles(Ownership.ENEMY);
 
             if (_isFirstNuclearStrike)
             {
@@ -2471,7 +2468,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                     if (strikingVehicle == null) continue;
 
-                    var damage = GetGroupNuclearDamage(enemyVehicles, group.Center.X, group.Center.Y);
+                    var damage = GetGroupNuclearDamage(_enemyVehicles, group.Center.X, group.Center.Y);
                     var myVehiclesDamage = GetGroupNuclearDamage(myVehicles, group.Center.X, group.Center.Y);
                     var diffDamage = damage - myVehiclesDamage;
 
@@ -2487,7 +2484,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
            
 
             var isOkToStrikeCenterGroups = new Dictionary<GroupContainer, bool>();
-            foreach (var v in enemyVehicles)
+            foreach (var v in _enemyVehicles)
             {
                 var group = enemyGroups.Single(g => g.Vehicles.Any(gv => gv.Id == v.Id));
                 
@@ -2504,7 +2501,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                 if (strikingVehicle == null) continue;
 
-                var damage = GetGroupNuclearDamage(enemyVehicles, v.X, v.Y);
+                var damage = GetGroupNuclearDamage(_enemyVehicles, v.X, v.Y);
                 var myVehiclesDamage = GetGroupNuclearDamage(myVehicles, v.X, v.Y);
                 var diffDamage = damage - myVehiclesDamage;
 
@@ -2533,17 +2530,17 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     : _game.TacticalNuclearStrikeDelay - _enemy.RemainingNuclearStrikeCooldownTicks;
             }
 
-            var orderedVehicles = myVehicles
-                .Where(mv =>
-                {
-                    if (!mv.Groups.Any()) return true;
-                    var groupIndex = mv.Groups.FirstOrDefault();
-                    var group = _groups[groupIndex];
-                    if (group.Count < SmallGroupVehiclesCount) return true;
+            var orderedVehicles = myVehicles //TODO: не стрелять крайними - код внизу очень медленный
+                //.Where(mv =>
+                //{
+                //    if (!mv.Groups.Any()) return true;
+                //    var groupIndex = mv.Groups[0];
+                //    var group = _groups[groupIndex];
+                //    if (group.Count < SmallGroupVehiclesCount) return true;
 
-                    var groupRectangle = MathHelper.GetJarvisRectangle(group.Select(v => new Point(v.X, v.Y)).ToList());
-                    return !IsCloseToGroupBorder(new Point(mv.X, mv.Y), groupRectangle, nuclearStrikePoint);
-                })
+                //    var groupRectangle = MathHelper.GetJarvisRectangle(group.Select(v => new Point(v.X, v.Y)).ToList());
+                //    return !IsCloseToGroupBorder(new Point(mv.X, mv.Y), groupRectangle, nuclearStrikePoint);
+                //})
                 .OrderByDescending(v => v.GetSquaredDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y))
                 .ToList();
 
