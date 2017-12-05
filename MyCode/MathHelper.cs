@@ -85,7 +85,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
 
             //Иногда получается null при вызове из метода IsCloseToBorder
             //if (minCp == null) throw new Exception("No cross point");
-
+            if (minCp == null) return new Point(destPoint);
             return minCp;
         }
 

@@ -1872,9 +1872,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     {
                         var currentDistanceToEnemyCenter = centerPoint.GetDistance(targetGroup.Center);
                         var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(targetGroup.Vehicles));
-                        var enemyCp = targetGroup.Vehicles.Count == 1
-                            ? new Point(targetGroup.Center)
-                            : MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, targetGroup.Center);
+                        var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, targetGroup.Center);
                         var radius = targetGroup.Center.GetDistance(enemyCp) + EnemyVehicleDeltaShootingDist;
                         var isSmallEnemyGroup = targetGroup.Vehicles.Count < SmallGroupVehiclesCount;
                         if (currentDistanceToEnemyCenter <= radius && !isSmallEnemyGroup &&
@@ -1900,9 +1898,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         var currentDistanceToEnemyCenter = centerPoint.GetDistance(nearestGroup.Center);
                         var enemyRectangle =
                             MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
-                        var enemyCp = nearestGroup.Vehicles.Count == 1
-                            ? new Point(nearestGroup.Center)
-                            : MathHelper.GetNearestRectangleCrossPoint(centerPoint,
+                        var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint,
                                 enemyRectangle,
                                 nearestGroup.Center);
                         var radius = nearestGroup.Center.GetDistance(enemyCp) + EnemyVehicleDeltaShootingDist;
@@ -1993,9 +1989,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     {
                         var currentDistanceToEnemyCenter = centerPoint.GetDistance(targetGroup.Center);
                         var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(targetGroup.Vehicles));
-                        var enemyCp = targetGroup.Vehicles.Count == 1
-                            ? new Point(targetGroup.Center)
-                            : MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, targetGroup.Center);
+                        var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, targetGroup.Center);
                         var radius = targetGroup.Center.GetDistance(enemyCp) + EnemyVehicleDeltaShootingDist;
                         var isSmallEnemyGroup = targetGroup.Vehicles.Count < SmallGroupVehiclesCount;
                         if (currentDistanceToEnemyCenter <= radius && !isSmallEnemyGroup &&
@@ -2021,9 +2015,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         var currentDistanceToEnemyCenter = centerPoint.GetDistance(nearestGroup.Center);
                         var enemyRectangle =
                             MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
-                        var enemyCp = nearestGroup.Vehicles.Count == 1
-                            ? new Point(nearestGroup.Center)
-                            : MathHelper.GetNearestRectangleCrossPoint(centerPoint,
+                        var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint,
                                 enemyRectangle,
                                 nearestGroup.Center);
                         var radius = nearestGroup.Center.GetDistance(enemyCp) + EnemyVehicleDeltaShootingDist;
@@ -2919,9 +2911,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             //    MathHelper.GetJarvisRectangle(vehicles.Select(v => new Point(v.X, v.Y)).ToList());
             var myCenter = GetVehiclesCenter(vehicles);
 
-            var enemyCp = groupContainer.Vehicles.Count == 1
-                ? new Point(groupContainer.Center)
-                : MathHelper.GetNearestRectangleCrossPoint(myCenter, enemyRectangle, groupContainer.Center);
+            var enemyCp = MathHelper.GetNearestRectangleCrossPoint(myCenter, enemyRectangle, groupContainer.Center);
             //var myCp = MathHelper.GetNearestRectangleCrossPoint(groupContainer.Center, myRectangle, myCenter);
 
             //var crossPointsDist = enemyCp.GetDistance(myCp);
