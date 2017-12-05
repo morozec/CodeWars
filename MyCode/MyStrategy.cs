@@ -1611,8 +1611,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             return
                 vehicles.Any(
                     v =>
-                        v.GetDistanceTo(_enemy.NextNuclearStrikeX, _enemy.NextNuclearStrikeY) <=
-                        _game.TacticalNuclearStrikeRadius);
+                        v.GetSquaredDistanceTo(_enemy.NextNuclearStrikeX, _enemy.NextNuclearStrikeY) <=
+                        _game.TacticalNuclearStrikeRadius * _game.TacticalNuclearStrikeRadius);
         }
 
        
@@ -1852,7 +1852,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                   GetSandvichRadius(_groups[nearestFriendKey]) + EnemyVehicleDeltaShootingDist;
 
                 var needCompress =
-                    vehicles.All(v => v.GetDistanceTo(centerPoint.X, centerPoint.Y) > NeedCompressionRadius);
+                    vehicles.All(v => v.GetSquaredDistanceTo(centerPoint.X, centerPoint.Y) > NeedCompressionRadius * NeedCompressionRadius);
 
                 if (needCompress)
                 {
@@ -1951,7 +1951,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                   GetSandvichRadius(_groups[nearestFriendKey]) + EnemyVehicleDeltaShootingDist;
 
                 var needCompress =
-                    vehicles.All(v => v.GetDistanceTo(centerPoint.X, centerPoint.Y) > NeedCompressionRadius);
+                    vehicles.All(v => v.GetSquaredDistanceTo(centerPoint.X, centerPoint.Y) > NeedCompressionRadius * NeedCompressionRadius);
 
                 var nearestFacility = GetNearestFacility(centerPoint);
 
@@ -2309,7 +2309,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var okGroupContainers = new List<GroupContainer>();
                 foreach (var gc in groupContainers)
                 {
-                    if (gc.Vehicles.Any(gcV => gcV.GetDistanceTo(v) <= GroupMaxRadius))
+                    if (gc.Vehicles.Any(gcV => gcV.GetSquaredDistanceTo(v) <= GroupMaxRadius*GroupMaxRadius))
                     {
                         okGroupContainers.Add(gc);
                     }
@@ -2478,7 +2478,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var myVehicles = GetVehicles(Ownership.ALLY);
 
             if (enemyGroups.All(g =>
-                myVehicles.All(mv => mv.GetDistanceTo(g.Center.X, g.Center.Y) > GetActualVisualRange(mv))))
+                myVehicles.All(mv => mv.GetSquaredDistanceTo(g.Center.X, g.Center.Y) > GetActualVisualRange(mv) * GetActualVisualRange(mv))))
                 return null;
 
             var enemyVehicles = GetVehicles(Ownership.ENEMY);
@@ -2583,7 +2583,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     var groupRectangle = mv.Groups.Contains(1) ? group1Rectangle : group2Rectangle;
                     return !IsCloseToGroupBorder(new Point(mv.X, mv.Y), groupRectangle, nuclearStrikePoint);
                 })
-                .OrderByDescending(v => v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y))
+                .OrderByDescending(v => v.GetSquaredDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y))
                 .ToList();
 
             var vehicle = orderedVehicles.FirstOrDefault(v => 
