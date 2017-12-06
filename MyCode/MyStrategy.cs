@@ -1084,7 +1084,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 if (targetGroup != null && Equals(group, targetGroup)) continue;
                 var advantage = GetAdvantage(vehicles, group);
-                if (advantage > 0) continue;
+                if (advantage > 0 && !double.IsNaN(advantage)) continue;
                 var enemyFunction = GetEnemyGroupRepulsiveFunction(group, 1d, vehicles);
                 resFunction = new Point(resFunction.X + enemyFunction.X, resFunction.Y + enemyFunction.Y);
             }
@@ -1885,7 +1885,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, targetGroup.Center);
                         var radius = targetGroup.Center.GetDistance(enemyCp) + EnemyVehicleDeltaShootingDist;
                         var advantage = GetAdvantage(vehicles, nearestGroup);
-                        if (currentDistanceToEnemyCenter <= radius && advantage < NeedRotationAdvantage &&
+                        if (currentDistanceToEnemyCenter <= radius && (advantage < NeedRotationAdvantage || double.IsNaN(advantage)) &&
                             Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle) > MaxAngle
                         ) //TODO: вращаемся к ближайшему???
                         {
@@ -2002,7 +2002,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, targetGroup.Center);
                         var radius = targetGroup.Center.GetDistance(enemyCp) + EnemyVehicleDeltaShootingDist;
                         var advantage = GetAdvantage(vehicles, nearestGroup);
-                        if (currentDistanceToEnemyCenter <= radius && advantage < NeedRotationAdvantage &&
+                        if (currentDistanceToEnemyCenter <= radius && (advantage < NeedRotationAdvantage || double.IsNaN(advantage)) &&
                             Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle) > MaxAngle
                         ) //TODO: вращаемся к ближайшему???
                         {
@@ -2090,7 +2090,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var vehicles2 = _groups[groupId2];
             var vehicles1Center = GetVehiclesCenter(vehicles1);
             var vehicles2Center = GetVehiclesCenter(vehicles2);
-            var dist = vehicles1Center.GetDistance(vehicles2Center);
+            var center = new Point((vehicles1Center.X + vehicles2Center.X) / 2,
+                (vehicles1Center.Y + vehicles2Center.Y) / 2);
 
             _sandvichActions[groupId1] = SandvichAction.ApolloSoyuzMove;
             _sandvichActions[groupId2] = SandvichAction.ApolloSoyuzMove;
@@ -2107,16 +2108,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     _selectedGroupId = groupId2;
                 }
 
-                var speed2 = GetGroupLineMaxSpeed(vehicles2, vehicles1Center);
+                var speed2 = GetGroupLineMaxSpeed(vehicles2, center);
 
                 _delayedMoves.Enqueue(move =>
                 {
                     move.Action = ActionType.Move;
-                    move.X = vehicles1Center.X - vehicles2Center.X;
-                    move.Y = vehicles1Center.Y - vehicles2Center.Y;
+                    move.X = center.X - vehicles2Center.X;
+                    move.Y = center.Y - vehicles2Center.Y;
                     move.MaxSpeed = speed2;
-                    _groupEndMovementTime[groupId2] = _world.TickIndex + dist / speed2;
-                    _currentMoveEnemyPoint[groupId2] = new Point(vehicles1Center.X, vehicles1Center.Y);
+                    _groupEndMovementTime[groupId2] = _world.TickIndex + vehicles2Center.GetDistance(center) / speed2;
+                    _currentMoveEnemyPoint[groupId2] = new Point(center.X, center.Y);
                 });
 
                 if (_selectedGroupId != groupId1)
@@ -2129,16 +2130,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     _selectedGroupId = groupId1;
                 }
 
-                var speed1 = GetGroupLineMaxSpeed(vehicles1, vehicles2Center);
+                var speed1 = GetGroupLineMaxSpeed(vehicles1, center);
 
                 _delayedMoves.Enqueue(move =>
                 {
                     move.Action = ActionType.Move;
-                    move.X = vehicles2Center.X - vehicles1Center.X;
-                    move.Y = vehicles2Center.Y - vehicles1Center.Y;
+                    move.X = center.X - vehicles1Center.X;
+                    move.Y = center.Y - vehicles1Center.Y;
                     move.MaxSpeed = speed1;
-                    _groupEndMovementTime[groupId1] = _world.TickIndex + dist / speed1;
-                    _currentMoveEnemyPoint[groupId1] = new Point(vehicles2Center.X, vehicles2Center.Y);
+                    _groupEndMovementTime[groupId1] = _world.TickIndex + vehicles1Center.GetDistance(center) / speed1;
+                    _currentMoveEnemyPoint[groupId1] = new Point(center.X, center.Y);
                 });
 
             }
@@ -2154,16 +2155,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     _selectedGroupId = groupId1;
                 }
 
-                var speed1 = GetGroupLineMaxSpeed(vehicles1, vehicles2Center);
+                var speed1 = GetGroupLineMaxSpeed(vehicles1, center);
 
                 _delayedMoves.Enqueue(move =>
                 {
                     move.Action = ActionType.Move;
-                    move.X = vehicles2Center.X - vehicles1Center.X;
-                    move.Y = vehicles2Center.Y - vehicles1Center.Y;
+                    move.X = center.X - vehicles1Center.X;
+                    move.Y = center.Y - vehicles1Center.Y;
                     move.MaxSpeed = speed1;
-                    _groupEndMovementTime[groupId1] = _world.TickIndex + dist / speed1;
-                    _currentMoveEnemyPoint[groupId1] = new Point(vehicles2Center.X, vehicles2Center.Y);
+                    _groupEndMovementTime[groupId1] = _world.TickIndex + vehicles1Center.GetDistance(center) / speed1;
+                    _currentMoveEnemyPoint[groupId1] = new Point(center.X, center.Y);
                 });
 
 
@@ -2177,16 +2178,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     _selectedGroupId = groupId2;
                 }
 
-                var speed2 = GetGroupLineMaxSpeed(vehicles2, vehicles1Center);
+                var speed2 = GetGroupLineMaxSpeed(vehicles2, center);
 
                 _delayedMoves.Enqueue(move =>
                 {
                     move.Action = ActionType.Move;
-                    move.X = vehicles1Center.X - vehicles2Center.X;
-                    move.Y = vehicles1Center.Y - vehicles2Center.Y;
+                    move.X = center.X - vehicles2Center.X;
+                    move.Y = center.Y - vehicles2Center.Y;
                     move.MaxSpeed = speed2;
-                    _groupEndMovementTime[groupId2] = _world.TickIndex + dist / speed2;
-                    _currentMoveEnemyPoint[groupId2] = new Point(vehicles1Center.X, vehicles1Center.Y);
+                    _groupEndMovementTime[groupId2] = _world.TickIndex + vehicles2Center.GetDistance(center) / speed2;
+                    _currentMoveEnemyPoint[groupId2] = new Point(center.X, center.Y);
                 });
             }
 
@@ -2361,7 +2362,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 }
 
                 var advantage = GetAdvantage(allVehicles, eg);
-                if (advantage < 0) continue;
+                if (advantage < 0 || double.IsNaN(advantage)) continue;
 
                 var dist = eg.Center.GetSquareDistance(center.X, center.Y);
                 if (dist < minDist)
@@ -2385,7 +2386,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 if (hasBigGroups && eg.Vehicles.Count < ConsiderGroupVehiclesCount) continue;
                 var advantage = GetAdvantage(myVehicles, eg);
 
-                if (advantage > maxAdvantage)
+                if (advantage > maxAdvantage && !double.IsNaN(advantage))
                 {
                     maxAdvantage = advantage;
                     nearestGroup = eg;
