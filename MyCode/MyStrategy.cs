@@ -244,6 +244,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private MyStrategyNoBuildings _myStrategyNoBuildings;
 
+        private readonly IDictionary<long, VehicleType> _facilityProductionTypes = new Dictionary<long, VehicleType>();
+
         /// <summary>
         ///     Основной метод стратегии, осуществляющий управление армией. Вызывается каждый тик.
         /// </summary>
@@ -1211,9 +1213,14 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             _delayedMoves.Enqueue(move =>
             {
+                var id = orderedFacilities.First().Id;
                 move.Action = ActionType.SetupVehicleProduction;
-                move.VehicleType = airCount > groundCount ? VehicleType.Fighter : VehicleType.Helicopter;
-                move.FacilityId = orderedFacilities.First().Id;
+                if (!_facilityProductionTypes.ContainsKey(id))
+                {
+                    _facilityProductionTypes.Add(id, airCount > groundCount ? VehicleType.Fighter : VehicleType.Helicopter);
+                }
+                move.VehicleType = _facilityProductionTypes[id];
+                move.FacilityId = id;
             });
 
         }
@@ -3217,7 +3224,14 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     index = airKeys.Any() ? airKeys.Max() + 2 : 2;
                 }
 
-
+                var myFacilities = _world.Facilities.Where(f => f.OwnerPlayerId == _me.Id).ToList();
+                if (myFacilities.Any())
+                {
+                    var orderedFacilities =
+                        myFacilities.OrderBy(f => gc.Center.GetSquareDistance(GetFacilityCenterPoint(f)));
+                    if (_facilityProductionTypes.ContainsKey(orderedFacilities.First().Id))
+                         _facilityProductionTypes.Remove(orderedFacilities.First().Id);
+                }
 
                 _importantDelayedMoves.Enqueue(move =>
                 {
@@ -3250,6 +3264,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     _currentMoveEnemyPoint[index] = new Point(0d, 0d);
                     _currentMovingAngle[index] = 0d;
                     _isGroupCompressed[index] = true;
+
+                    
                 });
 
             }
