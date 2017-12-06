@@ -1757,8 +1757,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         var isJointFinished =
                             center1.GetDistance(center2) - (center1.GetDistance(cp1) + center2.GetDistance(cp2)) <
                             2 * Tolerance;
-                        if (isJointFinished || _world.TickIndex > _groupEndMovementTime[groupId] ||
-                            vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
+                        var endMovementTime = Math.Max(_groupEndMovementTime[groupId],
+                            _groupEndMovementTime[_apolloSoyuzIndexes[groupId]]);
+                        var allVehiclesAreStatic = vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex) &&
+                                                   _groups[_apolloSoyuzIndexes[groupId]].All(v =>
+                                                       _updateTickByVehicleId[v.Id] < _world.TickIndex);
+
+                        if (isJointFinished || _world.TickIndex > endMovementTime || allVehiclesAreStatic)
                         {
                             ApolloSoyuzJoin(groupId, _apolloSoyuzIndexes[groupId]);
                         }
