@@ -62,6 +62,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private const int SquardCount = 33;
         private const double NeedCompressionRadius = 7d;
+        private const double NeedRotationCoeff = 0.15;
        
         private IDictionary<int, IList<Vehicle>> _groups = new Dictionary<int, IList<Vehicle>>();
         private int _lastGroupIndex = -1;
@@ -216,6 +217,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {2, 0d},
         };
 
+        private readonly IDictionary<int, bool> _isGroupCompressed = new Dictionary<int, bool>()
+        {
+            {0, false },
+            {1, false },
+        };
+
         private int _selectedGroupId = -1;
 
         private TerrainType[][] _terrainTypeByCellXY;
@@ -290,14 +297,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     _delayedMoves.Clear();
                     _isEnemyNuclearStrikeConsidered = true;
 
-                    if (_groups.ContainsKey(_selectedGroupId) && NeedNuclearUncompress(_groups[_selectedGroupId]))
+                    if (_groups.ContainsKey(_selectedGroupId) && _isGroupCompressed[_selectedGroupId] &&
+                        NeedNuclearUncompress(_groups[_selectedGroupId]))
                     {
                         Uncompress(_selectedGroupId);
                     }
                     foreach (var key in _groups.Keys)
                     {
                         if (key == _selectedGroupId) continue;
-                        if (NeedNuclearUncompress(_groups[key]))
+                        if (_isGroupCompressed[key] && NeedNuclearUncompress(_groups[key]))
                         {
                             Uncompress(key);
                         }
@@ -1666,6 +1674,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (_world.TickIndex > _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
+                        _isGroupCompressed[groupId] = true;
                         DoMilitaryAction(vehicles, groupId);
                     }
                     break;
@@ -1873,7 +1882,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(targetGroup.Vehicles));
                         var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, targetGroup.Center);
                         var radius = targetGroup.Center.GetDistance(enemyCp) + EnemyVehicleDeltaShootingDist;
-                        var isSmallEnemyGroup = targetGroup.Vehicles.Count < SmallGroupVehiclesCount;
+                        var advantage = GetAdvantage(vehicles, nearestGroup);
                         if (currentDistanceToEnemyCenter <= radius && !isSmallEnemyGroup &&
                             Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle) > MaxAngle
                         ) //TODO: вращаемся к ближайшему???
@@ -2197,6 +2206,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             _currentAngularSpeed.Remove(maxIndex);
             _currentMoveEnemyPoint.Remove(maxIndex);
             _currentMovingAngle.Remove(maxIndex); 
+            _isGroupCompressed.Remove(maxIndex); 
             
 
             if (_selectedGroupId != maxIndex)
@@ -3212,6 +3222,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     _currentAngularSpeed[index] = 0d;
                     _currentMoveEnemyPoint[index] = new Point(0d, 0d);
                     _currentMovingAngle[index] = 0d;
+                    _isGroupCompressed[index] = true;
                 });
 
             }
