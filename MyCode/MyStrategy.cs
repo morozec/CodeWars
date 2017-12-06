@@ -1852,7 +1852,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var minFriendDist = double.MaxValue;
                 foreach (var key in _groups.Keys.Where(k => k != groupId))
                 {
-                    if (_sandvichActions[key] != SandvichAction.MovingToEnemy && _sandvichActions[key] != SandvichAction.Rotating) continue;
+                    if (_sandvichActions[key] != SandvichAction.MovingToEnemy) continue;
                     
                     var isThisGround = IsGroundGroup(vehicles);
                     var isThisAir = IsAirGroup(vehicles);
@@ -1955,6 +1955,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var minFriendDist = double.MaxValue;
                 foreach (var key in _groups.Keys.Where(k => k != groupId))
                 {
+                    if (_sandvichActions[key] != SandvichAction.MovingToEnemy) continue;
 
                     var isThisGround = IsGroundGroup(vehicles);
                     var isThisAir = IsAirGroup(vehicles);
@@ -2213,17 +2214,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var maxIndex = Math.Max(groupId1, groupId2);
             var minIndex = Math.Min(groupId1, groupId2);
 
-            _sandvichActions.Remove(maxIndex);
-            _groupEndMovementTime.Remove(maxIndex);
-            _groupStartUncompressTick.Remove(maxIndex);
-            _currentGroupAngle.Remove(maxIndex);
-            _tmpGroupAngle.Remove(maxIndex);
-            _currentAngularSpeed.Remove(maxIndex);
-            _currentMoveEnemyPoint.Remove(maxIndex);
-            _currentMovingAngle.Remove(maxIndex); 
-            _isGroupCompressed.Remove(maxIndex); 
-            
-
+           
             if (_selectedGroupId != maxIndex)
             {
                 _importantDelayedMoves.Enqueue(move =>
@@ -2238,6 +2229,17 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             {
                 move.Action = ActionType.Dismiss;
                 move.Group = maxIndex;
+
+                _sandvichActions.Remove(maxIndex);
+                _groupEndMovementTime.Remove(maxIndex);
+                _groupStartUncompressTick.Remove(maxIndex);
+                _currentGroupAngle.Remove(maxIndex);
+                _tmpGroupAngle.Remove(maxIndex);
+                _currentAngularSpeed.Remove(maxIndex);
+                _currentMoveEnemyPoint.Remove(maxIndex);
+                _currentMovingAngle.Remove(maxIndex);
+                _isGroupCompressed.Remove(maxIndex);
+                _isRotating.Remove(maxIndex);
             });
 
             _importantDelayedMoves.Enqueue(move =>
@@ -3156,15 +3158,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 }
             }
 
-            if (_enemy.NextNuclearStrikeTickIndex == -1) _isEnemyNuclearStrikeConsidered = false;
-            for (var i = 1; i <= 2; ++i)
-            {
-                if (_isRotating[i] && _world.TickIndex < _groupEndMovementTime[i])
-                {
-                    _tmpGroupAngle[i] += _currentAngularSpeed[i];
-                }
-            }
-
             _groups = new Dictionary<int, IList<Vehicle>>();
             for (var i = 1; i <= _lastGroupIndex; ++i)
             {
@@ -3172,6 +3165,18 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 if (vehicles.Any())
                     _groups.Add(i, vehicles);
             }
+
+            if (_enemy.NextNuclearStrikeTickIndex == -1) _isEnemyNuclearStrikeConsidered = false;
+            for (var i = 1; i <= _lastGroupIndex; ++i)
+            {
+                if (!_groups.ContainsKey(i)) continue;
+
+                if (_isRotating[i] && _world.TickIndex < _groupEndMovementTime[i])
+                {
+                    _tmpGroupAngle[i] += _currentAngularSpeed[i];
+                }
+            }
+
             if (_movingNuclearGroupId != -1 && !_groups.ContainsKey(_movingNuclearGroupId)) _movingNuclearGroupId = -1;
 
             _moveEnemyTicks = GetMoveEnemyTicks();
@@ -3291,6 +3296,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     _currentMoveEnemyPoint[index] = new Point(0d, 0d);
                     _currentMovingAngle[index] = 0d;
                     _isGroupCompressed[index] = true;
+                    _isRotating[index] = false;
 
                     
                 });
