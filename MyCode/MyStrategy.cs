@@ -2533,7 +2533,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             int runAwayTime;
             if (_enemy.NextNuclearStrikeTickIndex > -1)
             {
-                runAwayTime = _enemy.NextNuclearStrikeTickIndex - _world.TickIndex;
+                runAwayTime = _game.TacticalNuclearStrikeDelay;
             }
             else
             {
@@ -2542,17 +2542,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     : _game.TacticalNuclearStrikeDelay - _enemy.RemainingNuclearStrikeCooldownTicks;
             }
 
-            var orderedVehicles = myVehicles //TODO: не стрелять крайними - код внизу очень медленный
-                //.Where(mv =>
-                //{
-                //    if (!mv.Groups.Any()) return true;
-                //    var groupIndex = mv.Groups[0];
-                //    var group = _groups[groupIndex];
-                //    if (group.Count < SmallGroupVehiclesCount) return true;
-
-                //    var groupRectangle = MathHelper.GetJarvisRectangle(group.Select(v => new Point(v.X, v.Y)).ToList());
-                //    return !IsCloseToGroupBorder(new Point(mv.X, mv.Y), groupRectangle, nuclearStrikePoint);
-                //})
+            var orderedVehicles = myVehicles 
                 .OrderByDescending(v => v.GetSquaredDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y))
                 .ToList();
 
