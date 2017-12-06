@@ -256,13 +256,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             if (game.IsFogOfWarEnabled) return;
             
 
-            if (!world.Facilities.Any())
-            {
-                if (_myStrategyNoBuildings == null)
-                    _myStrategyNoBuildings = new MyStrategyNoBuildings();
-                _myStrategyNoBuildings.Move(me, world, game, move);
-                return;
-            }
+            //if (!world.Facilities.Any())
+            //{
+            //    if (_myStrategyNoBuildings == null)
+            //        _myStrategyNoBuildings = new MyStrategyNoBuildings();
+            //    _myStrategyNoBuildings.Move(me, world, game, move);
+            //    return;
+            //}
 
             //Debug.beginPost();
             //Draw(2);
@@ -1144,7 +1144,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
             if (targetPoint == null)
             {
-                var destPointDist = Math.Sqrt(centerPoint.GetSquareDistance(destPoint));
+                var destPointDist = centerPoint.GetDistance(destPoint);
                 var coeff = destPointDist / resVector.Length;
                 resVector.Mult(coeff);
                 targetPoint = new Point(centerPoint.X + resVector.V.X, centerPoint.Y + resVector.V.Y);
