@@ -62,7 +62,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private const int SquardCount = 33;
         private const double NeedCompressionRadius = 7d;
-        private const double NeedRotationCoeff = 0.15;
+        private const double NeedRotationAdvantage = 0.15;
+        private const double MakeNuclearStrikePart = 0.1;
+        private const double MakeNuclearStrikeCount = 10;
        
         private IDictionary<int, IList<Vehicle>> _groups = new Dictionary<int, IList<Vehicle>>();
         private int _lastGroupIndex = -1;
@@ -1883,7 +1885,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, targetGroup.Center);
                         var radius = targetGroup.Center.GetDistance(enemyCp) + EnemyVehicleDeltaShootingDist;
                         var advantage = GetAdvantage(vehicles, nearestGroup);
-                        if (currentDistanceToEnemyCenter <= radius && !isSmallEnemyGroup &&
+                        if (currentDistanceToEnemyCenter <= radius && advantage < NeedRotationAdvantage &&
                             Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle) > MaxAngle
                         ) //TODO: вращаемся к ближайшему???
                         {
@@ -1999,8 +2001,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(targetGroup.Vehicles));
                         var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, targetGroup.Center);
                         var radius = targetGroup.Center.GetDistance(enemyCp) + EnemyVehicleDeltaShootingDist;
-                        var isSmallEnemyGroup = targetGroup.Vehicles.Count < SmallGroupVehiclesCount;
-                        if (currentDistanceToEnemyCenter <= radius && !isSmallEnemyGroup &&
+                        var advantage = GetAdvantage(vehicles, nearestGroup);
+                        if (currentDistanceToEnemyCenter <= radius && advantage < NeedRotationAdvantage &&
                             Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle) > MaxAngle
                         ) //TODO: вращаемся к ближайшему???
                         {
@@ -2554,7 +2556,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 .OrderByDescending(v => v.GetSquaredDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y))
                 .ToList();
 
-            var vehicle = orderedVehicles.FirstOrDefault(v =>
+            var vehicles = orderedVehicles.Where(v =>
             {
                 var groupIndex = v.Groups.FirstOrDefault();
                 var runAwayTimeCurr = runAwayTime;
@@ -2562,7 +2564,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 {
                     runAwayTimeCurr = Math.Max(runAwayTime, (int)_groupEndMovementTime[groupIndex] - _world.TickIndex);
                 }
-
                 
                 return
                     v.Durability >= v.MaxDurability * HpNuclerStrikeCoeff && GetActualVisualRange(v) >=
@@ -2570,11 +2571,21 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) *
                     runAwayTimeCurr &&
                     (runAwayTimeCurr == 0 || !HasWorseNearSquares(v));
+            }).ToList();
+
+            var vehicle = vehicles.FirstOrDefault(v =>
+            {
+                var groupIndex = v.Groups.FirstOrDefault();
+                if (groupIndex == 0) return true;
+                var okVehiclesCount = vehicles.Count(vv => vv.Groups.Contains(groupIndex));
+                var part = okVehiclesCount / _groups[groupIndex].Count;
+                return _groups[groupIndex].Count < MakeNuclearStrikeCount ||
+                       okVehiclesCount >= MakeNuclearStrikeCount || part > MakeNuclearStrikePart;
             });
 
             if (vehicle != null) return vehicle;
 
-            vehicle = orderedVehicles.FirstOrDefault(v =>
+            vehicles = orderedVehicles.Where(v =>
             {
                 var groupIndex = v.Groups.FirstOrDefault();
                 var runAwayTimeCurr = runAwayTime;
@@ -2588,11 +2599,21 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) *
                     runAwayTimeCurr &&
                     (runAwayTimeCurr == 0 || !HasWorseNearSquares(v));
+            }).ToList();
+
+            vehicle = vehicles.FirstOrDefault(v =>
+            {
+                var groupIndex = v.Groups.FirstOrDefault();
+                if (groupIndex == 0) return true;
+                var okVehiclesCount = vehicles.Count(vv => vv.Groups.Contains(groupIndex));
+                var part = okVehiclesCount / _groups[groupIndex].Count;
+                return _groups[groupIndex].Count < MakeNuclearStrikeCount ||
+                       okVehiclesCount >= MakeNuclearStrikeCount || part > MakeNuclearStrikePart;
             });
 
             if (vehicle != null) return vehicle;
 
-            vehicle = orderedVehicles.FirstOrDefault(v =>
+            vehicles = orderedVehicles.Where(v =>
             {
                 var groupIndex = v.Groups.FirstOrDefault();
                 var runAwayTimeCurr = runAwayTime;
@@ -2604,6 +2625,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 return
                     GetActualVisualRange(v) >= v.GetDistanceTo(nuclearStrikePoint.X, nuclearStrikePoint.Y) +
                     GetActualMaxSpeed(v, (int) Math.Truncate(v.X / 32d), (int) Math.Truncate(v.Y / 32d)) * runAwayTimeCurr;
+            }).ToList();
+
+            vehicle = vehicles.FirstOrDefault(v =>
+            {
+                var groupIndex = v.Groups.FirstOrDefault();
+                if (groupIndex == 0) return true;
+                var okVehiclesCount = vehicles.Count(vv => vv.Groups.Contains(groupIndex));
+                var part = okVehiclesCount / _groups[groupIndex].Count;
+                return _groups[groupIndex].Count < MakeNuclearStrikeCount ||
+                       okVehiclesCount >= MakeNuclearStrikeCount || part > MakeNuclearStrikePart;
             });
 
             return vehicle;
