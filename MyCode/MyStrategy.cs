@@ -1343,7 +1343,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     GetSandvichRadius(nearestGroup.Vehicles) > EnemyVehicleDeltaShootingDist) continue;
 
                 var enemyCenter = GetVehiclesCenter(nearestGroup.Vehicles);
-                var damage = GetGroupNuclearDamage(nearestGroup.Vehicles, enemyCenter.X, enemyCenter.Y);
+                var damage = GetGroupNuclearDamage(nearestGroup.Vehicles, enemyCenter.X, enemyCenter.Y, true);
 
                 if (Math.Abs(damage - maxDamage) < Tolerance)
                 {
@@ -2454,13 +2454,18 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             return targetFacility;
         }
 
-        private double GetGroupNuclearDamage(IList<Vehicle> vehicles, double nuclearX, double nuclearY)
+        private double GetGroupNuclearDamage(IList<Vehicle> vehicles, double nuclearX, double nuclearY, bool canRun)
         {
             var sumDamage = 0d;
 
             foreach (var v in vehicles)
             {
                 var dist = v.GetDistanceTo(nuclearX, nuclearY);
+                if (canRun)
+                {
+                    var maxSpeed = GetActualMaxSpeed(v, (int) nuclearX, (int) nuclearY);
+                    dist += maxSpeed * _game.TacticalNuclearStrikeDelay;
+                }
                 if (dist < _game.TacticalNuclearStrikeRadius)
                 {
                     var closeCoeff = (_game.TacticalNuclearStrikeRadius - dist) / _game.TacticalNuclearStrikeRadius;
@@ -2495,8 +2500,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                     if (strikingVehicle == null) continue;
 
-                    var damage = GetGroupNuclearDamage(_enemyVehicles, group.Center.X, group.Center.Y);
-                    var myVehiclesDamage = GetGroupNuclearDamage(myVehicles, group.Center.X, group.Center.Y);
+                    var damage = GetGroupNuclearDamage(_enemyVehicles, group.Center.X, group.Center.Y, true);
+                    var myVehiclesDamage = GetGroupNuclearDamage(myVehicles, group.Center.X, group.Center.Y, false);
                     var diffDamage = damage - myVehiclesDamage;
 
                     if (diffDamage > maxDiffDamage)
@@ -2528,8 +2533,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                 if (strikingVehicle == null) continue;
 
-                var damage = GetGroupNuclearDamage(_enemyVehicles, v.X, v.Y);
-                var myVehiclesDamage = GetGroupNuclearDamage(myVehicles, v.X, v.Y);
+                var damage = GetGroupNuclearDamage(_enemyVehicles, v.X, v.Y, true);
+                var myVehiclesDamage = GetGroupNuclearDamage(myVehicles, v.X, v.Y, false);
                 var diffDamage = damage - myVehiclesDamage;
 
                 if (diffDamage > maxDiffDamage)
