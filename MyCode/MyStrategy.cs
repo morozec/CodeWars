@@ -1209,7 +1209,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             });
 
             var airCount = _enemyVehicles.Count(v => v.IsAerial);
-            var groundCount = _enemyVehicles.Count - airCount;
 
             _delayedMoves.Enqueue(move =>
             {
@@ -1217,7 +1216,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.Action = ActionType.SetupVehicleProduction;
                 if (!_facilityProductionTypes.ContainsKey(id))
                 {
-                    _facilityProductionTypes.Add(id, airCount > groundCount ? VehicleType.Fighter : VehicleType.Helicopter);
+                    _facilityProductionTypes.Add(id,
+                        airCount > SmallGroupVehiclesCount ? VehicleType.Fighter : VehicleType.Helicopter);
                 }
                 move.VehicleType = _facilityProductionTypes[id];
                 move.FacilityId = id;
