@@ -1909,7 +1909,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                 GetAttractiveFunction(targetGroup.Center, 1d, centerPoint.X, centerPoint.Y);
                             MoveToSomewhere(vehicles,
                                 groupId,
-                                targetGroup.Center,
+                                enemyCp,
                                 attractiveFunction,
                                 _enemyVehiclesGroups,
                                 targetGroup);
@@ -2027,7 +2027,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                 GetAttractiveFunction(targetGroup.Center, 1d, centerPoint.X, centerPoint.Y);
                             MoveToSomewhere(vehicles,
                                 groupId,
-                                targetGroup.Center,
+                                enemyCp,
                                 attractiveFunction,
                                 _enemyVehiclesGroups,
                                 targetGroup);
