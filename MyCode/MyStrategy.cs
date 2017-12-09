@@ -1692,8 +1692,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (_world.TickIndex > _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
-                        _isRotating[groupId] = false;
-                        DoMilitaryAction(vehicles, groupId);
+                        if (DoMilitaryAction(vehicles, groupId)) _isRotating[groupId] = false;
                     }
                     else 
                     {
@@ -1718,9 +1717,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         var isSmallAngle = Math.Abs(turnAngle) < MaxAngle / 2;
                         if (needStop || isSmallAngle)
                         {
-                            _isRotating[groupId] = false;
-                            _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
-                            DoMilitaryAction(vehicles, groupId);
+                            if (DoMilitaryAction(vehicles, groupId))
+                            {
+                                _isRotating[groupId] = false;
+                                _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
+                            }
                         }
                     }
 
@@ -1729,17 +1730,22 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (_world.TickIndex > _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
-                        _isRotating[groupId] = false;
+                        
                         if (_groups.ContainsKey(groupId) && _groups.ContainsKey(_apolloSoyuzIndexes[groupId]))
                         {
                             if (_world.TickIndex > _groupEndMovementTime[_apolloSoyuzIndexes[groupId]])
                             {
+                                _isRotating[groupId] = false;
                                 ApolloSoyuzMove(groupId, _apolloSoyuzIndexes[groupId]);
                             }
                         }
                         else
                         {
-                            DoMilitaryAction(vehicles, groupId);
+                            if (DoMilitaryAction(vehicles, groupId))
+                            {
+                                _currentGroupAngle[groupId] = _tmpGroupAngle[groupId];
+                                _isRotating[groupId] = false;
+                            }
                         }
                     }
                     break;
@@ -1837,7 +1843,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
         }
 
-        private void DoMilitaryAction(IList<Vehicle> vehicles, int groupId)
+        private bool DoMilitaryAction(IList<Vehicle> vehicles, int groupId)
         {
             var centerPoint = GetVehiclesCenter(vehicles);
             var nearestGroup = GetNearestEnemyGroup(_enemyVehiclesGroups, centerPoint.X, centerPoint.Y, vehicles);
@@ -1880,11 +1886,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 if (needCompress)
                 {
                     Compress2(centerPoint.X, centerPoint.Y, NuclearCompressionFactor, 100d, groupId);
+                    return true;
                 }
                 else if (!_apolloSoyuzIndexes.ContainsKey(groupId) &&
                          !_apolloSoyuzIndexes.ContainsKey(nearestFriendKey) && needConnect)
                 {
                     ApolloSoyuzRotate(groupId, nearestFriendKey);
+                    return true;
                 }
                 else if (_world.TickIndex > _groupEndMovementTime[groupId])
                 {
@@ -1947,7 +1955,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                 circle);
                         }
                     }
+                    return true;
                 }
+                return false;
             }
             else
             {
@@ -1991,10 +2001,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 if (needCompress)
                 {
                     Compress2(centerPoint.X, centerPoint.Y, NuclearCompressionFactor, 100d, groupId);
+                    return true;
                 }
                 else if (needConnect)
                 {
                     ApolloSoyuzRotate(groupId, nearestFriendKey);
+                    return true;
                 }
                 else if (hasGroundVehicle && isFacilityCloser)
                 {
@@ -2004,6 +2016,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         centerPoint.X,
                         centerPoint.Y);
                     MoveToSomewhere(vehicles, groupId, facilityCenter, attractiveFunction, _enemyVehiclesGroups);
+                    return true;
                 }
                 else if (_world.TickIndex > _groupEndMovementTime[groupId])
                 {
@@ -2065,8 +2078,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                 circle);
                         }
                     }
-
+                    return true;
                 }
+                return false;
 
             }
 
@@ -2463,7 +2477,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var dist = v.GetDistanceTo(nuclearX, nuclearY);
                 if (canRun)
                 {
-                    var maxSpeed = GetActualMaxSpeed(v, (int) nuclearX, (int) nuclearY);
+                    var maxSpeed = GetActualMaxSpeed(v, MathHelper.GetSquareIndex(nuclearX),
+                        MathHelper.GetSquareIndex(nuclearY));
                     dist += maxSpeed * _game.TacticalNuclearStrikeDelay;
                 }
                 if (dist < _game.TacticalNuclearStrikeRadius)
