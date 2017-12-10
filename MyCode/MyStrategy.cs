@@ -247,7 +247,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private readonly IDictionary<long, VehicleType> _facilityProductionTypes = new Dictionary<long, VehicleType>();
 
-        private double _dx=0, _dy=0;
+        //private IDictionary<int, GroupContainer> _group1HelpGroups = new Dictionary<int, GroupContainer>();
 
         /// <summary>
         ///     Основной метод стратегии, осуществляющий управление армией. Вызывается каждый тик.
@@ -551,8 +551,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
             else if (fCenter.X < hCenter.X)
             {
+                var isCloseSquares = hCenter.Y - fCenter.Y < 0 &&
+                                     fCenter.Y - hCenter.Y < AStar.SquareSize + Tolerance &&
+                                     hCenter.Y - fCenter.Y < AStar.SquareSize + Tolerance &&
+                                     hCenter.X - fCenter.X < AStar.SquareSize + Tolerance;
                 AirScaleToKeyPoint(VehicleType.Helicopter, hCenter, false);
-                AirScaleToKeyPoint2(VehicleType.Fighter, fCenter, false);
+                AirScaleToKeyPoint2(VehicleType.Fighter, fCenter, isCloseSquares);
             }
             else
             {
@@ -1577,7 +1581,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (!isUncompressing)
                         _groupEndMovementTime[groupId] = _world.TickIndex + _game.TacticalNuclearStrikeDelay;
 
-                    _nuclearVehicleId = -1;
+                    //_nuclearVehicleId = -1;
                 });
 
 
@@ -2007,7 +2011,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 else if (_sandvichActions[groupId] == SandvichAction.Compressing2 || _world.TickIndex > _groupEndMovementTime[groupId])
                 {
                     var isMainGroup = groupId == 2;
-                    var targetGroup = GetNearestAdvantageEnemyGroup(_enemyVehiclesGroups, groupId);
+                    var targetGroup = GetMostAdvantageEnemyGroup(_enemyVehiclesGroups, groupId);
 
                     if (targetGroup != null)
                     {
@@ -2479,6 +2483,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             GroupContainer nearestGroup = null;
             var minDist = double.MaxValue;
+            //IList<int> helpKeys = null;
             foreach (var eg in enemyGroups)
             {
                 var hasMyNearVehicles = groupId % 2 == 0 && myVehicles.Any(myV =>
@@ -2490,6 +2495,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var egRadius = GetSandvichRadius(eg.Vehicles);
 
                 var allVehicles = new List<Vehicle>(myVehicles);
+                //var helpKeysCurr = new List<int>();
                 foreach (var key in _groups.Keys.Where(k => k != groupId))
                 {
                     var currCenter = GetVehiclesCenter(_groups[key]);
@@ -2498,6 +2504,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (Equals(currNearestGroup, eg) && currCenter.GetDistance(eg.Center) < currRadius)
                     {
                         allVehicles.AddRange(_groups[key]);
+                        //helpKeysCurr.Add(key);
                     }
                 }
 
@@ -2505,26 +2512,63 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 if (advantage < 0 || double.IsNaN(advantage)) continue;
 
                 var dist = eg.Center.GetSquareDistance(center.X, center.Y);
+                
                 if (dist < minDist)
                 {
+                    //helpKeys = helpKeysCurr;
                     minDist = dist;
                     nearestGroup = eg;
                 }
             }
 
+            //_group1HelpGroups.Clear();
+            //if (nearestGroup != null)
+            //{
+            //    foreach (var hk in helpKeys)
+            //    {
+            //        _group1HelpGroups.Add(hk, nearestGroup);
+            //    }
+            //}
+
             return nearestGroup;
         }
 
-        private GroupContainer GetMostAdvantageEnemyGroup(IList<GroupContainer> enemyGroups, IList<Vehicle> myVehicles)
+        private GroupContainer GetMostAdvantageEnemyGroup(IList<GroupContainer> enemyGroups, int groupId)
         {
+
             var hasBigGroups = enemyGroups.Any(g => g.Vehicles.Count >= ConsiderGroupVehiclesCount);
+            var myVehicles = _groups[groupId];
+            var center = GetVehiclesCenter(myVehicles);
 
             GroupContainer nearestGroup = null;
             var maxAdvantage = 0d;
             foreach (var eg in enemyGroups)
             {
-                if (hasBigGroups && eg.Vehicles.Count < ConsiderGroupVehiclesCount) continue;
-                var advantage = GetAdvantage(myVehicles, eg);
+                var hasMyNearVehicles = groupId % 2 == 0 && myVehicles.Any(myV =>
+                                            eg.Vehicles.Any(enV =>
+                                                GetActualShootingDistance(myV, !enV.IsAerial) >=
+                                                myV.GetDistanceTo(enV)));
+
+                if (hasBigGroups && eg.Vehicles.Count < ConsiderGroupVehiclesCount && !hasMyNearVehicles) continue;
+
+                var egRadius = GetSandvichRadius(eg.Vehicles);
+
+                var allVehicles = new List<Vehicle>(myVehicles);
+                //var helpKeysCurr = new List<int>();
+                foreach (var key in _groups.Keys.Where(k => k != groupId))
+                {
+                    var currCenter = GetVehiclesCenter(_groups[key]);
+                    var currNearestGroup = GetNearestEnemyGroup(enemyGroups, center.X, center.Y);
+                    var currRadius = egRadius + EnemyVehicleDeltaShootingDist;
+                    if (Equals(currNearestGroup, eg) && currCenter.GetDistance(eg.Center) < currRadius)
+                    {
+                        allVehicles.AddRange(_groups[key]);
+                        //helpKeysCurr.Add(key);
+                    }
+                }
+
+                var advantage = GetAdvantage(allVehicles, eg);
+                if (advantage < 0 || double.IsNaN(advantage)) continue;
 
                 if (advantage > maxAdvantage && !double.IsNaN(advantage))
                 {
