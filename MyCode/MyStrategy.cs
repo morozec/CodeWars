@@ -247,6 +247,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private readonly IDictionary<long, VehicleType> _facilityProductionTypes = new Dictionary<long, VehicleType>();
 
+        private long _nuclearStrikeEnemyVehicleId = -1;
+
         //private IDictionary<int, GroupContainer> _group1HelpGroups = new Dictionary<int, GroupContainer>();
 
         /// <summary>
@@ -259,7 +261,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         public void Move(Player me, World world, Game game, Move move)
         {
             if (game.IsFogOfWarEnabled) return;
-
 
             //if (!world.Facilities.Any())
             //{
@@ -312,6 +313,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 {
                     _delayedMoves.Clear();
                     _isEnemyNuclearStrikeConsidered = true;
+                    _nuclearStrikeEnemyVehicleId = _enemy.NextNuclearStrikeVehicleId;
 
                     if (_groups.ContainsKey(_selectedGroupId) && _isGroupCompressed[_selectedGroupId] &&
                         NeedNuclearUncompress(_groups[_selectedGroupId]))
@@ -1997,9 +1999,30 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var needCompress =
                     vehicles.All(v => v.GetSquaredDistanceTo(centerPoint.X, centerPoint.Y) > NeedCompressionRadius * NeedCompressionRadius);
 
+                var nuclearEnemyGroup = _nuclearStrikeEnemyVehicleId == -1
+                    ? null
+                    : _enemyVehiclesGroups.SingleOrDefault(g =>
+                        g.Vehicles.Any(v => v.Id == _nuclearStrikeEnemyVehicleId));
+                var firstGroupIndex = _groups.Keys.FirstOrDefault(k => k % 2 == 0 && k >= 4);
+                var needMovToNuclearEnemyGroup = groupId == firstGroupIndex && nuclearEnemyGroup != null &&
+                                                 GetAdvantage(vehicles, nuclearEnemyGroup) > 0 &&
+                                                 nuclearEnemyGroup.Vehicles.Count < 10;
+
                 if (needCompress)
                 {
                     Compress2(centerPoint.X, centerPoint.Y, NuclearCompressionFactor, 100d, groupId);
+                    return true;
+                }
+                else if (needMovToNuclearEnemyGroup)
+                {
+                    var attractiveFunction =
+                        GetAttractiveFunction(nuclearEnemyGroup.Center, 1d, centerPoint.X, centerPoint.Y);
+                    MoveToSomewhere(vehicles,
+                        groupId,
+                        nuclearEnemyGroup.Center,
+                        attractiveFunction,
+                        _enemyVehiclesGroups,
+                        nuclearEnemyGroup);
                     return true;
                 }
                 else if (!_apolloSoyuzIndexes.ContainsKey(groupId) &&
@@ -3357,6 +3380,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             _moveEnemyTicks = GetMoveEnemyTicks();
 
+            if (_nuclearStrikeEnemyVehicleId != -1 && !_vehicleById.ContainsKey(_nuclearStrikeEnemyVehicleId))
+            {
+                _nuclearStrikeEnemyVehicleId = -1;
+            }
+
         }
 
         private int GetMoveEnemyTicks()
@@ -3423,13 +3451,21 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 int index;
                 if (isGround)
                 {
-                    var groundKeys = _groups.Keys.Where(k => k % 2 == 1).ToList();
-                    index = groundKeys.Any() ? groundKeys.Max() + 2 : 1;
+                    //var groundKeys = _groups.Keys.Where(k => k % 2 == 1).ToList();
+                    index = 1;
+                    while (_groups.ContainsKey(index))
+                    {
+                        index += 2;
+                    }
                 }
                 else
                 {
-                    var airKeys = _groups.Keys.Where(k => k % 2 == 0).ToList();
-                    index = airKeys.Any() ? airKeys.Max() + 2 : 2;
+                    //var airKeys = _groups.Keys.Where(k => k % 2 == 0).ToList();
+                    index = 2;
+                    while (_groups.ContainsKey(index))
+                    {
+                        index += 2;
+                    }
                 }
 
                 var myFacilities = _world.Facilities.Where(f => f.OwnerPlayerId == _me.Id).ToList();
