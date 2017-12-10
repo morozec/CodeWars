@@ -539,16 +539,18 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var hCenter = GetVehiclesCenter(helicopters);
             if (Math.Abs(fCenter.X - hCenter.X) < Tolerance)
             {
-                var isCloseSquares = hCenter.Y - fCenter.Y > 0 && hCenter.Y - fCenter.Y < AStar.SquareSize + Tolerance;
+               
                 if (fCenter.Y > hCenter.Y)
                 {
-                    AirScaleToKeyPoint(VehicleType.Fighter, fCenter, isCloseSquares);
-                    AirScaleToKeyPoint2(VehicleType.Helicopter, hCenter, false);
+                    var isCloseSquares = fCenter.Y - hCenter.Y < AStar.SquareSize + Tolerance;
+                    AirScaleToKeyPoint(VehicleType.Fighter, fCenter, false);
+                    AirScaleToKeyPoint2(VehicleType.Helicopter, hCenter, isCloseSquares);
                 }
                 else
                 {
+                    //var isCloseSquares = hCenter.Y - fCenter.Y < AStar.SquareSize + Tolerance;
                     AirScaleToKeyPoint(VehicleType.Helicopter, hCenter, false);
-                    AirScaleToKeyPoint2(VehicleType.Fighter, fCenter, isCloseSquares);
+                    AirScaleToKeyPoint2(VehicleType.Fighter, fCenter, true);
                 }
             }
             else if (fCenter.X < hCenter.X)
@@ -562,8 +564,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
             else
             {
+                var isCloseSquares = fCenter.Y - hCenter.Y < 0 &&
+                                     hCenter.Y - fCenter.Y < AStar.SquareSize + Tolerance &&
+                                     fCenter.Y - hCenter.Y < AStar.SquareSize + Tolerance &&
+                                     fCenter.X - hCenter.X < AStar.SquareSize + Tolerance;
+
                 AirScaleToKeyPoint(VehicleType.Fighter, fCenter, false);
-                AirScaleToKeyPoint2(VehicleType.Helicopter, hCenter, false);
+                AirScaleToKeyPoint2(VehicleType.Helicopter, hCenter, isCloseSquares);
             }
 
         }
@@ -1538,6 +1545,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                 var isUncompressing = false;
                 var groupId = strikingVehicle.Groups.SingleOrDefault();
+                if (groupId != 0 && !_isGroupCompressed[groupId]) return false;
+
                 if (groupId != 0)
                 {
                     if (_sandvichActions[groupId] == SandvichAction.Rotating)
@@ -1777,10 +1786,20 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     break;
 
                 case SandvichAction.Shifting:
-                    if (_world.TickIndex > _groupEndMovementTime[groupId] ||
-                        vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
+                    if (groupId % 2 == 1)
                     {
-                        compress(groupId);
+                        if (_world.TickIndex > _groupEndMovementTime[groupId] ||
+                            vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
+                        {
+                            compress(groupId);
+                        }
+                    }
+                    else
+                    {
+                        if (vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
+                        {
+                            compress(groupId);
+                        }
                     }
                     break;
 
