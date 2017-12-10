@@ -222,8 +222,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private readonly IDictionary<int, bool> _isGroupCompressed = new Dictionary<int, bool>()
         {
-            {0, false },
             {1, false },
+            {2, false },
         };
 
         private int _selectedGroupId = -1;
@@ -1498,7 +1498,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var isUncompressing = _sandvichActions[movingGroupId] == SandvichAction.Uncompress;
                 var isCompressing = _sandvichActions[movingGroupId] == SandvichAction.Compressing2;
 
-                if (isCompressing || isUncompressing) return false;
+                if (isCompressing || isUncompressing || !_isGroupCompressed[movingGroupId]) return false;
 
                 if (_sandvichActions[movingGroupId] == SandvichAction.Rotating)
                 {
