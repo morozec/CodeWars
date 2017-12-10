@@ -1464,22 +1464,26 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     GetSandvichRadius(nearestGroup.Vehicles) > EnemyVehicleDeltaShootingDist) continue;
 
                 var enemyCenter = GetVehiclesCenter(nearestGroup.Vehicles);
-                var damage = GetGroupNuclearDamage(nearestGroup.Vehicles, enemyCenter.X, enemyCenter.Y, true);
+                var enemyDamage = GetGroupNuclearDamage(nearestGroup.Vehicles, enemyCenter.X, enemyCenter.Y, true);
+                var myVehicles = GetVehicles(Ownership.ALLY);
+                var selfDamage = GetGroupNuclearDamage(myVehicles, enemyCenter.X, enemyCenter.Y, false);
 
-                if (Math.Abs(damage - maxDamage) < Tolerance)
+                var diffDamage = enemyDamage - selfDamage;
+
+                if (Math.Abs(diffDamage - maxDamage) < Tolerance)
                 {
                     
                     if (dist < maxDamageDistance)
                     {
-                        maxDamage = damage;
+                        maxDamage = diffDamage;
                         maxDamageDistance = dist;
                         maxDamageKey = key;
                     }
                 }
 
-               else if (damage > maxDamage)
+               else if (diffDamage > maxDamage)
                 {
-                    maxDamage = damage;
+                    maxDamage = diffDamage;
                     maxDamageDistance = dist;
                     maxDamageKey = key;
                 }
