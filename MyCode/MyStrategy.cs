@@ -1714,7 +1714,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 if (targetGroup != null && Equals(group, targetGroup)) continue;
                 var advantage = GetAdvantage(vehicles, group);
                 if (advantage > 0 && !double.IsNaN(advantage)) continue;
-                var enemyFunction = PotentialFieldsHelper.GetEnemyGroupRepulsiveFunction(group, 1d, vehicles);
+                var enemyFunction = PotentialFieldsHelper.GetEnemyGroupRepulsiveFunction(group, 1.5d, vehicles);
                 resFunction = new Point(resFunction.X + enemyFunction.X, resFunction.Y + enemyFunction.Y);
             }
             var borderFunction = PotentialFieldsHelper.GetBorderRepulsiveFunction(vehicles, _world.Width, _world.Height);
@@ -1722,7 +1722,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             var vehicles0 =
                 _vehicleById.Values.Where(x => x.PlayerId == _me.Id && !x.Groups.Any()).ToList();
-            var allyNoGroupsfunction = PotentialFieldsHelper.GetAllyNoGroupRepulsiveFunction(vehicles, vehicles0, 1d);
+            var allyNoGroupsfunction = PotentialFieldsHelper.GetAllyNoGroupRepulsiveFunction(vehicles, vehicles0, 0.75);
             resFunction = new Point(resFunction.X + allyNoGroupsfunction.X, resFunction.Y + allyNoGroupsfunction.Y);
 
             //var isNoForce = Math.Abs(resFunction.X) < Tolerance && Math.Abs(resFunction.Y) < Tolerance;
@@ -1731,7 +1731,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             foreach (var key in _groups.Keys)
             {
                 if (key == groupId) continue;
-                var allyFunction = PotentialFieldsHelper.GetAllyGroupRepulsiveFunction(vehicles, _groups[key], 1d);
+                var allyFunction = PotentialFieldsHelper.GetAllyGroupRepulsiveFunction(vehicles, _groups[key], 0.75);
                 resFunction = new Point(resFunction.X + allyFunction.X, resFunction.Y + allyFunction.Y);
             }
             //}
