@@ -1828,10 +1828,34 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             if (targetPoint == null)
             {
-                if (_movingNuclearGroupId != -1) return false;
-
                 var movingGroupId = GetNuclearStrikeMoveToEnemyGroupId(_enemyVehiclesGroups);
-                if (movingGroupId == -1) return false;
+                if (_movingNuclearGroupId != movingGroupId)
+                {
+                    if (_movingNuclearGroupId != -1 &&
+                        _sandvichActions[_movingNuclearGroupId] == SandvichAction.NuclearStrikeMove)
+                    {
+                        _sandvichActions[_movingNuclearGroupId] = SandvichAction.MovingToEnemy;
+                    }
+                    if (movingGroupId == -1)
+                    {
+                        _movingNuclearGroupId = -1;
+                        return false;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+                
+                //if (movingGroupId == -1)
+                //{
+                //    if (_sandvichActions[_movingNuclearGroupId] == SandvichAction.NuclearStrikeMove)
+                //    {
+                //        _sandvichActions[_movingNuclearGroupId] = SandvichAction.MovingToEnemy;
+                //    }
+                //    _movingNuclearGroupId = -1;
+                //    return false;
+                //}
 
                 var isUncompressing = _sandvichActions[movingGroupId] == SandvichAction.Uncompress;
                 var isCompressing = _sandvichActions[movingGroupId] == SandvichAction.Compressing2;
@@ -1845,7 +1869,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                 if (_selectedGroupId != movingGroupId)
                 {
-                    _importantDelayedMoves.Enqueue(move =>
+                    _delayedMoves.Enqueue(move =>
                     {
                         move.Action = ActionType.ClearAndSelect;
                         move.Group = movingGroupId;
@@ -1857,7 +1881,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var nearestGroup = GetNearestEnemyGroup(_enemyVehiclesGroups, center.X, center.Y);
                 var speed = GetGroupLineMaxSpeed(_groups[movingGroupId], nearestGroup.Center);
 
-                _importantDelayedMoves.Enqueue(move =>
+
+                _delayedMoves.Enqueue(move =>
                 {
                     move.Action = ActionType.Move;
                     move.X = nearestGroup.Center.X - center.X;
