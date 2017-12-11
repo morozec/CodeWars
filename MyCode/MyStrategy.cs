@@ -59,6 +59,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const double NeedRotationAdvantage = 0.15;          //Коэффициент преимущества над врагом, при превышении которого нет необходимости вращаться к этому врагу
         private const double MakeNuclearStrikePart = 0.1;           //Вспомогательный коэффициент для нанесения ядерного удара
         private const double MakeNuclearStrikeCount = 10;           //Вспомогательный коэффициент для нанесения ядерного удара
+        private const double AddGroundGroupTime = 50d;                     //Доп. время, которое даем наземной группе при совместной с авиацией атаке врага
 
         //Мои группы
         private IDictionary<int, IList<Vehicle>> _groups = new Dictionary<int, IList<Vehicle>>();
@@ -390,7 +391,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (_world.TickIndex > _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
-                        if (groupId == 1 && !_isGroupCompressed[groupId])
+                        if (groupId == 1 && !_isGroupCompressed[groupId] && _world.Facilities.Any())
                         {
                             _isGroupCompressed[groupId] = true;
                             SetGroundGroups();
@@ -2208,6 +2209,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             _sandvichActions[1] = SandvichAction.DevideInto3Groups;
 
             var group1Vehicles = _groups[1];
+            var center = GetVehiclesCenter(group1Vehicles);
             var leftBorder = group1Vehicles.Min(v => v.X);
             var rightBorder = group1Vehicles.Max(v => v.X);
             var topBorder = group1Vehicles.Min(v => v.Y);
@@ -2293,6 +2295,39 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             AddNewGroupValues(5);
             AddNewGroupValues(7);
             _selectedGroupId = 7;
+
+            var orderedFacilities = _world.Facilities.OrderBy(f => center.GetDistance(GetFacilityCenterPoint(f))).ToList();
+            var center3 = new Point(center.X, topBorder + height / 6d);
+            var center5 = new Point(center.X, center.Y);
+            var center7 = new Point(center.X, topBorder + 5 * height / 6d);
+
+            var gotCenterIds = new List<int>();
+            for (var i = 0; i < 3; ++i)
+            {
+                var f = orderedFacilities[i];
+                var fCenter = GetFacilityCenterPoint(f);
+                var minDist = double.MaxValue;
+                int minDistId = -1;
+                if (center3.GetDistance(fCenter) < minDist && !gotCenterIds.Contains(3))
+                {
+                    minDist = center3.GetDistance(fCenter);
+                    minDistId = 3;
+                }
+                if (center5.GetDistance(fCenter) < minDist && !gotCenterIds.Contains(5))
+                {
+                    minDist = center5.GetDistance(fCenter);
+                    minDistId = 5;
+                }
+                if (center7.GetDistance(fCenter) < minDist && !gotCenterIds.Contains(7))
+                {
+                    minDist = center7.GetDistance(fCenter);
+                    minDistId = 7;
+                }
+
+                gotCenterIds.Add(minDistId);
+                _facilityCaptureGroupIds.Add(f.Id, minDistId);
+
+            }
 
 
         }
@@ -3020,7 +3055,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                 var selfDist = center.GetDistance(eg.Center);
                                 var selfTimeToEnemyCenter = selfDist / selfMaxSpeed;
 
-                                if (currTimeToEnemyCenter < selfTimeToEnemyCenter)
+                                if (currTimeToEnemyCenter - AddGroundGroupTime < selfTimeToEnemyCenter)
                                 {
                                     allVehicles.AddRange(_groups[key]);
                                 }
