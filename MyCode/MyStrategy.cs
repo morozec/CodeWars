@@ -406,6 +406,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         // (хитрый враг тоже двигается). Если да, то переходим к обычным военным действиям
                         var center = GetVehiclesCenter(vehicles);
                         var nearestGroup = GetNearestEnemyGroup(_enemyVehiclesGroups, center.X, center.Y);
+                        if (nearestGroup == null) break; 
 
                         var newAngle = MathHelper.GetAnlge(
                             new Vector(center,
@@ -1346,7 +1347,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                             Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle.Value) > MaxDeltaAngle
                         ) //TODO: вращаемся к ближайшему???
                         {//Врашаемся к врагу (убрал для основной группы авиации (groupId == 2)
-                            RotateToEnemy(vehicles, groupId);
+                            RotateToEnemy(vehicles, groupId, nearestGroup);
                         }
                         else
                         {
@@ -1392,7 +1393,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                 Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle.Value) > MaxDeltaAngle)
                             {//Врашаемся к врагу (убрал для основной группы авиации (groupId == 2)
 
-                                RotateToEnemy(vehicles, groupId);
+                                RotateToEnemy(vehicles, groupId, nearestGroup);
                             }
                             else
                             {
@@ -1500,7 +1501,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                             Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle.Value) > MaxDeltaAngle
                         ) //TODO: вращаемся к ближайшему???
                         {
-                            RotateToEnemy(vehicles, groupId);
+                            RotateToEnemy(vehicles, groupId, nearestGroup);
                         }
                         else
                         {
@@ -1543,7 +1544,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                             if (currentDistanceToEnemyCenter <= radius &&
                                 Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle.Value) > MaxDeltaAngle)
                             {
-                                RotateToEnemy(vehicles, groupId);
+                                RotateToEnemy(vehicles, groupId, nearestGroup);
                             }
                             else
                             {
@@ -1611,13 +1612,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         /// </summary>
         /// <param name="vehicles"></param>
         /// <param name="groupId"></param>
-        private void RotateToEnemy(IList<Vehicle> vehicles, int groupId)
+        private void RotateToEnemy(IList<Vehicle> vehicles, int groupId, GroupContainer nearestGroup)
         {
             _sandvichActions[groupId] = SandvichAction.Rotating;
 
             var centerPoint = GetVehiclesCenter(vehicles);
-
-            var nearestGroup = GetNearestEnemyGroup(_enemyVehiclesGroups, centerPoint.X, centerPoint.Y);
 
             //var rectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(vehicles));
             var newAngle = MathHelper.GetAnlge(
@@ -2771,6 +2770,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         /// <returns></returns>
         private GroupContainer GetNearestAdvantageEnemyGroup(IList<GroupContainer> enemyGroups, int groupId)
         {
+            if (!enemyGroups.Any()) return null;
+
             var hasBigGroups = enemyGroups.Any(g => g.Vehicles.Count >= ConsiderGroupVehiclesCount);
             var myVehicles = _groups[groupId];
             var center = GetVehiclesCenter(myVehicles);
@@ -2835,6 +2836,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         /// <returns></returns>
         private GroupContainer GetMostAdvantageEnemyGroup(IList<GroupContainer> enemyGroups, int groupId)
         {
+            if (!enemyGroups.Any()) return null;
 
             var hasBigGroups = enemyGroups.Any(g => g.Vehicles.Count >= ConsiderGroupVehiclesCount);
             var myVehicles = _groups[groupId];
