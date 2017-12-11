@@ -32,9 +32,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
             var otherRadius = MyStrategy.GetSandvichRadius(otherVehicles);
 
             var centersDist = myCenter.GetDistance(otherCenter);
-            if (centersDist > myRadius + otherRadius + MyStrategy.EnemyVehicleDeltaShootingDist) return new Point(0d, 0d);
+            if (centersDist > myRadius + otherRadius + MyStrategy.EnemyDangerousRadius) return new Point(0d, 0d);
 
-            //Debug.circle(myCenter.X, myCenter.Y, myRadius + otherRadius + EnemyVehicleDeltaShootingDist, 0x00FF00);
+            //Debug.circle(myCenter.X, myCenter.Y, myRadius + otherRadius + EnemyDangerousRadius, 0x00FF00);
 
             double x, y;
             if (centersDist < myRadius + otherRadius)
@@ -44,8 +44,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
             }
             else
             {
-                x = 2 * coeff * (myCenter.X - otherCenter.X) * (1 / centersDist - 1 / (myRadius + otherRadius + MyStrategy.EnemyVehicleDeltaShootingDist));
-                y = 2 * coeff * (myCenter.Y - otherCenter.Y) * (1 / centersDist - 1 / (myRadius + otherRadius + MyStrategy.EnemyVehicleDeltaShootingDist));
+                x = 2 * coeff * (myCenter.X - otherCenter.X) * (1 / centersDist - 1 / (myRadius + otherRadius + MyStrategy.EnemyDangerousRadius));
+                y = 2 * coeff * (myCenter.Y - otherCenter.Y) * (1 / centersDist - 1 / (myRadius + otherRadius + MyStrategy.EnemyDangerousRadius));
             }
 
             return new Point(x, y);
@@ -69,7 +69,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
                 if (isThisAir && isGroundVehicle) continue;
 
                 var centersDist = myCenter.GetDistance(v.X, v.Y);
-                if (centersDist > myRadius + MyStrategy.EnemyVehicleDeltaShootingDist) continue;
+                if (centersDist > myRadius + MyStrategy.EnemyDangerousRadius) continue;
 
                 double x, y;
                 if (centersDist < myRadius)
@@ -79,8 +79,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
                 }
                 else
                 {
-                    x = 2 * coeff * (myCenter.X - v.X) * (1 / centersDist - 1 / (myRadius + MyStrategy.EnemyVehicleDeltaShootingDist));
-                    y = 2 * coeff * (myCenter.Y - v.Y) * (1 / centersDist - 1 / (myRadius + MyStrategy.EnemyVehicleDeltaShootingDist));
+                    x = 2 * coeff * (myCenter.X - v.X) * (1 / centersDist - 1 / (myRadius + MyStrategy.EnemyDangerousRadius));
+                    y = 2 * coeff * (myCenter.Y - v.Y) * (1 / centersDist - 1 / (myRadius + MyStrategy.EnemyDangerousRadius));
                 }
 
                 resPoint = new Point(resPoint.X + x, resPoint.Y + y);
@@ -136,7 +136,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
 
         //public static Point GetEnemyVehicleRepulsiveFunction(Vehicle enemyVehicle, double coeff, IList<Vehicle> vehicles, bool isGroundAttak)
         //{
-        //    var radius = GetActualShootingDistance(enemyVehicle, isGroundAttak) + MyStrategy.EnemyVehicleDeltaShootingDist;
+        //    var radius = GetActualShootingDistance(enemyVehicle, isGroundAttak) + MyStrategy.EnemyDangerousRadius;
         //    var centerPoint = MyStrategy.GetVehiclesCenter(vehicles);
         //    var dist = centerPoint.GetDistance(enemyVehicle.X, enemyVehicle.Y);
         //    if (dist > radius) return new Point(0d, 0d);
@@ -154,7 +154,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk.MyCode
 
             var enemyCp = MathHelper.GetNearestRectangleCrossPoint(myCenter, enemyRectangle, groupContainer.Center);
             var myCenterDist = myCenter.GetDistance(groupContainer.Center);
-            var radius = groupContainer.Center.GetDistance(enemyCp) + MyStrategy.EnemyVehicleDeltaShootingDist;
+            var radius = groupContainer.Center.GetDistance(enemyCp) + MyStrategy.EnemyDangerousRadius;
 
             if (myCenterDist > radius) return new Point(0d, 0d);
 

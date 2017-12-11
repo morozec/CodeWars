@@ -210,7 +210,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         /// <param name="move"></param>
         public void Move(Player me, World world, Game game, Move move)
         {
-            if (game.IsFogOfWarEnabled) return; //TODO: убрать!!!
+            //if (game.IsFogOfWarEnabled) return; //TODO: убрать!!!
 
             
             //Debug.beginPost();
@@ -1251,7 +1251,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         {
             var centerPoint = GetVehiclesCenter(vehicles);
             var nearestGroup = GetNearestEnemyGroup(_enemyVehiclesGroups, centerPoint.X, centerPoint.Y, vehicles);
-            var nearestGroupAngle = MathHelper.GetAnlge(
+            var nearestGroupAngle = nearestGroup == null ? (double?) null : MathHelper.GetAnlge(
                 new Vector(centerPoint,
                     new Point(centerPoint.X + 100, centerPoint.Y)),
                 new Vector(centerPoint, nearestGroup.Center));
@@ -1281,9 +1281,15 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     }
                 }
 
-                var nearestGroupDist = centerPoint.GetDistance(nearestGroup.Center);
-                var needConnect = minFriendDist < nearestGroupDist && minFriendDist < GetSandvichRadius(vehicles) +
+                //Нужно ли объелинять группы
+                var needConnect = nearestFriendKey != -1 && minFriendDist < GetSandvichRadius(vehicles) +
                                   GetSandvichRadius(_groups[nearestFriendKey]) + EnemyDangerousRadius;
+                if (nearestGroup != null)
+                {
+                    var nearestGroupDist = centerPoint.GetDistance(nearestGroup.Center);
+                    needConnect = minFriendDist < nearestGroupDist && needConnect;
+                }
+
                 //Нужно ли сжать группу
                 var needCompress =
                     vehicles.All(v => v.GetSquaredDistanceTo(centerPoint.X, centerPoint.Y) > NeedCompressionDist * NeedCompressionDist);
@@ -1330,12 +1336,14 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     {
                         var currentDistanceToEnemyCenter = centerPoint.GetDistance(targetGroup.Center);
                         var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(targetGroup.Vehicles));
-                        var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, targetGroup.Center);
+                        var enemyCp =
+                            MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, targetGroup.Center);
                         var radius = targetGroup.Center.GetDistance(enemyCp) + EnemyDangerousRadius;
                         var advantage = GetAdvantage(vehicles, nearestGroup);
 
-                        if (!isMainGroup && currentDistanceToEnemyCenter <= radius && (advantage < NeedRotationAdvantage || double.IsNaN(advantage)) &&
-                            Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle) > MaxDeltaAngle
+                        if (!isMainGroup && currentDistanceToEnemyCenter <= radius &&
+                            (advantage < NeedRotationAdvantage || double.IsNaN(advantage)) &&
+                            Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle.Value) > MaxDeltaAngle
                         ) //TODO: вращаемся к ближайшему???
                         {//Врашаемся к врагу (убрал для основной группы авиации (groupId == 2)
                             RotateToEnemy(vehicles, groupId);
@@ -1344,7 +1352,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         {
                             //Движемся в центр группы врага
                             var attractiveFunction =
-                                PotentialFieldsHelper.GetAttractiveFunction(targetGroup.Center, 1d, centerPoint.X, centerPoint.Y);
+                                PotentialFieldsHelper.GetAttractiveFunction(targetGroup.Center, 1d, centerPoint.X,
+                                    centerPoint.Y);
                             MoveToSomewhere(vehicles,
                                 groupId,
                                 targetGroup.Center,
@@ -1355,35 +1364,54 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     }
                     else //нет групп врага, над которыми у нас военное приеимущество
                     {
-                        var currentDistanceToEnemyCenter = centerPoint.GetDistance(nearestGroup.Center);
-                        var enemyRectangle =
-                            MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
-                        var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint,
-                                enemyRectangle,
-                                nearestGroup.Center);
-                        var radius = nearestGroup.Center.GetDistance(enemyCp) + EnemyDangerousRadius;
+                        if (nearestGroup == null)
+                        {
+                            var centerMapPoint = new Point(_world.Width / 2d, _world.Height / 2d);
+                            var attractiveFunction = PotentialFieldsHelper.GetAttractiveFunction(centerMapPoint,
+                                1d,
+                                centerPoint.X,
+                                centerPoint.Y);
+                            MoveToSomewhere(vehicles,
+                                groupId,
+                                centerMapPoint,
+                                attractiveFunction,
+                                _enemyVehiclesGroups);
 
-                        if (!isMainGroup && currentDistanceToEnemyCenter <= radius &&
-                            Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle) > MaxDeltaAngle)
-                        {//Врашаемся к врагу (убрал для основной группы авиации (groupId == 2)
-                            RotateToEnemy(vehicles, groupId);
                         }
                         else
                         {
-                            //Выходим на орбиту окружности, где ближайшая группа врага нас не достанет. TODO: может достать другая группа
-                            var attractiveFunction = PotentialFieldsHelper.GetAttractiveRadiusFunction(nearestGroup.Center,
-                                1d,
-                                radius,
-                                centerPoint.X,
-                                centerPoint.Y);
-                            var circle = new Circle(nearestGroup.Center.X, nearestGroup.Center.Y, radius);
-                            MoveToSomewhere(vehicles,
-                                groupId,
-                                nearestGroup.Center,
-                                attractiveFunction,
-                                _enemyVehiclesGroups,
-                                nearestGroup,
-                                circle);
+                            var currentDistanceToEnemyCenter = centerPoint.GetDistance(nearestGroup.Center);
+                            var enemyRectangle =
+                                MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
+                            var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint,
+                                enemyRectangle,
+                                nearestGroup.Center);
+                            var radius = nearestGroup.Center.GetDistance(enemyCp) + EnemyDangerousRadius;
+
+                            if (!isMainGroup && currentDistanceToEnemyCenter <= radius &&
+                                Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle.Value) > MaxDeltaAngle)
+                            {//Врашаемся к врагу (убрал для основной группы авиации (groupId == 2)
+
+                                RotateToEnemy(vehicles, groupId);
+                            }
+                            else
+                            {
+                                //Выходим на орбиту окружности, где ближайшая группа врага нас не достанет. TODO: может достать другая группа
+                                var attractiveFunction = PotentialFieldsHelper.GetAttractiveRadiusFunction(
+                                    nearestGroup.Center,
+                                    1d,
+                                    radius,
+                                    centerPoint.X,
+                                    centerPoint.Y);
+                                var circle = new Circle(nearestGroup.Center.X, nearestGroup.Center.Y, radius);
+                                MoveToSomewhere(vehicles,
+                                    groupId,
+                                    nearestGroup.Center,
+                                    attractiveFunction,
+                                    _enemyVehiclesGroups,
+                                    nearestGroup,
+                                    circle);
+                            }
                         }
                     }
                     return true;
@@ -1414,18 +1442,28 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     }
                 }
 
-                var nearestGroupDist = centerPoint.GetDistance(nearestGroup.Center);
-                var needConnect = minFriendDist < nearestGroupDist && minFriendDist < GetSandvichRadius(vehicles) +
+                var needConnect = nearestFriendKey != -1 && minFriendDist < GetSandvichRadius(vehicles) +
                                   GetSandvichRadius(_groups[nearestFriendKey]) + EnemyDangerousRadius;
+                if (nearestGroup != null)
+                {
+                    var nearestGroupDist = centerPoint.GetDistance(nearestGroup.Center);
+                    needConnect = minFriendDist < nearestGroupDist && needConnect;
+                }
+                
 
                 var needCompress =
                     vehicles.All(v => v.GetSquaredDistanceTo(centerPoint.X, centerPoint.Y) > NeedCompressionDist * NeedCompressionDist);
 
                 var nearestFacility = GetNearestFacility(centerPoint);
+                var nearestFacilityCenter = GetFacilityCenterPoint(nearestFacility);
 
-                var isFacilityCloser = nearestFacility != null &&
-                                       centerPoint.GetDistance(nearestFacility.Left + _game.FacilityWidth / 2d,
-                                           nearestFacility.Top + _game.FacilityHeight / 2d) < centerPoint.GetDistance(nearestGroup.Center);
+                var isFacilityCloser = nearestFacilityCenter != null;
+                if (nearestGroup != null)
+                {
+                    isFacilityCloser = isFacilityCloser && centerPoint.GetDistance(nearestFacilityCenter) <
+                                       centerPoint.GetDistance(nearestGroup.Center);
+
+                }
 
                 var hasGroundVehicle = vehicles.Any(v => v.Type != VehicleType.Helicopter && v.Type != VehicleType.Fighter);
 
@@ -1441,12 +1479,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 }
                 else if (hasGroundVehicle && isFacilityCloser)
                 {
-                    var facilityCenter = GetFacilityCenterPoint(nearestFacility);
-                    var attractiveFunction = PotentialFieldsHelper.GetAttractiveFunction(facilityCenter,
+                    var attractiveFunction = PotentialFieldsHelper.GetAttractiveFunction(nearestFacilityCenter,
                         1d,
                         centerPoint.X,
                         centerPoint.Y);
-                    MoveToSomewhere(vehicles, groupId, facilityCenter, attractiveFunction, _enemyVehiclesGroups);
+                    MoveToSomewhere(vehicles, groupId, nearestFacilityCenter, attractiveFunction, _enemyVehiclesGroups);
                     return true;
                 }
                 else if (_sandvichActions[groupId] == SandvichAction.Compressing2 || _world.TickIndex > _groupEndMovementTime[groupId])
@@ -1460,7 +1497,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         var radius = targetGroup.Center.GetDistance(enemyCp) + EnemyDangerousRadius;
                         var advantage = GetAdvantage(vehicles, nearestGroup);
                         if (currentDistanceToEnemyCenter <= radius && (advantage < NeedRotationAdvantage || double.IsNaN(advantage)) &&
-                            Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle) > MaxDeltaAngle
+                            Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle.Value) > MaxDeltaAngle
                         ) //TODO: вращаемся к ближайшему???
                         {
                             RotateToEnemy(vehicles, groupId);
@@ -1479,34 +1516,52 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     }
                     else
                     {
-                        var currentDistanceToEnemyCenter = centerPoint.GetDistance(nearestGroup.Center);
-                        var enemyRectangle =
-                            MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
-                        var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint,
-                                enemyRectangle,
-                                nearestGroup.Center);
-                        var radius = nearestGroup.Center.GetDistance(enemyCp) + EnemyDangerousRadius;
-
-                        if (currentDistanceToEnemyCenter <= radius &&
-                            Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle) > MaxDeltaAngle)
+                        if (nearestGroup == null)
                         {
-                            RotateToEnemy(vehicles, groupId);
+                            var centerMapPoint = new Point(_world.Width / 2d, _world.Height / 2d);
+                            var attractiveFunction = PotentialFieldsHelper.GetAttractiveFunction(centerMapPoint,
+                                1d,
+                                centerPoint.X,
+                                centerPoint.Y);
+                            MoveToSomewhere(vehicles,
+                                groupId,
+                                centerMapPoint,
+                                attractiveFunction,
+                                _enemyVehiclesGroups);
+
                         }
                         else
                         {
-                            var attractiveFunction = PotentialFieldsHelper.GetAttractiveRadiusFunction(nearestGroup.Center,
-                                1d,
-                                radius,
-                                centerPoint.X,
-                                centerPoint.Y);
-                            var circle = new Circle(nearestGroup.Center.X, nearestGroup.Center.Y, radius);
-                            MoveToSomewhere(vehicles,
-                                groupId,
-                                nearestGroup.Center,
-                                attractiveFunction,
-                                _enemyVehiclesGroups,
-                                nearestGroup,
-                                circle);
+                            var currentDistanceToEnemyCenter = centerPoint.GetDistance(nearestGroup.Center);
+                            var enemyRectangle =
+                                MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(nearestGroup.Vehicles));
+                            var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint,
+                                enemyRectangle,
+                                nearestGroup.Center);
+                            var radius = nearestGroup.Center.GetDistance(enemyCp) + EnemyDangerousRadius;
+
+                            if (currentDistanceToEnemyCenter <= radius &&
+                                Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle.Value) > MaxDeltaAngle)
+                            {
+                                RotateToEnemy(vehicles, groupId);
+                            }
+                            else
+                            {
+                                var attractiveFunction = PotentialFieldsHelper.GetAttractiveRadiusFunction(
+                                    nearestGroup.Center,
+                                    1d,
+                                    radius,
+                                    centerPoint.X,
+                                    centerPoint.Y);
+                                var circle = new Circle(nearestGroup.Center.X, nearestGroup.Center.Y, radius);
+                                MoveToSomewhere(vehicles,
+                                    groupId,
+                                    nearestGroup.Center,
+                                    attractiveFunction,
+                                    _enemyVehiclesGroups,
+                                    nearestGroup,
+                                    circle);
+                            }
                         }
                     }
                     return true;
@@ -1753,18 +1808,21 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             var myFacilities = _world.Facilities.Where(f =>
                 f.Type == FacilityType.VehicleFactory && f.OwnerPlayerId == _me.Id && f.ProductionProgress == 0);
             if (!myFacilities.Any()) return;
-            var orderedFacilities = myFacilities.OrderByDescending(f =>
-            {
-                var fcp = GetFacilityCenterPoint(f);
-                var ng = GetNearestEnemyGroup(enemyGroups, fcp.X, fcp.Y);
-                return fcp.GetSquareDistance(ng.Center);
-            });
+
+            var targetFacility = enemyGroups.Any() //берем самую далекую от врага фабрику
+                ? myFacilities.OrderByDescending(f =>
+                {
+                    var fcp = GetFacilityCenterPoint(f);
+                    var ng = GetNearestEnemyGroup(enemyGroups, fcp.X, fcp.Y);
+                    return fcp.GetSquareDistance(ng.Center);
+                }).First()
+                : myFacilities.First(); 
 
             var airCount = _enemyVehicles.Count(v => v.IsAerial);
 
             _delayedMoves.Enqueue(move =>
             {
-                var id = orderedFacilities.First().Id;
+                var id = targetFacility.Id;
                 move.Action = ActionType.SetupVehicleProduction;
                 if (!_facilityProductionTypes.ContainsKey(id))
                 {
@@ -1821,6 +1879,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         /// <returns>True, если удар нанесен</returns>
         private bool MakeNuclearStrike()
         {
+            if (!_enemyVehicles.Any()) return false;
+
             var myVehicles = GetVehicles(Ownership.ALLY);
             var targetPoint = GetNuclearStrikeEnemyPoint(_enemyVehiclesGroups, myVehicles);
 
