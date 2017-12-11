@@ -529,8 +529,10 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     }
                     break;
                 case SandvichAction.NuclearStrikeMove:
-                    if (_movingNuclearGroupId != groupId) //удар нанесла другая группа
+                    if (_world.TickIndex > _groupEndMovementTime[groupId] || 
+                        _movingNuclearGroupId != groupId) //удар нанесла другая группа
                     {
+                        _movingNuclearGroupId = -1;
                         DoMilitaryAction(vehicles, groupId);
                     }
 
@@ -1898,8 +1900,9 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 {
                     if (_movingNuclearGroupId != -1 &&
                         _sandvichActions[_movingNuclearGroupId] == SandvichAction.NuclearStrikeMove)
-                    {
+                    {//Завершаем дейтствие SandvichAction.NuclearStrikeMove
                         _sandvichActions[_movingNuclearGroupId] = SandvichAction.MovingToEnemy;
+                        _groupEndMovementTime[_movingNuclearGroupId] = _world.TickIndex - 1;
                     }
                     if (movingGroupId == -1)
                     {
@@ -1953,6 +1956,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     move.X = nearestGroup.Center.X - center.X;
                     move.Y = nearestGroup.Center.Y - center.Y;
                     move.MaxSpeed = speed;
+                    _groupEndMovementTime[movingGroupId] =
+                        _world.TickIndex + center.GetDistance(nearestGroup.Center) / speed;
                 });
 
                 _sandvichActions[movingGroupId] = SandvichAction.NuclearStrikeMove;
