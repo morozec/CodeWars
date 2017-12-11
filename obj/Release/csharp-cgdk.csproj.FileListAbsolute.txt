@@ -1,6 +1,0 @@
-D:\OneDrive\AI\CodeWars\bin\Release\csharp-cgdk.exe.config
-D:\OneDrive\AI\CodeWars\bin\Release\csharp-cgdk.exe
-D:\OneDrive\AI\CodeWars\bin\Release\csharp-cgdk.pdb
-D:\OneDrive\AI\CodeWars\obj\Release\csharp-cgdk.exe
-D:\OneDrive\AI\CodeWars\obj\Release\csharp-cgdk.pdb
-D:\OneDrive\AI\CodeWars\obj\Release\csharp-cgdk.csprojResolveAssemblyReference.cache
