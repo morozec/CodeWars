@@ -1249,6 +1249,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
             if (groupId % 2 == 0) //авиация
             {
+                //Определяем дружественную группу, с которой можно объединиться
                 int nearestFriendKey = -1;
                 var minFriendDist = double.MaxValue;
                 foreach (var key in _groups.Keys.Where(k => k != groupId))
@@ -1274,10 +1275,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var nearestGroupDist = centerPoint.GetDistance(nearestGroup.Center);
                 var needConnect = minFriendDist < nearestGroupDist && minFriendDist < GetSandvichRadius(vehicles) +
                                   GetSandvichRadius(_groups[nearestFriendKey]) + EnemyDangerousRadius;
-
+                //Нужно ли сжать группу
                 var needCompress =
                     vehicles.All(v => v.GetSquaredDistanceTo(centerPoint.X, centerPoint.Y) > NeedCompressionDist * NeedCompressionDist);
 
+                //Нужно ли двинуться на врага для нанесения ядерного удара
                 var nuclearEnemyGroup = _nuclearStrikeEnemyVehicleId == -1
                     ? null
                     : _enemyVehiclesGroups.SingleOrDefault(g =>
@@ -1287,12 +1289,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                                  GetAdvantage(vehicles, nuclearEnemyGroup) > 0 &&
                                                  nuclearEnemyGroup.Vehicles.Count < 10;
 
-                if (needCompress)
+                if (needCompress) //сжимаем группу
                 {
                     Compress2(centerPoint.X, centerPoint.Y, NuclearCompressionFactor, 100d, groupId);
                     return true;
                 }
-                else if (needMovToNuclearEnemyGroup)
+                else if (needMovToNuclearEnemyGroup) //идем на врага для нанесения ядерного удара
                 {
                     var attractiveFunction =
                         PotentialFieldsHelper.GetAttractiveFunction(nuclearEnemyGroup.Center, 1d, centerPoint.X, centerPoint.Y);
@@ -1306,16 +1308,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 }
                 else if (!_apolloSoyuzIndexes.ContainsKey(groupId) &&
                          !_apolloSoyuzIndexes.ContainsKey(nearestFriendKey) && needConnect)
-                {
+                {//наничинаем объединение с другой группой
                     ApolloSoyuzRotate(groupId, nearestFriendKey);
                     return true;
                 }
                 else if (_sandvichActions[groupId] == SandvichAction.Compressing2 || _world.TickIndex > _groupEndMovementTime[groupId])
-                {
+                {//Выполняем обычное военное дейтсвие 
                     var isMainGroup = groupId == 2;
                     var targetGroup = GetMostAdvantageEnemyGroup(_enemyVehiclesGroups, groupId);
 
-                    if (targetGroup != null)
+                    if (targetGroup != null) //есть группа врага, над которой у нас военное приеимущество
                     {
                         var currentDistanceToEnemyCenter = centerPoint.GetDistance(targetGroup.Center);
                         var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(targetGroup.Vehicles));
@@ -1326,11 +1328,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         if (!isMainGroup && currentDistanceToEnemyCenter <= radius && (advantage < NeedRotationAdvantage || double.IsNaN(advantage)) &&
                             Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle) > MaxDeltaAngle
                         ) //TODO: вращаемся к ближайшему???
-                        {
+                        {//Врашаемся к врагу (убрал для основной группы авиации (groupId == 2)
                             RotateToEnemy(vehicles, groupId);
                         }
                         else
                         {
+                            //Движемся в центр группы врага
                             var attractiveFunction =
                                 PotentialFieldsHelper.GetAttractiveFunction(targetGroup.Center, 1d, centerPoint.X, centerPoint.Y);
                             MoveToSomewhere(vehicles,
@@ -1341,7 +1344,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                 targetGroup);
                         }
                     }
-                    else
+                    else //нет групп врага, над которыми у нас военное приеимущество
                     {
                         var currentDistanceToEnemyCenter = centerPoint.GetDistance(nearestGroup.Center);
                         var enemyRectangle =
@@ -1353,11 +1356,12 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
                         if (!isMainGroup && currentDistanceToEnemyCenter <= radius &&
                             Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle) > MaxDeltaAngle)
-                        {
+                        {//Врашаемся к врагу (убрал для основной группы авиации (groupId == 2)
                             RotateToEnemy(vehicles, groupId);
                         }
                         else
                         {
+                            //Выходим на орбиту окружности, где ближайшая группа врага нас не достанет. TODO: может достать другая группа
                             var attractiveFunction = PotentialFieldsHelper.GetAttractiveRadiusFunction(nearestGroup.Center,
                                 1d,
                                 radius,
@@ -1654,7 +1658,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 new Point(centerPoint.X + resFunction.X, centerPoint.Y + resFunction.Y));
 
             Point targetPoint = null;
-            if (circle != null)
+            if (circle != null) //Уходим на орбиту окружности, где враг нас не достанет. TODO: могут достать другие группы врага
             {
                 if (Math.Abs(resVector.V.X) < Tolerance)
                 {
