@@ -2866,6 +2866,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 if (hasBigGroups && eg.Vehicles.Count < ConsiderGroupVehiclesCount && !hasMyNearVehicles) continue;
 
                 var egRadius = GetSandvichRadius(eg.Vehicles);
+                var currRadius = egRadius + EnemyDangerousRadius;
 
                 var allVehicles = new List<Vehicle>(myVehicles);
                 //var helpKeysCurr = new List<int>();
@@ -2873,12 +2874,46 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 {
                     var currCenter = GetVehiclesCenter(_groups[key]);
                     var currNearestGroup = GetNearestEnemyGroup(enemyGroups, center.X, center.Y);
-                    var currRadius = egRadius + EnemyDangerousRadius;
-                    if (Equals(currNearestGroup, eg) && currCenter.GetDistance(eg.Center) < currRadius)
+
+
+                    if (groupId % 2 == 1) //наземна€ группа никого не ждет
                     {
-                        allVehicles.AddRange(_groups[key]);
-                        //helpKeysCurr.Add(key);
+                        if (Equals(currNearestGroup, eg) && currCenter.GetDistance(eg.Center) < currRadius)
+                        {
+                            allVehicles.AddRange(_groups[key]);
+                        }
                     }
+                    else 
+                    {
+
+                        if (Equals(currNearestGroup, eg) && currCenter.GetDistance(eg.Center) < currRadius)
+                        {
+                            if (key % 2 == 0)
+                            {
+                                allVehicles.AddRange(_groups[key]);
+                            }
+                            else //јвиаци€ ждет, пока наземна€ техника будет достаточно близко к врагу
+                            {
+                                var enemyRectangle = MathHelper.GetJarvisRectangle(GetVehicleGroupPoints(eg.Vehicles));
+                                var enemyCp =
+                                    MathHelper.GetNearestRectangleCrossPoint(currCenter, enemyRectangle, eg.Center);
+
+                                var currMaxSpeed = GetGroupLineMaxSpeed(_groups[key], enemyCp);
+                                var currDist = currCenter.GetDistance(enemyCp);
+                                var currTimeToEnemyCenter = currDist / currMaxSpeed;
+
+                                var selfMaxSpeed = GetGroupLineMaxSpeed(_groups[groupId], eg.Center);
+                                var selfDist = center.GetDistance(eg.Center);
+                                var selfTimeToEnemyCenter = selfDist / selfMaxSpeed;
+
+                                if (currTimeToEnemyCenter < selfTimeToEnemyCenter)
+                                {
+                                    allVehicles.AddRange(_groups[key]);
+                                }
+                            }
+                        }
+                    }
+
                 }
 
                 var advantage = GetAdvantage(allVehicles, eg);
