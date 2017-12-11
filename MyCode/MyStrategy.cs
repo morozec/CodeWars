@@ -196,9 +196,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         //Id группы, которая движется к врагу для нанесения ядерного удара
         private int _movingNuclearGroupId = -1;
 
-        //Тип производимой на фабрике техики
-        private readonly IDictionary<long, VehicleType> _facilityProductionTypes = new Dictionary<long, VehicleType>();
-
         //Id юнита врага, который нанес последний ядерный удар
         private long _nuclearStrikeEnemyVehicleId = -1;
 
@@ -1832,7 +1829,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private void SetFacilitiesProduction(IList<GroupContainer> enemyGroups)
         {
             var myFacilities = _world.Facilities.Where(f =>
-                f.Type == FacilityType.VehicleFactory && f.OwnerPlayerId == _me.Id && f.ProductionProgress == 0);
+                f.Type == FacilityType.VehicleFactory && f.OwnerPlayerId == _me.Id && f.VehicleType == null);
             if (!myFacilities.Any()) return;
 
             var targetFacility = enemyGroups.Any() //берем самую далекую от врага фабрику
@@ -1844,21 +1841,67 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 }).First()
                 : myFacilities.First(); 
 
-            var airCount = _enemyVehicles.Count(v => v.IsAerial);
+            //var airCount = _enemyVehicles.Count(v => v.IsAerial);
 
-            _delayedMoves.Enqueue(move =>
+           SetFactoryFacilityProduction(targetFacility);
+
+        }
+
+        private void SetFactoryFacilityProduction(Facility facility)
+        {
+            var enemyVehiclesCount = new List<int>
             {
-                var id = targetFacility.Id;
-                move.Action = ActionType.SetupVehicleProduction;
-                if (!_facilityProductionTypes.ContainsKey(id))
+                _enemyVehicles.Count(v => v.Type == VehicleType.Ifv),
+                _enemyVehicles.Count(v => v.Type == VehicleType.Tank),
+                _enemyVehicles.Count(v => v.Type == VehicleType.Fighter),
+                _enemyVehicles.Count(v => v.Type == VehicleType.Helicopter),
+
+            };
+            var maxCount = enemyVehiclesCount.Max();
+            var maxIndex = enemyVehiclesCount.IndexOf(maxCount);
+
+            var myGroundVehiclesCount = GetVehicles(Ownership.ALLY).Count(v => !v.IsAerial);
+
+            VehicleType vehicleType = VehicleType.Tank;
+            if (_isGroupCompressed.ContainsKey(1) && !_isGroupCompressed[1])
+            {
+                vehicleType = VehicleType.Fighter;
+            }
+            else if (myGroundVehiclesCount < SquardCount)
+            {
+                vehicleType = VehicleType.Tank;
+            }
+            else
+            {
+                switch (maxIndex)
                 {
-                    _facilityProductionTypes.Add(id,
-                        airCount > SmallAirCount ? VehicleType.Fighter : VehicleType.Helicopter);
+                    case 0:
+                        vehicleType = VehicleType.Tank;
+                        break;
+                    case 1:
+                        vehicleType = VehicleType.Helicopter;
+                        break;
+                    case 2:
+                        vehicleType = VehicleType.Ifv;
+                        break;
+                    case 3:
+                        vehicleType = VehicleType.Fighter;
+                        break;
                 }
-                move.VehicleType = _facilityProductionTypes[id];
+            }
+
+
+            _importantDelayedMoves.Enqueue(move =>
+            {
+                var id = facility.Id;
+                move.Action = ActionType.SetupVehicleProduction;
+                //if (!_facilityProductionTypes.ContainsKey(id))
+                //{
+                //    _facilityProductionTypes.Add(id, vehicleType);
+                //}
+                move.VehicleType = vehicleType;
                 move.FacilityId = id;
             });
-
         }
 
         /// <summary>
@@ -2084,14 +2127,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     }
                 }
 
-                var myFacilities = _world.Facilities.Where(f => f.OwnerPlayerId == _me.Id).ToList();
-                if (myFacilities.Any())
-                {
-                    var orderedFacilities =
-                        myFacilities.OrderBy(f => gc.Center.GetSquareDistance(GetFacilityCenterPoint(f)));
-                    if (_facilityProductionTypes.ContainsKey(orderedFacilities.First().Id))
-                        _facilityProductionTypes.Remove(orderedFacilities.First().Id);
-                }
+                
 
                 _importantDelayedMoves.Enqueue(move =>
                 {
@@ -2115,6 +2151,14 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     move.Group = index;
                     AddNewGroupValues(index);
                 });
+
+                var myFacilities = _world.Facilities.Where(f => f.OwnerPlayerId == _me.Id).ToList();
+                if (myFacilities.Any())
+                {
+                    var orderedFacilities =
+                        myFacilities.OrderBy(f => gc.Center.GetSquareDistance(GetFacilityCenterPoint(f))).ToList();
+                    SetFactoryFacilityProduction(orderedFacilities.First());
+                }
 
             }
 
