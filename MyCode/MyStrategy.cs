@@ -1481,10 +1481,11 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var nearestFacility = GetNearestFacility(centerPoint);
                 var nearestFacilityCenter = nearestFacility != null ? GetFacilityCenterPoint(nearestFacility) : null;
                 bool isFacilityCloser;
-                if (nearestGroup != null && nearestFacility != null)
+                var targetGroup = GetNearestAdvantageEnemyGroup(_enemyVehiclesGroups, groupId);
+                if (targetGroup != null && nearestFacility != null)
                 {
                     isFacilityCloser = centerPoint.GetDistance(nearestFacilityCenter) <
-                                       centerPoint.GetDistance(nearestGroup.Center);
+                                       centerPoint.GetDistance(targetGroup.Center);
                 }
                 else if (nearestFacility != null)
                 {
@@ -1515,7 +1516,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 else if (_sandvichActions[groupId] == SandvichAction.Compressing2 || _world.TickIndex > _groupEndMovementTime[groupId])
                 {
                     var isMainGroup = groupId == 3 || groupId == 5 || groupId == 7;
-                    var targetGroup = GetNearestAdvantageEnemyGroup(_enemyVehiclesGroups, groupId);
                     if (targetGroup != null)
                     {
                         var currentDistanceToEnemyCenter = centerPoint.GetDistance(targetGroup.Center);
