@@ -1455,15 +1455,22 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 var needCompress =
                     vehicles.All(v => v.GetSquaredDistanceTo(centerPoint.X, centerPoint.Y) > NeedCompressionDist * NeedCompressionDist);
 
+
                 var nearestFacility = GetNearestFacility(centerPoint);
-                var nearestFacilityCenter = GetFacilityCenterPoint(nearestFacility);
-
-                var isFacilityCloser = nearestFacilityCenter != null;
-                if (nearestGroup != null)
+                var nearestFacilityCenter = nearestFacility != null ? GetFacilityCenterPoint(nearestFacility) : null;
+                bool isFacilityCloser;
+                if (nearestGroup != null && nearestFacility != null)
                 {
-                    isFacilityCloser = isFacilityCloser && centerPoint.GetDistance(nearestFacilityCenter) <
+                    isFacilityCloser = centerPoint.GetDistance(nearestFacilityCenter) <
                                        centerPoint.GetDistance(nearestGroup.Center);
-
+                }
+                else if (nearestFacility != null)
+                {
+                    isFacilityCloser = true;
+                }
+                else
+                {
+                    isFacilityCloser = false;
                 }
 
                 var hasGroundVehicle = vehicles.Any(v => v.Type != VehicleType.Helicopter && v.Type != VehicleType.Fighter);
