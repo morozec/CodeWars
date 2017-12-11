@@ -44,151 +44,160 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         private const double MaxGroupUnitsDist = 15;                //Максимальное расстояние между юнитами одной группы
         private const double MaxDeltaAngle = Math.PI/180*2;         //Отклонения угла, при превышении которого, надо вращаться
         private const double NuclearCompressionFactor = 0.1d;       //Коэфф. сжатия при ядерном ударе
-
         private const double SquardDelta = 6;                       //Смещение отрядов (для метода Scale)
         private const double GroundPrepareCompressinFactor = 0.75;  //Коэфф. сжатия наземки после построения бутера
         private const double AirPrepareCompressinFactor = 0.55;     //Коэфф. сжатия авиации после построения бутера
-
         private const int MinNuclearStrikeCount = 5;                //Минимальное число юнитовв группе для нанесения ядерного удара
-
         private const int SmallAirCount = 33;                       //Число авиации врага, при превышении которого надо строить самолеты
         private const int ConsiderGroupVehiclesCount = 7;           //Число юнитов в группе врага, при превышении которого надо рассматривать эту группу как полноценную
-
         private const double MoreSideDist = 15d;                    //Константа для определения сбалансированности многоугольника
-
         private const double HpNuclerStrikeCoeff = 0.7;             //Коэфф. здоровья, необходимого для нанесения юнитом ядерного удара
-        
         public const double EnemyDangerousRadius = 100d;            //Примерный радиус опасности врага
-
         private const int SquardCount = 33;                         //Минимальное число юнитов для создания группы 
         private const double NeedCompressionDist = 7d;              //Расстояние до центра, при превышении которого всеми юнитами необходимо сжать группу
         private const double NeedRotationAdvantage = 0.15;          //Коэффициент преимущества над врагом, при превышении которого нет необходимости вращаться к этому врагу
         private const double MakeNuclearStrikePart = 0.1;           //Вспомогательный коэффициент для нанесения ядерного удара
         private const double MakeNuclearStrikeCount = 10;           //Вспомогательный коэффициент для нанесения ядерного удара
 
+        //Мои группы
         private IDictionary<int, IList<Vehicle>> _groups = new Dictionary<int, IList<Vehicle>>();
+        //Самый больший номер существующей группы
         private int _lastGroupIndex = -1;
-
+        //Мой первый ядерный удар - костяль для ускорения
         private bool _isFirstNuclearStrike = true;
-
+        //Ключевые точки для движения авиации, чтобы построить бутер (уже не используется)
         private readonly IList<Point> _airKeyPoints = new List<Point>
         {
             new Point(119, 119),
             new Point(193, 119)
         };
-
-        private readonly Queue<Action<Move>> _delayedMoves = new Queue<Action<Move>>();
-        private readonly Queue<Action<Move>> _importantDelayedMoves = new Queue<Action<Move>>();
-
+        //Ключевые точки для движения назменой техники 
         private readonly IList<Point> _groundKeyPoints = new List<Point>
         {
             new Point(45, 119),
             new Point(119, 119),
             new Point(193, 119)
         };
+
+        //Дейтствия, которые можно удалят при необходимости
+        private readonly Queue<Action<Move>> _delayedMoves = new Queue<Action<Move>>();
+        //Важные детствия, нельзя удалять
+        private readonly Queue<Action<Move>> _importantDelayedMoves = new Queue<Action<Move>>();
         
         
         private readonly IDictionary<long, int> _updateTickByVehicleId = new Dictionary<long, int>();
-
         private readonly IDictionary<long, Vehicle> _vehicleById = new Dictionary<long, Vehicle>();
-        
         private AStar _aStar;
-
         private Player _enemy;
-
         private double _enemyNuclearStrikeX;
         private double _enemyNuclearStrikeY;
-
         private Game _game;
+        private Player _me;
+        private Move _move;
+        private Random _random;
+        private TerrainType[][] _terrainTypeByCellXY;
+        private WeatherType[][] _weatherTypeByCellXY;
+        private World _world;
 
-        private readonly IDictionary<VehicleType, IList<APoint>> _groundAStarPathes= new Dictionary<VehicleType, IList<APoint>>();
+        //Вспомогательные поля для построения бутера
+        private readonly IDictionary<VehicleType, IList<APoint>> _groundAStarPathes =
+            new Dictionary<VehicleType, IList<APoint>>();
         private readonly IDictionary<VehicleType, int> _groundPathIndexes = new Dictionary<VehicleType, int>();
         private IDictionary<int, VehicleType> _groundPointsVehicleTypes;
 
+        //Обработан ли вражеский ядерный удар
         private bool _isEnemyNuclearStrikeConsidered = false;
+        //Обработан ли мой вражеский удар
         private bool _isMyNuclearStrikeConsidered = false;
 
+        //Вращается ли группа. Необходимо, чтобы знать текущий угол поворота группы _tmpGroupAngle
         private readonly IDictionary<int, bool> _isRotating = new Dictionary<int, bool>()
         {
             {1, false},
             {2, false}
         };
-
-        private Player _me;
-        private Move _move;
-
-
-        private Random _random;
-
+        
+        //Текущее состояния групп
         private readonly IDictionary<int, SandvichAction> _sandvichActions = new Dictionary<int, SandvichAction>()
         {
             {1, SandvichAction.AStarMove },
             {2, SandvichAction.Shifting },
         };
 
+        //Время окончания очередного действия группы
         private readonly IDictionary<int, double> _groupEndMovementTime = new Dictionary<int, double>()
         {
             {1, 0d},
             {2, 0d},
         };
 
+        //Время начала расширения группы при ядерном ударе врага
         private readonly IDictionary<int, int> _groupStartUncompressTick = new Dictionary<int, int>()
         {
             {1, -1},
             {2, -1},
         };
 
+        //Угол поворота группы после окончания вращения
         private readonly IDictionary<int, double> _currentGroupAngle = new Dictionary<int, double>()
         {
             {1, 0d},
             {2, 0d},
         };
 
+        //Текущий угол поворота группы
         private readonly IDictionary<int, double> _tmpGroupAngle = new Dictionary<int, double>()
         {
             {1, 0d},
             {2, 0d},
         };
 
+        //Текущая угловая скорость
         private readonly IDictionary<int, double> _currentAngularSpeed = new Dictionary<int, double>()
         {
             {1, 0d},
             {2, 0d},
         };
 
+        //Целевая точка движения
         private readonly IDictionary<int, Point> _currentMoveEnemyPoint = new Dictionary<int, Point>()
         {
             {1, new Point(0d, 0d)},
             {2, new Point(0d, 0d)},
         };
 
+        //Целевой угол движения
         private readonly IDictionary<int, double> _currentMovingAngle = new Dictionary<int, double>()
         {
             {1, 0d},
             {2, 0d},
         };
 
+        //Завершилось ли построение бутера
         private readonly IDictionary<int, bool> _isGroupCompressed = new Dictionary<int, bool>()
         {
             {1, false },
             {2, false },
         };
 
+        //Id выбранной группы (чтобы не вызывать лишний раз ClearAndSelect)
         private int _selectedGroupId = -1;
 
-        private TerrainType[][] _terrainTypeByCellXY;
-        private WeatherType[][] _weatherTypeByCellXY;
-        private World _world;
-
+        //Данные о враге
         private IList<Vehicle> _enemyVehicles;
         private IList<GroupContainer> _enemyVehiclesGroups;
 
+        //Число тиков, через которые надо совершать военные действия, чтобы не было перегрузки
         private int _moveEnemyTicks = -1;
+        //Id групп, которые совершают стыковку
         private readonly IDictionary<int, int> _apolloSoyuzIndexes = new Dictionary<int, int>();
+        //Id группы, которая движется к врагу для нанесения ядерного удара
         private int _movingNuclearGroupId = -1;
 
+        //Тип производимой на фабрике техики
         private readonly IDictionary<long, VehicleType> _facilityProductionTypes = new Dictionary<long, VehicleType>();
 
+        //Id юнита врага, который нанес последний ядерный удар
         private long _nuclearStrikeEnemyVehicleId = -1;
 
 
