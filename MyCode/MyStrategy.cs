@@ -33,6 +33,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             ApolloSoyuzRotate, //Поворачиваем два отряда друг к другу для дальнейшего схлопывания
             ApolloSoyuzMove,//Устремляем два отряда друг к другу для дальнейшего схлопывания
             ApolloSoyuzJoin, //Соединяем два отряда в одну группу
+            DevideInto3Groups //Делим наземеную технику на 3 группы
         }
 
         //static MyStrategy()
@@ -200,6 +201,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         //Id юнита врага, который нанес последний ядерный удар
         private long _nuclearStrikeEnemyVehicleId = -1;
 
+        //Словарь вида Id фабрики - id группы захвата
+        private IDictionary<long, int> _facilityCaptureGroupIds = new Dictionary<long, int>();
 
         /// <summary>
         ///     Основной метод стратегии, осуществляющий управление армией. Вызывается каждый тик.
@@ -387,10 +390,21 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     if (_world.TickIndex > _groupEndMovementTime[groupId] ||
                         vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex))
                     {
-                        //Сжатие прекратилось. Переходим к обычным военным действиям
-                        _isGroupCompressed[groupId] = true;
-                        DoMilitaryAction(vehicles, groupId);
+                        if (groupId == 1 && !_isGroupCompressed[groupId])
+                        {
+                            _isGroupCompressed[groupId] = true;
+                            SetGroundGroups();
+                        }
+                        else
+                        {
+                            //Сжатие прекратилось. Переходим к обычным военным действиям
+                            _isGroupCompressed[groupId] = true;
+                            DoMilitaryAction(vehicles, groupId);
+                        }
                     }
+                    break;
+                case SandvichAction.DevideInto3Groups:
+                    DoMilitaryAction(vehicles, groupId);
                     break;
                 case SandvichAction.Rotating:
 
@@ -653,7 +667,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         #region Методы построения бутербродов
         private void GroundVehiclesInit()
         {
-            SetGroudGroups();
+            SetGroudGroup();
 
             var vehicles = new Dictionary<VehicleType, IList<Vehicle>>
                     {
@@ -791,7 +805,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         private void AirVehiclesInit()
         {
-            SetAirGroups();
+            SetAirGroup();
 
             var fighters = GetVehicles(Ownership.ALLY, VehicleType.Fighter);
             var helicopters = GetVehicles(Ownership.ALLY, VehicleType.Helicopter);
@@ -1348,7 +1362,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                             (advantage < NeedRotationAdvantage || double.IsNaN(advantage)) &&
                             Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle.Value) > MaxDeltaAngle
                         ) //TODO: вращаемся к ближайшему???
-                        {//Врашаемся к врагу (убрал для основной группы авиации (groupId == 2)
+                        {//Вращаемся к врагу (убрал для основной группы авиации (groupId == 2)
                             RotateToEnemy(vehicles, groupId, nearestGroup);
                         }
                         else
@@ -1423,36 +1437,42 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
             else //наземная техника. здесь почти полный копипаст
             {
-                int nearestFriendKey = -1;
-                var minFriendDist = double.MaxValue;
-                foreach (var key in _groups.Keys.Where(k => k != groupId))
+                if (_facilityCaptureGroupIds.Values.Any(id => id == groupId))
                 {
-                    if (_sandvichActions[key] != SandvichAction.MovingToEnemy) continue;
-
-                    var isThisGround = IsGroundGroup(vehicles);
-                    var isThisAir = IsAirGroup(vehicles);
-                    var isOtherGround = IsGroundGroup(_groups[key]);
-                    var isOtherAir = IsAirGroup(_groups[key]);
-
-                    if (isThisGround && !isOtherGround || isThisAir && !isOtherAir || isOtherGround && !isThisGround ||
-                        isOtherAir && !isThisAir) continue;
-
-                    var dist = centerPoint.GetDistance(GetVehiclesCenter(_groups[key]));
-                    if (dist < minFriendDist)
-                    {
-                        minFriendDist = dist;
-                        nearestFriendKey = key;
-                    }
+                    var facilityId = _facilityCaptureGroupIds.Keys.Single(x => _facilityCaptureGroupIds[x] == groupId);
+                    _facilityCaptureGroupIds.Remove(facilityId);
                 }
 
-                var needConnect = nearestFriendKey != -1 && minFriendDist < GetSandvichRadius(vehicles) +
-                                  GetSandvichRadius(_groups[nearestFriendKey]) + EnemyDangerousRadius;
-                if (nearestGroup != null)
-                {
-                    var nearestGroupDist = centerPoint.GetDistance(nearestGroup.Center);
-                    needConnect = minFriendDist < nearestGroupDist && needConnect;
-                }
-                
+                //int nearestFriendKey = -1;
+                //var minFriendDist = double.MaxValue;
+                //foreach (var key in _groups.Keys.Where(k => k != groupId))
+                //{
+                //    if (_sandvichActions[key] != SandvichAction.MovingToEnemy) continue;
+
+                //    var isThisGround = IsGroundGroup(vehicles);
+                //    var isThisAir = IsAirGroup(vehicles);
+                //    var isOtherGround = IsGroundGroup(_groups[key]);
+                //    var isOtherAir = IsAirGroup(_groups[key]);
+
+                //    if (isThisGround && !isOtherGround || isThisAir && !isOtherAir || isOtherGround && !isThisGround ||
+                //        isOtherAir && !isThisAir) continue;
+
+                //    var dist = centerPoint.GetDistance(GetVehiclesCenter(_groups[key]));
+                //    if (dist < minFriendDist)
+                //    {
+                //        minFriendDist = dist;
+                //        nearestFriendKey = key;
+                //    }
+                //}
+
+                //var needConnect = nearestFriendKey != -1 && minFriendDist < GetSandvichRadius(vehicles) +
+                //                  GetSandvichRadius(_groups[nearestFriendKey]) + EnemyDangerousRadius;
+                //if (nearestGroup != null)
+                //{
+                //    var nearestGroupDist = centerPoint.GetDistance(nearestGroup.Center);
+                //    needConnect = minFriendDist < nearestGroupDist && needConnect;
+                //}
+
 
                 var needCompress =
                     vehicles.All(v => v.GetSquaredDistanceTo(centerPoint.X, centerPoint.Y) > NeedCompressionDist * NeedCompressionDist);
@@ -1482,22 +1502,19 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                     Compress2(centerPoint.X, centerPoint.Y, NuclearCompressionFactor, 100d, groupId);
                     return true;
                 }
-                else if (needConnect)
-                {
-                    ApolloSoyuzRotate(groupId, nearestFriendKey);
-                    return true;
-                }
                 else if (hasGroundVehicle && isFacilityCloser)
                 {
                     var attractiveFunction = PotentialFieldsHelper.GetAttractiveFunction(nearestFacilityCenter,
                         1d,
                         centerPoint.X,
                         centerPoint.Y);
+                    _facilityCaptureGroupIds[nearestFacility.Id] = groupId;
                     MoveToSomewhere(vehicles, groupId, nearestFacilityCenter, attractiveFunction, _enemyVehiclesGroups);
                     return true;
                 }
                 else if (_sandvichActions[groupId] == SandvichAction.Compressing2 || _world.TickIndex > _groupEndMovementTime[groupId])
                 {
+                    var isMainGroup = groupId == 3 || groupId == 5 || groupId == 7;
                     var targetGroup = GetNearestAdvantageEnemyGroup(_enemyVehiclesGroups, groupId);
                     if (targetGroup != null)
                     {
@@ -1506,7 +1523,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         var enemyCp = MathHelper.GetNearestRectangleCrossPoint(centerPoint, enemyRectangle, targetGroup.Center);
                         var radius = targetGroup.Center.GetDistance(enemyCp) + EnemyDangerousRadius;
                         var advantage = GetAdvantage(vehicles, nearestGroup);
-                        if (currentDistanceToEnemyCenter <= radius && (advantage < NeedRotationAdvantage || double.IsNaN(advantage)) &&
+                        if (!isMainGroup && currentDistanceToEnemyCenter <= radius && (advantage < NeedRotationAdvantage || double.IsNaN(advantage)) &&
                             Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle.Value) > MaxDeltaAngle
                         ) //TODO: вращаемся к ближайшему???
                         {
@@ -1550,7 +1567,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                                 nearestGroup.Center);
                             var radius = nearestGroup.Center.GetDistance(enemyCp) + EnemyDangerousRadius;
 
-                            if (currentDistanceToEnemyCenter <= radius &&
+                            if (!isMainGroup && currentDistanceToEnemyCenter <= radius &&
                                 Math.Abs(_currentGroupAngle[groupId] - nearestGroupAngle.Value) > MaxDeltaAngle)
                             {
                                 RotateToEnemy(vehicles, groupId, nearestGroup);
@@ -2095,30 +2112,33 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 {
                     move.Action = ActionType.Assign;
                     move.Group = index;
-                    _lastGroupIndex = Math.Max(_lastGroupIndex, index);
-
-                    _sandvichActions[index] = SandvichAction.MovingToEnemy;
-                    _groupEndMovementTime[index] = 0d;
-                    _groupStartUncompressTick[index] = -1;
-                    _currentGroupAngle[index] = Math.PI / 2d;
-                    _tmpGroupAngle[index] = 0d;
-                    _currentAngularSpeed[index] = 0d;
-                    _currentMoveEnemyPoint[index] = new Point(0d, 0d);
-                    _currentMovingAngle[index] = 0d;
-                    _isGroupCompressed[index] = true;
-                    _isRotating[index] = false;
-
-
+                    AddNewGroupValues(index);
                 });
 
             }
 
         }
+        
+        private void AddNewGroupValues(int index)
+        {
+            _lastGroupIndex = Math.Max(_lastGroupIndex, index);
+
+            _sandvichActions[index] = SandvichAction.MovingToEnemy;
+            _groupEndMovementTime[index] = 0d;
+            _groupStartUncompressTick[index] = -1;
+            _currentGroupAngle[index] = Math.PI / 2d;
+            _tmpGroupAngle[index] = 0d;
+            _currentAngularSpeed[index] = 0d;
+            _currentMoveEnemyPoint[index] = new Point(0d, 0d);
+            _currentMovingAngle[index] = 0d;
+            _isGroupCompressed[index] = true;
+            _isRotating[index] = false;
+        }
 
         /// <summary>
         /// Назначение авиации номера группы 2
         /// </summary>
-        private void SetAirGroups()
+        private void SetAirGroup()
         {
             _importantDelayedMoves.Enqueue(move =>
             {
@@ -2148,7 +2168,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
         /// <summary>
         /// Назначение наземной технике номера группы 1
         /// </summary>
-        private void SetGroudGroups()
+        private void SetGroudGroup()
         {
             _importantDelayedMoves.Enqueue(move =>
             {
@@ -2181,6 +2201,100 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 move.Group = 1;
                 _lastGroupIndex = Math.Max(_lastGroupIndex, 1);
             });
+        }
+
+        private void SetGroundGroups()
+        {
+            _sandvichActions[1] = SandvichAction.DevideInto3Groups;
+
+            var group1Vehicles = _groups[1];
+            var leftBorder = group1Vehicles.Min(v => v.X);
+            var rightBorder = group1Vehicles.Max(v => v.X);
+            var topBorder = group1Vehicles.Min(v => v.Y);
+            var bottomBorder = group1Vehicles.Max(v => v.Y);
+
+            var height = bottomBorder - topBorder;
+            var thirdHeight = height / 3d;
+
+            if (_selectedGroupId != 1)
+            {
+                _importantDelayedMoves.Enqueue(move =>
+                {
+                    move.Action = ActionType.ClearAndSelect;
+                    move.Group = 1; 
+                });
+                _selectedGroupId = 1;
+            }
+
+            _importantDelayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.Dismiss;
+                move.Group = 1;
+
+                _sandvichActions.Remove(1);
+                _groupEndMovementTime.Remove(1);
+                _groupStartUncompressTick.Remove(1);
+                _currentGroupAngle.Remove(1);
+                _tmpGroupAngle.Remove(1);
+                _currentAngularSpeed.Remove(1);
+                _currentMoveEnemyPoint.Remove(1);
+                _currentMovingAngle.Remove(1);
+                _isGroupCompressed.Remove(1);
+                _isRotating.Remove(1);
+            });
+
+            _importantDelayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.ClearAndSelect;
+
+                move.Left = leftBorder - Tolerance;
+                move.Right = rightBorder + Tolerance;
+                move.Top = topBorder - Tolerance;
+                move.Bottom = topBorder + thirdHeight;
+            });
+
+            _importantDelayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.Assign;
+                move.Group = 3;
+            });
+
+            _importantDelayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.ClearAndSelect;
+                move.Left = leftBorder - Tolerance;
+                move.Right = rightBorder + Tolerance;
+                move.Top = topBorder + thirdHeight + Tolerance;
+                move.Bottom = topBorder + thirdHeight * 2;
+            });
+
+            _importantDelayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.Assign;
+                move.Group = 5;
+            });
+
+            _importantDelayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.ClearAndSelect;
+                move.Left = leftBorder - Tolerance;
+                move.Right = rightBorder + Tolerance;
+                move.Top = topBorder + thirdHeight * 2 + Tolerance;
+                move.Bottom = bottomBorder + Tolerance;
+            });
+
+            _importantDelayedMoves.Enqueue(move =>
+            {
+                move.Action = ActionType.Assign;
+                move.Group = 7;
+            });
+
+            AddNewGroupValues(3);
+            AddNewGroupValues(5);
+            AddNewGroupValues(7);
+            _selectedGroupId = 7;
+
+
         }
 
         #endregion
@@ -3227,6 +3341,8 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             Facility targetFacility = null;
             foreach (var facility in _world.Facilities.Where(f => f.CapturePoints < _game.MaxFacilityCapturePoints))
             {
+                if (_facilityCaptureGroupIds.ContainsKey(facility.Id)) continue;
+
                 var dist = groupCenter.GetSquareDistance(facility.Left + _game.FacilityWidth / 2d,
                     facility.Top + _game.FacilityHeight / 2d);
                 if (dist < minDist)
