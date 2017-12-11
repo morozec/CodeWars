@@ -225,11 +225,13 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 _enemyVehicles = GetVehicles(Ownership.ENEMY);
                 _enemyVehiclesGroups = GetVehicleGroups(_enemyVehicles);
 
+                //Определяем, можно ли нанести ядерный удар. Если да - наносим его
                 if (!_isMyNuclearStrikeConsidered && _me.RemainingNuclearStrikeCooldownTicks == 0 && !_importantDelayedMoves.Any() && MakeNuclearStrike())
                 {
                     _delayedMoves.Clear();
                     _isMyNuclearStrikeConsidered = true;
                 }
+                //Определяем, нужно ли расширяться при ядреного ударе соперника. Если да - расширяемся
                 else if (!_isEnemyNuclearStrikeConsidered && _enemy.NextNuclearStrikeTickIndex > -1 &&
                          !_importantDelayedMoves.Any())
                 {
@@ -253,15 +255,16 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                 }
 
                 if (ExecuteDelayedMove()) return;
-
+                //Создаем группы из новых юнитов
                 CreateNewGroups();
 
                 if (ExecuteDelayedMove()) return;
-
+                //Запускаем пр-во на фабриках
                 SetFacilitiesProduction(_enemyVehiclesGroups);
 
                 if (ExecuteDelayedMove()) return;
 
+                //Запскаем основной метод SandvichMove. Сначал - для выделенной группы (в целях экономии)
                 if (_groups.ContainsKey(_selectedGroupId))
                 {
                     IsAStarMoveFinished isAStarMoveFinished = null;
@@ -647,7 +650,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
             }
         }
 
-        #region Методы для соверешния действий (заполнения _delayedMoves)
+        #region Методы для совершения действий (заполнения _delayedMoves)
 
         #region Методы построения бутербродов
         private void GroundVehiclesInit()
@@ -2088,7 +2091,6 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
 
         #endregion
         
-
         #region Ядерная программа
 
         /// <summary>
