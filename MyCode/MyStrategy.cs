@@ -374,7 +374,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         var centerPoint = GetVehiclesCenter(vehicles);
                         Compress2(centerPoint.X, centerPoint.Y,
                             groupId % 2 == 1 ? GroundPrepareCompressinFactor : AirPrepareCompressinFactor, 100d,
-                            groupId); //TODO
+                            groupId); //TODO: научитьс€ определ€ть врем€ сжати€
                     }
                     break;
 
@@ -516,7 +516,7 @@ namespace Com.CodeGame.CodeWars2017.DevKit.CSharpCgdk
                         break;
                     }
                 case SandvichAction.Uncompress:
-                    if (_world.TickIndex > _groupEndMovementTime[groupId]) //TODO: все сто€т?
+                    if (_world.TickIndex > _groupEndMovementTime[groupId]) //TODO: а если vehicles.All(v => _updateTickByVehicleId[v.Id] < _world.TickIndex)?
                     {
                         Compress2(_enemyNuclearStrikeX,
                             _enemyNuclearStrikeY,
